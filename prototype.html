@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WebCraft v0.1 — 프로토타입</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#0b0f14; font-family:'Segoe UI','Malgun Gothic',sans-serif; user-select:none; }
+  canvas { display:block; }
+  #cross { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); color:#fff; font-size:22px; font-weight:300; text-shadow:0 0 3px #000; pointer-events:none; z-index:5; }
+  #info { position:fixed; top:10px; left:10px; color:#cde; font-size:12px; text-shadow:0 1px 2px #000; z-index:5; pointer-events:none; }
+  #hotbar { position:fixed; bottom:14px; left:50%; transform:translateX(-50%); display:flex; gap:4px; z-index:5; }
+  .slot { width:44px; height:44px; border:2px solid #555; background:rgba(0,0,0,.45); border-radius:4px; display:flex; align-items:center; justify-content:center; position:relative; }
+  .slot.sel { border-color:#fff; box-shadow:0 0 0 2px rgba(255,255,255,.35); }
+  .slot .sw { width:26px; height:26px; border-radius:3px; box-shadow:inset -4px -6px 0 rgba(0,0,0,.25); }
+  .slot .num { position:absolute; top:1px; left:4px; font-size:10px; color:#ddd; text-shadow:0 1px 1px #000; }
+  #overlay { position:fixed; inset:0; background:rgba(8,12,18,.82); display:flex; align-items:center; justify-content:center; z-index:10; }
+  #overlay.hidden { display:none; }
+  .panel { max-width:520px; padding:36px 40px; background:#121a24; border:2px solid #2a3a4e; border-radius:10px; text-align:center; color:#e8eef5; }
+  .panel h1 { font-size:30px; margin-bottom:8px; }
+  .panel h1 span { color:#6fae4d; font-size:16px; vertical-align:middle; }
+  .panel p { color:#9db3c8; font-size:14px; margin-bottom:16px; }
+  .keys { font-size:13px; color:#cde; background:#0d141d; border:1px solid #2a3a4e; border-radius:6px; padding:10px; margin-bottom:20px; line-height:1.9; }
+  .keys b { color:#ffd479; font-weight:600; }
+  #startBtn { font-size:17px; padding:12px 34px; background:#4f9d3f; color:#fff; border:none; border-radius:6px; cursor:pointer; box-shadow:0 4px 0 #35682b; }
+  #startBtn:hover { background:#59ac47; }
+  #startBtn:active { transform:translateY(2px); box-shadow:0 2px 0 #35682b; }
+  .note { margin-top:16px; font-size:12px; color:#7a8da1; }
+  .note a { color:#7ab6ff; }
+</style>
+</head>
+<body>
+<div id="cross">+</div>
+<div id="info">WebCraft v0.1 · 프로토타입</div>
+<div id="hotbar"></div>
+<div id="overlay">
+  <div class="panel">
+    <h1>⛏ WebCraft <span>v0.1</span></h1>
+    <p>브라우저에서 즉시 즐기는 블록 샌드박스 — 첫 프로토타입</p>
+    <div class="keys">
+      <b>WASD</b> 이동 &nbsp; <b>Space</b> 점프 &nbsp; <b>Shift</b> 달리기<br>
+      <b>좌클릭</b> 블록 캐기 &nbsp; <b>우클릭</b> 블록 놓기 &nbsp; <b>휠 / 1~6</b> 블록 선택
+    </div>
+    <button id="startBtn">클릭해서 시작</button>
+    <p class="note">※ v0.1 아카이브입니다. 완성판은 <a href="play.html">play.html</a>에서 플레이하세요.</p>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script>
+(() => {
+'use strict';
+
+const W = 48, D = 48, H = 32, SEA = 10;
+const AIR=0, GRASS=1, DIRT=2, STONE=3, WOOD=4, LEAF=5, SAND=6, WATER=7;
+const BLOCK_COLOR = { [GRASS]:0x6fae4d, [DIRT]:0x8a5f3c, [STONE]:0x8b8b8b, [WOOD]:0x7d5731, [LEAF]:0x3e7a2f, [SAND]:0xddd29b, [WATER]:0x3b6fd4 };
+const BLOCK_NAME  = { [GRASS]:'잔디', [DIRT]:'흙', [STONE]:'돌', [WOOD]:'나무', [LEAF]:'잎', [SAND]:'모래' };
+const isSolid = id => id !== AIR && id !== WATER;
+
+const seed = 1337;
+function hash(x, z) {
+  let h = (x * 374761393 + z * 668265263 + seed * 974634) | 0;
+  h = (h ^ (h >>> 13)) | 0;
+  h = Math.imul(h, 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+const smooth = t => t * t * (3 - 2 * t);
+function vnoise(x, z) {
+  const ix = Math.floor(x), iz = Math.floor(z);
+  const fx = smooth(x - ix), fz = smooth(z - iz);
+  const a = hash(ix, iz), b = hash(ix + 1, iz), c = hash(ix, iz + 1), d = hash(ix + 1, iz + 1);
+  return a + (b - a) * fx + (c - a) * fz + (a - b - c + d) * fx * fz;
+}
+const hAt = (x, z) => Math.floor(6 + (vnoise(x * .055, z * .055) * .65 + vnoise(x * .15, z * .15) * .35) * 16);
+
+const data = new Uint8Array(W * D * H);
+const idx = (x, y, z) => (x * D + z) * H + y;
+const get = (x, y, z) => (x < 0 || x >= W || z < 0 || z >= D || y < 0 || y >= H) ? AIR : data[idx(x, y, z)];
+const set = (x, y, z, v) => { if (x < 0 || x >= W || z < 0 || z >= D || y < 0 || y >= H) return; data[idx(x, y, z)] = v; };
+
+for (let x = 0; x < W; x++) for (let z = 0; z < D; z++) {
+  const h = hAt(x, z), sandy = h <= SEA + 1;
+  for (let y = 0; y < H; y++) {
+    let id = AIR;
+    if (y === 0) id = STONE;
+    else if (y < h - 3) id = STONE;
+    else if (y < h) id = DIRT;
+    else if (y === h) id = sandy ? SAND : GRASS;
+    else if (y <= SEA) id = WATER;
+    set(x, y, z, id);
+  }
+}
+for (let i = 0; i < 40; i++) {
+  const tx = 3 + Math.floor(Math.random() * (W - 6)), tz = 3 + Math.floor(Math.random() * (D - 6));
+  const h = hAt(tx, tz);
+  if (h <= SEA + 1) continue;
+  const th = 4 + Math.floor(Math.random() * 2);
+  for (let y = 1; y <= th; y++) set(tx, h + y, tz, WOOD);
+  for (let dy = th - 1; dy <= th + 1; dy++) {
+    const r = dy === th + 1 ? 1 : 2;
+    for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) {
+      if (Math.abs(dx) === r && Math.abs(dz) === r && r === 2) continue;
+      if (get(tx + dx, h + dy, tz + dz) === AIR) set(tx + dx, h + dy, tz + dz, LEAF);
+    }
+  }
+  set(tx, h + th + 2, tz, LEAF);
+}
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
+scene.fog = new THREE.Fog(0x87ceeb, 30, 90);
+const camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, .1, 300);
+camera.rotation.order = 'YXZ';
+const renderer = new THREE.WebGLRenderer({ antialias: false });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.body.prepend(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x54492e, .75));
+const sun = new THREE.DirectionalLight(0xfff3d0, .6);
+sun.position.set(40, 80, 20);
+scene.add(sun);
+
+const FACES = [
+  { n:[ 1,0,0], c:[[1,0,1],[1,0,0],[1,1,0],[1,1,1]], s:.72 },
+  { n:[-1,0,0], c:[[0,0,0],[0,0,1],[0,1,1],[0,1,0]], s:.72 },
+  { n:[0, 1,0], c:[[0,1,1],[1,1,1],[1,1,0],[0,1,0]], s:1 },
+  { n:[0,-1,0], c:[[0,0,0],[1,0,0],[1,0,1],[0,0,1]], s:.55 },
+  { n:[0,0, 1], c:[[0,0,1],[1,0,1],[1,1,1],[0,1,1]], s:.85 },
+  { n:[0,0,-1], c:[[1,0,0],[0,0,0],[0,1,0],[1,1,0]], s:.85 },
+];
+const colorCache = {};
+for (const id in BLOCK_COLOR) colorCache[id] = new THREE.Color(BLOCK_COLOR[id]);
+
+let mesh = null, waterMesh = null;
+function rebuild() {
+  if (mesh) { scene.remove(mesh); mesh.geometry.dispose(); }
+  if (waterMesh) { scene.remove(waterMesh); waterMesh.geometry.dispose(); }
+  const pos = [], col = [], ind = [];
+  const wpos = [], wcol = [], wind = [];
+  for (let x = 0; x < W; x++) for (let z = 0; z < D; z++) for (let y = 0; y < H; y++) {
+    const id = get(x, y, z);
+    if (id === AIR) continue;
+    const isWater = id === WATER;
+    const P = isWater ? wpos : pos, C = isWater ? wcol : col, I = isWater ? wind : ind;
+    const base = new THREE.Color(BLOCK_COLOR[id]);
+    for (const f of FACES) {
+      const nb = get(x + f.n[0], y + f.n[1], z + f.n[2]);
+      if (isWater ? nb !== AIR : isSolid(nb)) continue;
+      const vi = P.length / 3;
+      for (const c of f.c) {
+        let cy = y + c[1];
+        if (isWater && f.n[1] === 1) cy = y + .85;
+        P.push(x + c[0], cy, z + c[2]);
+        C.push(base.r * f.s, base.g * f.s, base.b * f.s);
+      }
+      I.push(vi, vi + 1, vi + 2, vi, vi + 2, vi + 3);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.setIndex(ind);
+  g.computeVertexNormals();
+  mesh = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true }));
+  scene.add(mesh);
+  if (wpos.length) {
+    const wg = new THREE.BufferGeometry();
+    wg.setAttribute('position', new THREE.Float32BufferAttribute(wpos, 3));
+    wg.setAttribute('color', new THREE.Float32BufferAttribute(wcol, 3));
+    wg.setIndex(wind);
+    wg.computeVertexNormals();
+    waterMesh = new THREE.Mesh(wg, new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: .7 }));
+    scene.add(waterMesh);
+  }
+}
+rebuild();
+
+const pos = new THREE.Vector3(W / 2 + .5, hAt(W >> 1, D >> 1) + 2, D / 2 + .5);
+const vel = new THREE.Vector3();
+let yaw = 0, pitch = -.25, onGround = false;
+const HW = .3, PH = 1.8, EYE = 1.62;
+const keys = {};
+
+function moveAxis(axis, dist) {
+  if (!dist) return;
+  pos[axis] += dist;
+  const x0 = Math.floor(pos.x - HW), x1 = Math.floor(pos.x + HW);
+  const y0 = Math.floor(pos.y), y1 = Math.floor(pos.y + PH - 1e-4);
+  const z0 = Math.floor(pos.z - HW), z1 = Math.floor(pos.z + HW);
+  let hit = false;
+  for (let bx = x0; bx <= x1; bx++) for (let by = y0; by <= y1; by++) for (let bz = z0; bz <= z1; bz++) {
+    if (!isSolid(get(bx, by, bz))) continue;
+    hit = true;
+    if (axis === 'y') { if (dist < 0) { pos.y = by + 1; onGround = true; } else pos.y = by - PH - 1e-3; }
+    else if (axis === 'x') pos.x = dist > 0 ? bx - HW - 1e-3 : bx + 1 + HW + 1e-3;
+    else pos.z = dist > 0 ? bz - HW - 1e-3 : bz + 1 + HW + 1e-3;
+  }
+  if (hit) vel[axis] = 0;
+}
+
+function raycast(maxDist) {
+  const dir = new THREE.Vector3();
+  camera.getWorldDirection(dir);
+  let x = Math.floor(camera.position.x), y = Math.floor(camera.position.y), z = Math.floor(camera.position.z);
+  const stepX = dir.x > 0 ? 1 : -1, stepY = dir.y > 0 ? 1 : -1, stepZ = dir.z > 0 ? 1 : -1;
+  const tdx = Math.abs(1 / dir.x), tdy = Math.abs(1 / dir.y), tdz = Math.abs(1 / dir.z);
+  let tmx = dir.x !== 0 ? (dir.x > 0 ? x + 1 - camera.position.x : camera.position.x - x) * tdx : Infinity;
+  let tmy = dir.y !== 0 ? (dir.y > 0 ? y + 1 - camera.position.y : camera.position.y - y) * tdy : Infinity;
+  let tmz = dir.z !== 0 ? (dir.z > 0 ? z + 1 - camera.position.z : camera.position.z - z) * tdz : Infinity;
+  let face = null;
+  for (let i = 0; i < 120; i++) {
+    const id = get(x, y, z);
+    if (isSolid(id)) return { x, y, z, id, face };
+    if (tmx < tmy && tmx < tmz) { if (tmx > maxDist) return null; x += stepX; tmx += tdx; face = [-stepX, 0, 0]; }
+    else if (tmy < tmz) { if (tmy > maxDist) return null; y += stepY; tmy += tdy; face = [0, -stepY, 0]; }
+    else { if (tmz > maxDist) return null; z += stepZ; tmz += tdz; face = [0, 0, -stepZ]; }
+  }
+  return null;
+}
+
+const highlight = new THREE.LineSegments(
+  new THREE.EdgesGeometry(new THREE.BoxGeometry(1.01, 1.01, 1.01)),
+  new THREE.LineBasicMaterial({ color: 0x111111 })
+);
+highlight.visible = false;
+scene.add(highlight);
+
+const HOTBAR = [GRASS, DIRT, STONE, WOOD, LEAF, SAND];
+let sel = 0;
+const hotbarEl = document.getElementById('hotbar');
+HOTBAR.forEach((id, i) => {
+  const s = document.createElement('div');
+  s.className = 'slot' + (i === 0 ? ' sel' : '');
+  s.innerHTML = `<span class="num">${i + 1}</span><span class="sw" style="background:#${BLOCK_COLOR[id].toString(16).padStart(6, '0')}"></span>`;
+  s.title = BLOCK_NAME[id];
+  hotbarEl.appendChild(s);
+});
+function setSel(i) {
+  sel = (i + HOTBAR.length) % HOTBAR.length;
+  [...hotbarEl.children].forEach((el, j) => el.classList.toggle('sel', j === sel));
+}
+
+const overlay = document.getElementById('overlay');
+let started = false;
+document.getElementById('startBtn').addEventListener('click', () => renderer.domElement.requestPointerLock());
+document.addEventListener('pointerlockchange', () => {
+  const locked = document.pointerLockElement === renderer.domElement;
+  overlay.classList.toggle('hidden', locked);
+  if (locked) started = true;
+});
+document.addEventListener('mousemove', e => {
+  if (document.pointerLockElement !== renderer.domElement) return;
+  yaw -= e.movementX * .0022;
+  pitch -= e.movementY * .0022;
+  pitch = Math.max(-1.55, Math.min(1.55, pitch));
+});
+document.addEventListener('mousedown', e => {
+  if (document.pointerLockElement !== renderer.domElement) return;
+  const hit = raycast(6);
+  if (!hit) return;
+  if (e.button === 0) { set(hit.x, hit.y, hit.z, AIR); rebuild(); }
+  else if (e.button === 2 && hit.face) {
+    const px = hit.x + hit.face[0], py = hit.y + hit.face[1], pz = hit.z + hit.face[2];
+    if (get(px, py, pz) !== AIR && get(px, py, pz) !== WATER) return;
+    const overlap = px === Math.floor(pos.x - HW) || px === Math.floor(pos.x + HW);
+    if (overlap && py >= Math.floor(pos.y) && py <= Math.floor(pos.y + PH - 1e-4) &&
+        pz >= Math.floor(pos.z - HW) && pz <= Math.floor(pos.z + HW) &&
+        px >= Math.floor(pos.x - HW) && px <= Math.floor(pos.x + HW)) return;
+    set(px, py, pz, HOTBAR[sel]);
+    rebuild();
+  }
+});
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (e.code.startsWith('Digit')) { const n = +e.code[5]; if (n >= 1 && n <= HOTBAR.length) setSel(n - 1); }
+  if (e.code === 'Space') e.preventDefault();
+});
+document.addEventListener('keyup', e => keys[e.code] = false);
+document.addEventListener('wheel', e => { if (started) setSel(sel + (e.deltaY > 0 ? 1 : -1)); });
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+const clock = new THREE.Clock();
+function loop() {
+  requestAnimationFrame(loop);
+  const dt = Math.min(clock.getDelta(), .05);
+  if (started) {
+    const sprint = keys['ShiftLeft'] || keys['ShiftRight'];
+    const speed = sprint ? 7.2 : 4.4;
+    let f = (keys['KeyW'] ? 1 : 0) - (keys['KeyS'] ? 1 : 0);
+    let s = (keys['KeyD'] ? 1 : 0) - (keys['KeyA'] ? 1 : 0);
+    const len = Math.hypot(f, s) || 1;
+    const sy = Math.sin(yaw), cy = Math.cos(yaw);
+    vel.x = ((-sy * f + cy * s) / len) * speed * (f || s ? 1 : 0);
+    vel.z = ((-cy * f - sy * s) / len) * speed * (f || s ? 1 : 0);
+    vel.y = Math.max(vel.y - 24 * dt, -50);
+    if (keys['Space'] && onGround) vel.y = 8.4;
+    onGround = false;
+    const steps = Math.max(1, Math.ceil(Math.max(Math.abs(vel.x), Math.abs(vel.y), Math.abs(vel.z)) * dt / .4));
+    for (let i = 0; i < steps; i++) {
+      moveAxis('y', vel.y * dt / steps);
+      moveAxis('x', vel.x * dt / steps);
+      moveAxis('z', vel.z * dt / steps);
+    }
+    if (pos.y < -20) { pos.set(W / 2 + .5, hAt(W >> 1, D >> 1) + 2, D / 2 + .5); vel.set(0, 0, 0); }
+    camera.position.set(pos.x, pos.y + EYE, pos.z);
+    camera.rotation.set(pitch, yaw, 0);
+    const hit = raycast(6);
+    if (hit) { highlight.position.set(hit.x + .5, hit.y + .5, hit.z + .5); highlight.visible = true; }
+    else highlight.visible = false;
+    document.getElementById('info').textContent =
+      `WebCraft v0.1 · x ${pos.x.toFixed(0)} y ${pos.y.toFixed(0)} z ${pos.z.toFixed(0)}`;
+  }
+  renderer.render(scene, camera);
+}
+loop();
+})();
+</script>
+</body>
+</html>
