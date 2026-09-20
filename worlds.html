@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WebCraft — Worlds</title>
+<style>
+:root{font-family:Arial,sans-serif;background:#0b1016;color:#e9eef3}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at top,#182432,#080c11)}
+main{width:min(860px,94vw);margin:48px auto}
+h1{margin:0 0 8px;font-size:32px}p{color:#9eacba}.bar,.world{background:#121922;border:1px solid #2e3c4a;border-radius:12px;padding:16px;margin-top:14px}
+form{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:10px}
+input,select,button{font:inherit;border:1px solid #3b4b59;border-radius:8px;padding:10px;background:#0d141b;color:#fff}
+button{cursor:pointer;background:#22384b}button.danger{background:#432126}
+.world{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.meta{display:flex;flex-direction:column;gap:4px}.name{font-weight:700}.small{font-size:12px;color:#8e9dab}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:650px){form{grid-template-columns:1fr 1fr}.world{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<main>
+  <h1>WebCraft Worlds</h1>
+  <p id="profile"></p>
+  <section class="bar">
+    <form id="create-form">
+      <input id="name" maxlength="32" placeholder="월드 이름" required>
+      <input id="seed" placeholder="시드(선택)">
+      <select id="mode"><option value="survival">서바이벌</option><option value="creative">크리에이티브</option></select>
+      <button type="submit">새 월드</button>
+    </form>
+  </section>
+  <section id="list"></section>
+</main>
+<script>
+window.WEBCRAFT_PROFILE = new URLSearchParams(location.search).get('profile') || 'deployment';
+document.getElementById('profile').textContent = '저장 프로필: ' + window.WEBCRAFT_PROFILE;
+</script>
+<script src="js/game/config.js"></script>
+<script src="js/game/save.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+function esc(v){return String(v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function render(){
+  const worlds=SaveSystem.listWorlds();
+  $('list').innerHTML = worlds.length ? worlds.map(w=>`
+    <article class="world">
+      <div class="meta">
+        <div class="name">${esc(w.name)}</div>
+        <div class="small">${esc(w.mode)} · seed ${esc(w.seed)} · ${new Date(w.updatedAt||Date.now()).toLocaleString()}</div>
+      </div>
+      <div class="actions">
+        <button data-open="${esc(w.id)}">플레이</button>
+        <button data-rename="${esc(w.id)}">이름 변경</button>
+        <button class="danger" data-delete="${esc(w.id)}">삭제</button>
+      </div>
+    </article>`).join('') :
+    '<div class="bar">아직 월드가 없습니다. 위에서 첫 월드를 만들어 주세요.</div>';
+
+  document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>location.href='play.html?profile='+encodeURIComponent(window.WEBCRAFT_PROFILE)+'&world='+encodeURIComponent(b.dataset.open));
+  document.querySelectorAll('[data-rename]').forEach(b=>b.onclick=()=>{
+    const current=SaveSystem.getWorldMeta(b.dataset.rename); if(!current)return;
+    const name=prompt('새 월드 이름',current.name); if(name) { SaveSystem.rename(b.dataset.rename,name); render(); }
+  });
+  document.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>{
+    const current=SaveSystem.getWorldMeta(b.dataset.delete); if(!current)return;
+    if(confirm('이 월드를 삭제할까요?')) { SaveSystem.remove(b.dataset.delete); render(); }
+  });
+}
+$('create-form').onsubmit=e=>{
+  e.preventDefault();
+  const id=SaveSystem.createWorld($('name').value,$('seed').value,$('mode').value);
+  $('name').value=''; $('seed').value=''; render();
+  location.href='play.html?profile='+encodeURIComponent(window.WEBCRAFT_PROFILE)+'&world='+encodeURIComponent(id);
+};
+render();
+</script>
+</body>
+</html>
