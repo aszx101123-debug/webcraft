@@ -477,3 +477,22 @@ footer .wrap {
   font-size: 12px;
   padding: 9px 12px;
 }
+
+
+.roadmap-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.roadmap-pills span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid #2d3d51;
+  background: #0d141d;
+  color: #9fb0c1;
+  font-size: 10.5px;
+}
