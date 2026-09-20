@@ -179,7 +179,7 @@ ok(mobsOk, '모든 몹 정의 유효');
 ok(Object.values(MOB_DEFS).filter(d => d.hostile).length === 3, '적대 몹 3종');
 ok(Object.values(MOB_DEFS).filter(d => !d.hostile).length === 4, '동물 몹 4종');
 ok(Object.values(ITEMS).filter(i => typeof i.food === 'number').every(i => i.food > 0 && i.tiles.all), '모든 음식 정의 유효');
-ok(Object.values(ITEMS).filter(i => i.toolType).length === 20, '5단계 × 4종 도구 정의');
+ok(Object.values(ITEMS).filter(i => i.toolType).length === 20, '5단계 × 4종 도구 정의 (곡괭이·벌목기·삽·괭이)');
 
 console.log(fails ? '\n' + fails + '개 실패' : '\n모든 테스트 통과');
 if (fails) process.exit(1);
