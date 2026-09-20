@@ -69,7 +69,7 @@ const PlayerModel = (() => {
     if (!group.visible) return;
 
     group.position.set(player.pos.x, player.pos.y, player.pos.z);
-    group.rotation.y = player.yaw;
+    group.rotation.y = player.yaw + Math.PI;
 
     const speed = Math.hypot(player.vel.x, player.vel.z);
     const moving = player.onGround && speed > .25;

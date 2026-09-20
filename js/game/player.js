@@ -9,7 +9,32 @@ const Player = (() => {
   let mode = GAME_MODE.CREATIVE;
   let hp = SURVIVAL.MAX_HP, food = SURVIVAL.MAX_FOOD, air = SURVIVAL.MAX_AIR;
   let exhaustion = 0, regenT = 0, starveT = 0, airT = 0, drownT = 0;
-  let peakY = null, dead = false, lastInWater = false;
+  let peakY = null, dead = false, lastInWater = false, headSubmerged = false, waterCoverage = 0;
+
+  function isWater(id) { return id === BLOCK.WATER || id === BLOCK.WATER_FLOW; }
+
+  function sampleWaterAt(x, y, z) {
+    const bx = Math.floor(x), by = Math.floor(y), bz = Math.floor(z);
+    const id = World.getBlock(bx, by, bz);
+    if (!isWater(id)) return false;
+    const level = World.getFluidLevel(bx, by, bz) || 8;
+    const surface = by + 0.15 + 0.72 * (level / 8);
+    return surface >= y;
+  }
+
+  function sampleWaterState() {
+    const samples = [[0,0],[.22,.22],[.22,-.22],[-.22,.22],[-.22,-.22]];
+    let feetHits = 0, bodyHits = 0, headHits = 0;
+    const feetY = pos.y + .14, bodyY = pos.y + .9, headY = pos.y + EYE;
+    for (const [dx, dz] of samples) {
+      if (sampleWaterAt(pos.x + dx, feetY, pos.z + dz)) feetHits++;
+      if (sampleWaterAt(pos.x + dx, bodyY, pos.z + dz)) bodyHits++;
+      if (sampleWaterAt(pos.x + dx, headY, pos.z + dz)) headHits++;
+    }
+    const inWater = feetHits >= 2 || bodyHits >= 2;
+    const headWet = headHits >= 3 || (headHits >= 1 && sampleWaterAt(pos.x, headY, pos.z));
+    return { inWater, headSubmerged: headWet, coverage: Math.max(feetHits, bodyHits) / samples.length };
+  }
   let onHurt = null, onDeath = null, onEat = null;
 
   function reset(x, y, z, yw = 0, pt = -.2, fly = false) {
@@ -116,9 +141,10 @@ const Player = (() => {
       }
     } else starveT = 0;
 
-    const eyeWaterId = World.getBlock(Math.floor(pos.x), Math.floor(pos.y + EYE), Math.floor(pos.z));
-    const eyeWater = eyeWaterId === BLOCK.WATER || eyeWaterId === BLOCK.WATER_FLOW;
-    if (eyeWater) {
+    const ws = sampleWaterState();
+    headSubmerged = ws.headSubmerged;
+    waterCoverage = ws.coverage;
+    if (headSubmerged) {
       airT += dt;
       if (airT >= 1) {
         airT = 0;
@@ -141,6 +167,8 @@ const Player = (() => {
     hp = SURVIVAL.MAX_HP;
     food = SURVIVAL.MAX_FOOD;
     air = SURVIVAL.MAX_AIR;
+    headSubmerged = false;
+    waterCoverage = 0;
     exhaustion = 0;
     regenT = starveT = airT = drownT = 0;
     peakY = null;
@@ -151,8 +179,10 @@ const Player = (() => {
     const f = (keys['KeyW'] || keys['ArrowUp'] ? 1 : 0) - (keys['KeyS'] || keys['ArrowDown'] ? 1 : 0);
     const s = (keys['KeyD'] || keys['ArrowRight'] ? 1 : 0) - (keys['KeyA'] || keys['ArrowLeft'] ? 1 : 0);
     const sprint = keys['ShiftLeft'] || keys['ShiftRight'];
-    const waterId = World.getBlock(Math.floor(pos.x), Math.floor(pos.y + .5), Math.floor(pos.z));
-    const inWater = waterId === BLOCK.WATER || waterId === BLOCK.WATER_FLOW;
+    const ws = sampleWaterState();
+    const inWater = ws.inWater;
+    headSubmerged = ws.headSubmerged;
+    waterCoverage = ws.coverage;
     lastInWater = inWater;
     const canFly = mode === GAME_MODE.CREATIVE && flying;
     const speed = canFly ? CONFIG.FLY : (sprint && f > 0 ? CONFIG.SPRINT : CONFIG.SPEED) * (inWater ? .55 : 1);
@@ -194,6 +224,11 @@ const Player = (() => {
       if (moveAxis('z', vel.z * dt / steps)) vel.z = 0;
     }
 
+    const afterWater = sampleWaterState();
+    lastInWater = afterWater.inWater;
+    headSubmerged = afterWater.headSubmerged;
+    waterCoverage = afterWater.coverage;
+
     if (mode !== GAME_MODE.SURVIVAL || dead || flying || inWater) {
       peakY = null;
     } else if (onGround) {
@@ -216,6 +251,8 @@ const Player = (() => {
     get onGround() { return onGround; },
     get flying() { return flying; }, set flying(v) { flying = v; if (v) vel.y = 0; },
     get inWater() { return lastInWater; },
+    get headSubmerged() { return headSubmerged; },
+    get waterCoverage() { return waterCoverage; },
     get mode() { return mode; },
     get hp() { return hp; }, set hp(v) { hp = Math.max(0, Math.min(SURVIVAL.MAX_HP, v)); },
     get food() { return food; }, set food(v) { food = Math.max(0, Math.min(SURVIVAL.MAX_FOOD, v)); },

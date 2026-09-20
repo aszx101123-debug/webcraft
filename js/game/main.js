@@ -59,7 +59,9 @@
     started: false,
     locked: false,
     ready: false,
-    thirdPerson: saved && saved.thirdPerson === true,
+    thirdPersonView: saved && typeof saved.thirdPersonView === 'number'
+      ? Math.max(0, Math.min(2, saved.thirdPersonView | 0))
+      : (saved && saved.thirdPerson ? 1 : 0),
     time: saved ? saved.time : .22,
     renderDist: saved ? saved.renderDist : CONFIG.RENDER_DIST,
     sound: saved ? saved.sound !== false : true,
@@ -206,13 +208,13 @@
     const hours = (state.time * 24 + 6) % 24;
     const hh = String(Math.floor(hours)).padStart(2, '0');
     const mm = String(Math.floor((hours % 1) * 60)).padStart(2, '0');
-    const weatherIcon = weather.type === 'rain' ? '☔' : weather.type === 'snow' ? '❄' : (f > .45 ? '☀' : '☾');
+    const weatherIcon = Player.headSubmerged ? '◌' : (weather.type === 'rain' ? '☔' : weather.type === 'snow' ? '❄' : (f > .45 ? '☀' : '☾'));
     UI.setTime(`${weatherIcon} ${hh}:${mm}`);
   }
 
   function doSave(silent) {
     const ok = SaveSystem.save(worldId, {
-      version: 4,
+      version: 5,
       savedAt: Date.now(),
       worldId,
       worldName: worldMeta.name,
@@ -227,7 +229,8 @@
       hotbar: Inventory.serialize().slice(0, Inventory.HOTBAR_SIZE),
       inventory: Inventory.serialize(),
       equipment: Inventory.serializeEquipment(),
-      thirdPerson: state.thirdPerson,
+      thirdPerson: state.thirdPersonView > 0,
+      thirdPersonView: state.thirdPersonView,
       player: {
         x: Player.pos.x, y: Player.pos.y, z: Player.pos.z,
         yaw: Player.yaw, pitch: Player.pitch, flying: Player.flying
@@ -298,8 +301,10 @@
     if (e.code === 'F3') { e.preventDefault(); const h = document.getElementById('hud-info'); h.style.display = h.style.display === 'none' ? '' : 'none'; }
     if (e.code === 'F5') {
       e.preventDefault();
-      state.thirdPerson = !state.thirdPerson;
-      UI.showToast(state.thirdPerson ? '3인칭 카메라 ON' : '1인칭 카메라 ON');
+      state.thirdPersonView = (state.thirdPersonView + 1) % 3;
+      const labels = ['1인칭 카메라', '3인칭 뒤', '3인칭 앞'];
+      UI.showToast(labels[state.thirdPersonView] + ' ON');
+      return;
     }
     if (!state.locked) return;
     if (e.code.startsWith('Digit')) {
@@ -329,9 +334,7 @@
       return;
     }
     if (e.code === 'KeyC') {
-      state.suppressPause = true;
-      document.exitPointerLock();
-      UI.openCrafting();
+      UI.showToast('3×3 제작은 제작대에서만 사용할 수 있습니다');
       return;
     }
     if (e.code === 'KeyB') {
@@ -507,7 +510,7 @@
   document.getElementById('btn-crafting').addEventListener('click', () => {
     state.suppressPause = true;
     document.exitPointerLock();
-    UI.openCrafting();
+    UI.openInventory();
   });
   document.getElementById('btn-worlds').addEventListener('click', openWorldMenu);
   document.getElementById('crafting-close').addEventListener('click', () => {
@@ -626,15 +629,18 @@
       camera.updateProjectionMatrix();
     }
 
-    PlayerModel.update(Player, dt, state.thirdPerson);
-    if (state.thirdPerson) {
+    PlayerModel.update(Player, dt, state.thirdPersonView > 0);
+    const waterFx = document.getElementById('underwater-overlay');
+    if (waterFx) waterFx.classList.toggle('show', Player.headSubmerged);
+    if (state.thirdPersonView > 0) {
       const cp = new THREE.Vector3();
       const target = new THREE.Vector3(Player.pos.x, Player.pos.y + 1.15, Player.pos.z);
       const cy = Math.cos(Player.pitch), sy = Math.sin(Player.pitch);
+      const side = state.thirdPersonView === 2 ? -1 : 1;
       cp.set(
-        Player.pos.x + Math.sin(Player.yaw) * cy * 4.5,
+        Player.pos.x + Math.sin(Player.yaw) * cy * 4.5 * side,
         Player.pos.y + 1.65 + sy * 2.0,
-        Player.pos.z + Math.cos(Player.yaw) * cy * 4.5
+        Player.pos.z + Math.cos(Player.yaw) * cy * 4.5 * side
       );
       camera.position.copy(cp);
       // 벽 안쪽으로 카메라가 들어가지 않도록 간단한 복셀 충돌 보정.

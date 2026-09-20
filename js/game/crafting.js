@@ -3,6 +3,27 @@
 const Crafting = (() => {
   const recipes = [];
   let grid = new Array(9).fill(null);
+  let gridSize = 3;
+
+  function activeIndices() {
+    return gridSize === 2 ? [0, 1, 3, 4] : [0, 1, 2, 3, 4, 5, 6, 7, 8];
+  }
+
+  function recipeFitsGrid(recipe) {
+    if (!recipe) return false;
+    if (recipe.shapeless) return recipe.ingredients.reduce((n, i) => n + i.count, 0) <= gridSize * gridSize;
+    return recipe.pattern.some(shape => {
+      let minX = 3, minY = 3, maxX = -1, maxY = -1;
+      for (let y = 0; y < 3; y++) for (let x = 0; x < 3; x++) {
+        if (!shape[y * 3 + x]) continue;
+        minX = Math.min(minX, x); minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+      }
+      return maxX >= minX &&
+        (maxX - minX + 1) <= gridSize &&
+        (maxY - minY + 1) <= gridSize;
+    });
+  }
 
   function add(id, name, outputId, count, opts) {
     recipes.push({
@@ -70,11 +91,25 @@ const Crafting = (() => {
   }
 
   function getRecipes() { return recipes.slice(); }
-  function resetGrid() { grid = new Array(9).fill(null); }
+  function resetGrid(size = gridSize) {
+    gridSize = size === 2 ? 2 : 3;
+    grid = new Array(9).fill(null);
+  }
+  function setGridSize(size) {
+    gridSize = size === 2 ? 2 : 3;
+    if (gridSize === 2) {
+      const keep = new Set(activeIndices());
+      for (let i = 0; i < grid.length; i++) if (!keep.has(i)) grid[i] = null;
+    }
+  }
+  function getGridSize() { return gridSize; }
   function getGrid() { return grid.slice(); }
+  function getVisibleCells() {
+    return activeIndices().map(index => ({ index, id: grid[index] || null }));
+  }
 
   function setCell(index, id) {
-    if (index < 0 || index >= 9) return false;
+    if (index < 0 || index >= 9 || !activeIndices().includes(index)) return false;
     if (!id) grid[index] = null;
     else grid[index] = id;
     return true;
@@ -82,14 +117,15 @@ const Crafting = (() => {
 
   function addToFirstEmpty(id) {
     if (!id) return -1;
-    const i = grid.findIndex(x => !x);
-    if (i < 0) return -1;
+    const i = activeIndices().find(index => !grid[index]);
+    if (i === undefined) return -1;
     grid[i] = id;
     return i;
   }
 
   function removeCell(index) {
     if (index < 0 || index >= 9) return 0;
+    if (!activeIndices().includes(index)) return 0;
     const id = grid[index];
     grid[index] = null;
     return id || 0;
@@ -121,10 +157,11 @@ const Crafting = (() => {
   }
 
   function matchesRecipe(recipe) {
+    if (!recipeFitsGrid(recipe)) return false;
     if (recipe.shapeless) {
       const want = [];
       recipe.ingredients.forEach(i => { for (let n = 0; n < i.count; n++) want.push(i.id); });
-      const got = grid.filter(Boolean);
+      const got = activeIndices().map(i => grid[i]).filter(Boolean);
       want.sort((a,b)=>a-b); got.sort((a,b)=>a-b);
       return want.length === got.length && want.every((v,i)=>v===got[i]);
     }
@@ -140,7 +177,7 @@ const Crafting = (() => {
   }
 
   function canCraft(recipe) {
-    return !!recipe &&
+    return !!recipe && recipeFitsGrid(recipe) &&
       recipe.ingredients.every(x => Inventory.countItem(x.id) >= x.count) &&
       Inventory.canAdd(recipe.outputId, recipe.count);
   }
@@ -169,8 +206,8 @@ const Crafting = (() => {
 
   function autofill(recipeId) {
     const recipe = recipes.find(r => r.id === recipeId);
-    if (!recipe) return false;
-    resetGrid();
+    if (!recipe || !recipeFitsGrid(recipe)) return false;
+    resetGrid(gridSize);
     const materialId = recipe.ingredients.find(i => i.id !== ITEM.STICK)?.id || 0;
     if (recipe.shapeless) {
       let out = [];
@@ -191,7 +228,8 @@ const Crafting = (() => {
   }
 
   return {
-    getRecipes, getGrid, setCell, addToFirstEmpty, removeCell, resetGrid,
+    getRecipes, getGrid, getVisibleCells, getGridSize, setGridSize,
+    setCell, addToFirstEmpty, removeCell, resetGrid,
     getMatch, canCraft, canCraftGrid, craftGrid, autofill, summary
   };
 })();
