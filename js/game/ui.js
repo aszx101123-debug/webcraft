@@ -115,10 +115,72 @@ const UI = (() => {
     return String(v).replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[ch]));
   }
 
+  function renderCraftingInventory() {
+    const el = $('craft-inventory');
+    if (!el) return;
+    el.innerHTML = '';
+    Inventory.getSlots().forEach((s, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'craft-inv-slot' + (!s ? ' empty' : '');
+      btn.disabled = !s;
+      btn.innerHTML = s
+        ? `<span class="craft-inv-num">${i + 1}</span><img src="${Textures.blockIcon(s.id)}" alt=""><span class="craft-inv-count">${s.count === Infinity ? '∞' : s.count}</span>`
+        : `<span class="craft-inv-num">${i + 1}</span>`;
+      btn.title = s ? getItemName(s.id) : '빈 슬롯';
+      btn.addEventListener('click', () => {
+        if (!s) return;
+        if (Crafting.addToFirstEmpty(s.id) >= 0) renderCrafting();
+        else showToast('제작 격자가 가득 찼습니다');
+      });
+      el.appendChild(btn);
+    });
+  }
+
   function renderCrafting() {
-    const grid = $('recipe-grid');
-    if (!grid) return;
-    grid.innerHTML = '';
+    const craftGrid = $('craft-grid');
+    const output = $('craft-output');
+    const recipeList = $('recipe-grid');
+    if (!craftGrid || !output || !recipeList) return;
+
+    craftGrid.innerHTML = '';
+    Crafting.getGrid().forEach((id, i) => {
+      const cell = document.createElement('button');
+      cell.className = 'craft-cell' + (id ? ' filled' : '');
+      cell.setAttribute('aria-label', id ? getItemName(id) : '빈 제작 칸');
+      if (id) {
+        cell.innerHTML = `<img src="${Textures.blockIcon(id)}" alt=""><span>${getItemName(id)}</span>`;
+        cell.title = '클릭하여 빼기';
+        cell.addEventListener('click', () => {
+          Crafting.removeCell(i);
+          renderCrafting();
+        });
+      } else {
+        cell.innerHTML = '';
+        cell.title = '재료를 선택해서 놓기';
+      }
+      craftGrid.appendChild(cell);
+    });
+
+    const match = Crafting.getMatch();
+    const ready = !!match && Crafting.canCraftGrid();
+    output.disabled = !ready;
+    output.className = 'craft-output' + (ready ? ' ready' : '');
+    output.innerHTML = match
+      ? `<img src="${Textures.blockIcon(match.outputId)}" alt=""><span>${match.name}<b>×${match.count}</b></span>`
+      : '<span class="craft-output-empty">?</span>';
+    output.title = ready ? '클릭하여 제작' : (match ? '재료가 부족합니다' : '제작법을 맞춰 주세요');
+    output.onclick = () => {
+      if (!Crafting.craftGrid()) {
+        showToast('재료가 부족하거나 제작법이 맞지 않습니다');
+        return;
+      }
+      renderCrafting();
+      renderHotbar();
+      const made = Crafting.getMatch();
+      showToast('제작 완료');
+    };
+
+    recipeList.innerHTML = '';
     Crafting.getRecipes().forEach(recipe => {
       const ready = Crafting.canCraft(recipe);
       const card = document.createElement('div');
@@ -127,22 +189,20 @@ const UI = (() => {
         <div><div class="recipe-name">${recipe.name}</div><div class="recipe-ing">${Crafting.summary(recipe)} · ${recipe.note || ''}</div></div>`;
       const btn = document.createElement('button');
       btn.className = 'btn small';
-      btn.textContent = `제작 ×${recipe.count}`;
+      btn.textContent = '배치';
       btn.disabled = !ready;
       btn.addEventListener('click', () => {
-        if (Crafting.craft(recipe.id)) {
-          renderCrafting();
-          renderHotbar();
-          showItemName(getItemName(recipe.outputId));
-          showToast(`${getItemName(recipe.outputId)} 제작 완료`);
-        }
+        Crafting.autofill(recipe.id);
+        renderCrafting();
       });
       card.appendChild(btn);
-      grid.appendChild(card);
+      recipeList.appendChild(card);
     });
-  }
 
+    renderCraftingInventory();
+  }
   function openCrafting() {
+    Crafting.resetGrid();
     renderCrafting();
     $('overlay-crafting').classList.remove('hidden');
   }
@@ -266,7 +326,7 @@ const UI = (() => {
 
   return {
     renderHotbar, setSelected, showItemName, showOverlay, showToast, setHUD, setTime, setMiningProgress,
-    setModeLabel, renderWorlds, openCrafting, closeCrafting, isCraftingOpen,
+    setModeLabel, renderWorlds, renderCrafting, openCrafting, closeCrafting, isCraftingOpen,
     updateSurvival, showDeath, hideDeath, openPicker, closePicker, isPickerOpen, setStartEnabled, flashVignette
   };
 })();
