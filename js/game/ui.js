@@ -134,7 +134,7 @@ const UI = (() => {
     el.classList.remove('hidden');
     el.style.left = (clientX || innerWidth / 2) + 'px';
     el.style.top = (clientY || innerHeight / 2) + 'px';
-    el.innerHTML = \`<img src="\${Textures.blockIcon(inventoryCursor.id)}" alt=""><span>\${stackLabel(inventoryCursor)}</span>\`;
+    el.innerHTML = `<img src="${Textures.blockIcon(inventoryCursor.id)}" alt=""><span>${stackLabel(inventoryCursor)}</span>`;
   }
 
   function inventoryCursorReturn() {
@@ -157,12 +157,12 @@ const UI = (() => {
     const btn = document.createElement('button');
     btn.className = 'inventory-slot' + (!s ? ' empty' : '') + (index < Inventory.HOTBAR_SIZE ? ' inventory-hotbar-slot' : '');
     btn.setAttribute('aria-label', s ? getItemName(s.id) + ' 슬롯 ' + (index + 1) : '빈 슬롯');
-    btn.innerHTML = \`<span class="inv-num">\${index < Inventory.HOTBAR_SIZE ? index + 1 : index - Inventory.HOTBAR_SIZE + 1}</span>\`;
+    btn.innerHTML = `<span class="inv-num">${index < Inventory.HOTBAR_SIZE ? index + 1 : index - Inventory.HOTBAR_SIZE + 1}</span>`;
     if (s) {
       const td = getToolDef(s.id);
-      const dur = td && s.durability ? \`<span class="inv-dur"><i style="transform:scaleX(\${Math.max(0, Math.min(1, s.durability / td.maxDurability))})"></i></span>\` : '';
-      btn.innerHTML += \`<img src="\${Textures.blockIcon(s.id)}" alt=""><span class="inv-count">\${stackLabel(s)}</span>\${dur}\`;
-      btn.title = td ? \`\${getItemName(s.id)} · 내구도 \${s.durability}/\${td.maxDurability}\` : getItemName(s.id);
+      const dur = td && s.durability ? `<span class="inv-dur"><i style="transform:scaleX(${Math.max(0, Math.min(1, s.durability / td.maxDurability))})"></i></span>` : '';
+      btn.innerHTML += `<img src="${Textures.blockIcon(s.id)}" alt=""><span class="inv-count">${stackLabel(s)}</span>${dur}`;
+      btn.title = td ? `${getItemName(s.id)} · 내구도 ${s.durability}/${td.maxDurability}` : getItemName(s.id);
     } else btn.title = '빈 슬롯';
 
     btn.addEventListener('mousedown', e => {
@@ -215,7 +215,7 @@ const UI = (() => {
         b.innerHTML = btn.classList.contains('disabled') ? '준비중' : '빈 슬롯';
         return;
       }
-      b.innerHTML = \`<img src="\${Textures.blockIcon(s.id)}" alt="">\`;
+      b.innerHTML = `<img src="${Textures.blockIcon(s.id)}" alt="">`;
       b.title = getItemName(s.id);
     });
   }
