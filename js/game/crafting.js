@@ -91,11 +91,25 @@ const Crafting = (() => {
   }
 
   function getRecipes() { return recipes.slice(); }
-  function resetGrid() { grid = new Array(9).fill(null); }
+  function resetGrid(size = gridSize) {
+    gridSize = size === 2 ? 2 : 3;
+    grid = new Array(9).fill(null);
+  }
+  function setGridSize(size) {
+    gridSize = size === 2 ? 2 : 3;
+    if (gridSize === 2) {
+      const keep = new Set(activeIndices());
+      for (let i = 0; i < grid.length; i++) if (!keep.has(i)) grid[i] = null;
+    }
+  }
+  function getGridSize() { return gridSize; }
   function getGrid() { return grid.slice(); }
+  function getVisibleCells() {
+    return activeIndices().map(index => ({ index, id: grid[index] || null }));
+  }
 
   function setCell(index, id) {
-    if (index < 0 || index >= 9) return false;
+    if (index < 0 || index >= 9 || !activeIndices().includes(index)) return false;
     if (!id) grid[index] = null;
     else grid[index] = id;
     return true;
