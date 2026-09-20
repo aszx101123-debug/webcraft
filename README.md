@@ -4,7 +4,7 @@
 설치 없이, 가입 없이, 클릭 한 번으로 플레이합니다.
 
 **홈페이지:** `index.html` → **게임:** `play.html` → **v0.1 아카이브:** `prototype.html`
-
+게임링크: https://aszx101123-debug.github.io/webcraft/play.html?v=20260920-v12&utm_source=chatgpt.com
 ## 실행 방법
 
 `index.html`을 더블클릭하면 됩니다. (인터넷 연결 필요 — three.js를 CDN에서 로드)
