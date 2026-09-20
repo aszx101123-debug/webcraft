@@ -88,7 +88,7 @@ const MOB_DEFS = {
   sheep:    { name: '양',      hostile: false, hp: 10, speed: 1.4, height: 1.22, width: .82, drops: [{ id: ITEM.MUTTON, min: 1, max: 2 }] },
   chicken:  { name: '닭',      hostile: false, hp: 4,  speed: 1.3, height: .65, width: .45, drops: [{ id: ITEM.CHICKEN, min: 1, max: 1 }] },
   zombie:   { name: '좀비',    hostile: true,  hp: 16, speed: 2.35, height: 1.9,  width: .62, dmg: 3, aggro: 24, drops: [{ id: ITEM.ROTTEN, min: 1, max: 1, chance: .45 }] },
-  skeleton: { name: '스켈레톤', hostile: true, hp: 12, speed: 2.1, height: 1.9,  width: .55, dmg: 3, aggro: 26, ranged: true, drops: [] },
+  skeleton: { name: '스켈레톤', hostile: true, hp: 14, speed: 2.15, height: 1.9, width: .56, dmg: 3, aggro: 26, ranged: true, drops: [] },
   spider:   { name: '거미',    hostile: true,  hp: 12, speed: 3.2, height: .75, width: 1.0,  dmg: 2.5, aggro: 18, drops: [] }
 };
 
