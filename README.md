@@ -5,6 +5,15 @@
 
 **홈페이지:** `index.html` → **게임:** `play.html` → **v0.1 아카이브:** `prototype.html`
 
+
+
+## 🔗 바로가기
+
+- **[WebCraft 배포본 플레이](https://aszx101123-debug.github.io/webcraft/play.html)** — 현재 배포된 게임
+- **[WebCraft 홈페이지](https://aszx101123-debug.github.io/webcraft/)** — 메인 화면
+- **[테스트 버전 코드](https://github.com/aszx101123-debug/webcraft/tree/test/black-screen-fix)** — 검은 화면 수정 테스트 브랜치
+- **[테스트용 play.html](https://github.com/aszx101123-debug/webcraft/blob/test/black-screen-fix/play.html)** — 테스트 코드 바로 보기
+
 ## 실행 방법
 
 `index.html`을 더블클릭하면 됩니다. (인터넷 연결 필요 — three.js를 CDN에서 로드)
