@@ -29,6 +29,7 @@
 </div>
 <div id="item-name"></div>
 <div id="hotbar"></div>
+<div id="held-item" class="hidden" aria-hidden="true"></div>
 <div id="vignette"></div>
 
 <div id="loading" class="overlay">
@@ -42,7 +43,8 @@
     <p id="seed-label" class="sub"></p>
     <div class="keys">
       <div><b>WASD</b> 이동</div><div><b>Space</b> 점프/수영</div><div><b>Shift</b> 달리기</div>
-      <div><b>좌클릭</b> 캐기/공격</div><div><b>우클릭</b> 놓기/먹기</div><div><b>휠 / 1~9</b> 선택</div>
+      <div><b>좌클릭</b> 캐기/공격</div><div><b>우클릭</b> 놓기/먹기/사용</div><div><b>휠 / 1~9</b> 선택</div>
+      <div><b>E</b> 인벤토리 · 제작</div>
       <div><b>B</b> 블록 상자<span class="cr">*</span></div><div><b>F</b> 비행<span class="cr">*</span></div><div><b>F3</b> 정보</div>
     </div>
     <div class="btn-col">
@@ -107,6 +109,7 @@
 <script src="js/game/player.js"></script>
 <script src="js/game/interaction.js"></script>
 <script src="js/game/items.js"></script>
+<script src="js/game/crafting.js"></script>
 <script src="js/game/drops.js"></script>
 <script src="js/game/mobs.js"></script>
 <script src="js/game/save.js"></script>
