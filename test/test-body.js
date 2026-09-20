@@ -42,7 +42,7 @@ ok(diff, '좌표별 청크 상이');
 let valid = true, seaOk = true;
 for (let cx = -3; cx <= 3; cx++) for (let cz = -3; cz <= 3; cz++) {
   const d = gen.genChunk(cx, cz);
-  for (let i = 0; i < d.length; i++) if (d[i] > 13) valid = false;
+  for (let i = 0; i < d.length; i++) if (d[i] > 19) valid = false;
   for (let x = 0; x < 16; x++) for (let z = 0; z < 16; z++)
     for (let y = CONFIG.SEA + 1; y < 64; y++)
       if (d[Terrain.idx(x, y, z)] === BLOCK.WATER) seaOk = false;
@@ -141,6 +141,21 @@ ok(Inventory.isCreative() && Inventory.getSlots()[0].count === Infinity, '크리
 ok(Inventory.consumeSelected() === true && Inventory.getSlots()[0].count === Infinity, '크리에이티브 소비해도 무한');
 Inventory.setMode(GAME_MODE.SURVIVAL);
 ok(Inventory.getSlots()[0].count === Inventory.MAX_STACK, '모드 전환 시 64개로 변환');
+Crafting.setGridSize(3);
+Crafting.clear();
+[BLOCK.PLANK, BLOCK.PLANK, BLOCK.PLANK, 0, ITEM.STICK, 0, 0, ITEM.STICK, 0].forEach((id,i) => Crafting.setCell(i,id));
+ok(Crafting.getResultRecipe() && Crafting.getResultRecipe().id === 'wood_pickaxe', '나무 곡괭이 제작법 인식');
+Crafting.clear();
+[ITEM.WOOL, ITEM.WOOL, ITEM.WOOL, BLOCK.PLANK, BLOCK.PLANK, BLOCK.PLANK, 0,0,0].forEach((id,i) => Crafting.setCell(i,id));
+ok(Crafting.getResultRecipe() && Crafting.getResultRecipe().id === 'bed', '침대 제작법 인식');
+ok(getBlockDrop(BLOCK.COAL_ORE) === ITEM.COAL, '석탄 광석 → 석탄 드롭');
+ok(getBlockDrop(BLOCK.IRON_ORE) === ITEM.RAW_IRON, '철 광석 → 철 원석 드롭');
+ok(getBlockDrop(BLOCK.GOLD_ORE) === ITEM.RAW_GOLD, '금 광석 → 금 원석 드롭');
+ok(getBlockDrop(BLOCK.DIAMOND_ORE) === ITEM.DIAMOND, '다이아몬드 광석 → 다이아몬드 드롭');
+ok(getRequiredMiningTier(BLOCK.COAL_ORE) === 1, '석탄은 나무 곡괭이 티어');
+ok(getRequiredMiningTier(BLOCK.IRON_ORE) === 2, '철은 돌 곡괭이 티어');
+ok(getRequiredMiningTier(BLOCK.GOLD_ORE) === 3 && getRequiredMiningTier(BLOCK.DIAMOND_ORE) === 3, '금/다이아는 철 곡괭이 티어');
+
 
 console.log('[Mobs]');
 let mobsOk = true;
@@ -150,9 +165,9 @@ for (const [type, def] of Object.entries(MOB_DEFS)) {
   (def.drops || []).forEach(d => { if (!ITEMS[d.id] || d.min > d.max) mobsOk = false; });
 }
 ok(mobsOk, '모든 몹 정의 유효');
-ok(Object.values(MOB_DEFS).filter(d => d.hostile).length === 3, '적대 몹 3종');
+ok(Object.values(MOB_DEFS).filter(d => d.hostile).length === 4, '적대 몹 4종');
 ok(Object.values(MOB_DEFS).filter(d => !d.hostile).length === 4, '동물 몹 4종');
-ok(Object.values(ITEMS).every(i => i.food > 0 && i.tiles.all), '모든 음식 정의 유효');
+ok(Object.values(ITEMS).filter(i => i.food).every(i => i.food > 0 && i.tiles.all), '모든 음식 정의 유효');
 
 console.log(fails ? '\n' + fails + '개 실패' : '\n모든 테스트 통과');
 if (fails) process.exit(1);

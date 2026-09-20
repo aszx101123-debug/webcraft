@@ -102,6 +102,18 @@ const Mobs = (() => {
       leg(.75, .08, .08, 0x1e1e24, -.68, .4, .32);
       leg(.75, .08, .08, 0x1e1e24, .68, .4, -.32);
       leg(.75, .08, .08, 0x1e1e24, -.68, .4, -.32);
+    } else if (type === 'creeper') {
+      const body = box(.68, 1.15, .68, 0x4b9e4a, 0, .8, 0);
+      const face = box(.58, .52, .06, 0x3a7e3a, 0, 1.38, .35);
+      g.add(body, face);
+      parts.face = face;
+      leg(.18, .55, .18, 0x3f853f, .22, .28, .2);
+      leg(.18, .55, .18, 0x3f853f, -.22, .28, .2);
+      leg(.18, .55, .18, 0x3f853f, .22, .28, -.2);
+      leg(.18, .55, .18, 0x3f853f, -.22, .28, -.2);
+      const fuse = box(.16, .3, .16, 0x8fd14f, 0, 1.95, 0);
+      g.add(fuse);
+      parts.fuse = fuse;
     }
     return { mesh: g, parts };
   }
@@ -122,7 +134,7 @@ const Mobs = (() => {
       moving: false, onGround: false,
       wanderT: Math.random() * 2, attackT: 0, shootT: 1 + Math.random() * 2,
       strafeT: 2, strafeDir: 1, hurtT: 0, flashed: false,
-      burnT: 0, fleeT: 0, animT: 0,
+      burnT: 0, fleeT: 0, animT: 0, fuseT: 0,
       dead: false, deadT: 0
     };
     mobs.push(m);
@@ -219,7 +231,7 @@ const Mobs = (() => {
     return t0;
   }
 
-  function tryAttack(eye, dir, reach) {
+  function tryAttack(eye, dir, reach, damage = SURVIVAL.FIST_DMG) {
     let best = null, bestT = Infinity;
     for (const m of mobs) {
       if (m.dead) continue;
@@ -230,7 +242,7 @@ const Mobs = (() => {
       if (t !== null && t < reach && t < bestT) { bestT = t; best = m; }
     }
     if (best) {
-      hurtMob(best, SURVIVAL.FIST_DMG, Player.pos);
+      hurtMob(best, damage, Player.pos);
       return best;
     }
     return null;
@@ -247,6 +259,26 @@ const Mobs = (() => {
     group.add(mesh);
     arrows.push({ pos: from.clone(), vel, mesh, life: 5 });
     if (onEvent) onEvent('shoot', m);
+  }
+
+  function explodeCreeper(m) {
+    if (onEvent) onEvent('explode', m);
+    if (mode === GAME_MODE.SURVIVAL && !Player.dead) {
+      const dx = Player.pos.x - m.pos.x;
+      const dy = (Player.pos.y + .9) - (m.pos.y + 1);
+      const dz = Player.pos.z - m.pos.z;
+      const d = Math.hypot(dx, dy, dz);
+      if (d < 4.8) Player.damage(Math.max(2, Math.floor(10 * (1 - d / 4.8))), '크리퍼 폭발', m.pos);
+    }
+    const cx = Math.floor(m.pos.x), cy = Math.floor(m.pos.y + .8), cz = Math.floor(m.pos.z);
+    for (let x = cx - 2; x <= cx + 2; x++) for (let y = cy - 1; y <= cy + 2; y++) for (let z = cz - 2; z <= cz + 2; z++) {
+      const dd = Math.hypot(x + .5 - m.pos.x, y + .5 - (m.pos.y + .8), z + .5 - m.pos.z);
+      if (dd > 2.35) continue;
+      const id = World.getBlock(x, y, z);
+      if (id && id !== BLOCK.BEDROCK && id !== BLOCK.CRAFTING_TABLE) World.setBlock(x, y, z, BLOCK.AIR);
+    }
+    m.dead = true;
+    m.deadT = .12;
   }
 
   function surfaceY(x, z) {
@@ -280,7 +312,7 @@ const Mobs = (() => {
     if (category === 'hostile') {
       if (!isSolidBlock(top) || top === BLOCK.LEAVES) return;
       const r = Math.random();
-      spawn(r < .45 ? 'zombie' : r < .75 ? 'skeleton' : 'spider', x + .5, y + 1, z + .5);
+      spawn(r < .42 ? 'zombie' : r < .70 ? 'skeleton' : r < .88 ? 'spider' : 'creeper', x + .5, y + 1, z + .5);
     } else {
       if (top !== BLOCK.GRASS) return;
       const r = Math.random();
@@ -349,9 +381,24 @@ const Mobs = (() => {
       } else {
         const aggro = survival && !Player.dead && m.def.aggro && dist < m.def.aggro;
         if (aggro) {
-          m.dir.set(dx, 0, dz).normalize();
-          m.moving = true;
-          if (m.def.ranged) {
+          if (m.type === 'creeper') {
+            if (distXZ < 3.3) {
+              m.fuseT += dt;
+              m.moving = false;
+              if (m.fuseT >= 1.25) {
+                explodeCreeper(m);
+                continue;
+              }
+            } else {
+              m.fuseT = Math.max(0, m.fuseT - dt * .8);
+              m.dir.set(dx, 0, dz).normalize();
+              m.moving = true;
+            }
+          } else {
+            m.dir.set(dx, 0, dz).normalize();
+            m.moving = true;
+          }
+          if (m.type !== 'creeper' && m.def.ranged) {
             if (dist > 11) { /* approach */ }
             else if (dist < 5) { m.dir.set(-dx, 0, -dz).normalize(); }
             else {
@@ -364,7 +411,7 @@ const Mobs = (() => {
               m.shootT = 2.2 + Math.random();
               shootArrow(m);
             }
-          } else if (distXZ < (m.def.width / 2 + .55) && Math.abs(pp.y - m.pos.y) < 1.8 && m.attackT <= 0) {
+          } else if (m.type !== 'creeper' && distXZ < (m.def.width / 2 + .55) && Math.abs(pp.y - m.pos.y) < 1.8 && m.attackT <= 0) {
             m.attackT = 1.2;
             Player.damage(m.def.dmg, m.def.name + '에게 당했다', m.pos);
           }
@@ -415,6 +462,11 @@ const Mobs = (() => {
       m.parts.legs.forEach((l, li) => {
         l.rotation.x = m.moving ? Math.sin(m.animT + (li % 2) * Math.PI) * .55 : l.rotation.x * .8;
       });
+      if (m.type === 'creeper' && m.parts.fuse) {
+        const pulse = 1 + Math.max(0, m.fuseT) * .12 + Math.sin(m.fuseT * 25) * Math.max(0, m.fuseT) * .05;
+        m.parts.face.scale.setScalar(pulse);
+        m.parts.fuse.scale.setScalar(1 + Math.max(0, m.fuseT) * .4);
+      }
     }
 
     for (let i = arrows.length - 1; i >= 0; i--) {

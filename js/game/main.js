@@ -183,23 +183,53 @@
   const keys = {};
   const canvas = renderer.domElement;
 
+  window.addEventListener('webcraft-inventory-closed', () => {
+    if (state.started && !Player.dead) {
+      state.suppressPause = true;
+      startGameInput();
+    }
+  });
+
+  function startGameInput() {
+    canvas.requestPointerLock();
+  }
+
   document.addEventListener('keydown', e => {
     keys[e.code] = true;
     if (e.code === 'Space') e.preventDefault();
     if (e.code === 'F3') { e.preventDefault(); const h = document.getElementById('hud-info'); h.style.display = h.style.display === 'none' ? '' : 'none'; }
+
+    if (e.code === 'KeyE' && state.started && !Player.dead) {
+      e.preventDefault();
+      if (UI.isInventoryOpen()) {
+        state.suppressPause = true;
+        UI.closeInventory();
+        canvas.requestPointerLock();
+      } else {
+        Interact.cancelBreak();
+        state.suppressPause = true;
+        UI.openInventory();
+        document.exitPointerLock();
+      }
+      return;
+    }
+
     if (!state.locked) return;
+
     if (e.code.startsWith('Digit')) {
       const n = +e.code[5];
       if (n >= 1 && n <= 9) { UI.setSelected(n - 1); blip(300, .04, 'square', .02); }
     }
+
     if (e.code === 'KeyF') {
       if (state.mode !== GAME_MODE.CREATIVE) { UI.showToast('서바이벌에서는 날 수 없습니다'); return; }
       Player.flying = !Player.flying;
       UI.showToast(Player.flying ? '비행 모드 ON' : '비행 모드 OFF');
       blip(Player.flying ? 520 : 260, .09, 'triangle', .04);
     }
-    if (e.code === 'KeyB' || e.code === 'KeyE') {
-      if (state.mode !== GAME_MODE.CREATIVE) { UI.showToast('서바이벌에서는 직접 캐서 얻으세요'); return; }
+
+    if (e.code === 'KeyB') {
+      if (state.mode !== GAME_MODE.CREATIVE) { UI.showToast('블록 상자는 크리에이티브 전용입니다'); return; }
       state.suppressPause = true;
       document.exitPointerLock();
       UI.openPicker(id => {
@@ -210,6 +240,7 @@
       });
     }
   });
+
   document.addEventListener('keyup', e => keys[e.code] = false);
 
   document.addEventListener('mousemove', e => {
@@ -220,18 +251,52 @@
 
   document.addEventListener('mousedown', e => {
     if (!state.locked || Player.dead) return;
+
     if (e.button === 0) {
       const dir = new THREE.Vector3();
       camera.getWorldDirection(dir);
-      const hitMob = Mobs.tryAttack(camera.position, dir, 3.6);
+
+      const selected = Inventory.selectedSlot();
+      const weaponDamage = selected && getToolDef(selected.id)
+        ? getWeaponDamage(selected.id)
+        : SURVIVAL.FIST_DMG;
+      const hitMob = Mobs.tryAttack(camera.position, dir, 3.6, weaponDamage);
+
       if (hitMob) {
+        Interact.cancelBreak();
         Player.addExhaustion(SURVIVAL.ATTACK_COST);
-      } else if (Interact.tryBreak(state.mode === GAME_MODE.SURVIVAL)) {
-        blip(95, .12, 'triangle', .09);
+
+        const weapon = selected && getToolDef(selected.id)
+          && getToolDef(selected.id).type === 'sword';
+        if (state.mode === GAME_MODE.SURVIVAL && weapon) {
+          const result = Inventory.damageSelectedTool(1);
+          if (result.broken) UI.showToast('검이 부서졌습니다');
+          UI.renderHotbar();
+        }
+      } else {
+        Interact.beginBreak(state.mode === GAME_MODE.SURVIVAL);
       }
     } else if (e.button === 2) {
+      const target = Interact.getTarget();
+
+      if (target && target.id === BLOCK.CRAFTING_TABLE) {
+        Interact.cancelBreak();
+        state.suppressPause = true;
+        document.exitPointerLock();
+        UI.openCraftingTable();
+        return;
+      }
+
+      if (target && target.id === BLOCK.BED) {
+        Player.setSpawn(target.x + .5, target.y + 1, target.z + .5);
+        UI.showToast('침대가 새로운 리스폰 지점이 되었습니다');
+        blip(440, .08, 'sine', .04);
+        return;
+      }
+
       const s = Inventory.selectedSlot();
       if (!s) return;
+
       if (isFoodId(s.id)) {
         if (Player.eat(ITEMS[s.id].food)) {
           blip(280, .07, 'triangle', .05);
@@ -256,6 +321,11 @@
       }
     }
   });
+
+  document.addEventListener('mouseup', e => {
+    if (e.button === 0) Interact.cancelBreak();
+  });
+  addEventListener('blur', () => Interact.cancelBreak());
   document.addEventListener('contextmenu', e => e.preventDefault());
   document.addEventListener('wheel', e => {
     if (!state.locked) return;
@@ -269,6 +339,7 @@
       state.suppressPause = false;
       UI.showOverlay(null);
     } else if (state.started && !Player.dead) {
+      Interact.cancelBreak();
       if (state.suppressPause) { state.suppressPause = false; return; }
       UI.showOverlay('pause');
       doSave(true);
@@ -285,14 +356,14 @@
   } else {
     startBtn.classList.add('hidden');
   }
-  startBtn.addEventListener('click', () => canvas.requestPointerLock());
+  startBtn.addEventListener('click', () => startGameInput());
   btnSurvival.addEventListener('click', () => {
     state.mode = GAME_MODE.SURVIVAL;
     Player.setMode(GAME_MODE.SURVIVAL);
     Inventory.init(GAME_MODE.SURVIVAL, null);
     Mobs.setMode(GAME_MODE.SURVIVAL);
     UI.renderHotbar();
-    canvas.requestPointerLock();
+    startGameInput();
   });
   btnCreative.addEventListener('click', () => {
     state.mode = GAME_MODE.CREATIVE;
@@ -300,18 +371,19 @@
     Inventory.init(GAME_MODE.CREATIVE, null);
     Mobs.setMode(GAME_MODE.CREATIVE);
     UI.renderHotbar();
-    canvas.requestPointerLock();
+    startGameInput();
   });
 
-  document.getElementById('btn-resume').addEventListener('click', () => canvas.requestPointerLock());
+  document.getElementById('btn-resume').addEventListener('click', () => startGameInput());
   document.getElementById('btn-save').addEventListener('click', () => doSave(false));
   document.getElementById('btn-home').addEventListener('click', () => { doSave(true); location.href = 'index.html'; });
   document.getElementById('btn-respawn').addEventListener('click', () => {
     Player.respawn();
     UI.hideDeath();
-    canvas.requestPointerLock();
+    startGameInput();
   });
-  document.getElementById('picker-close').addEventListener('click', () => { UI.closePicker(); canvas.requestPointerLock(); });
+  document.getElementById('picker-close').addEventListener('click', () => { UI.closePicker(); startGameInput(); });
+
   document.getElementById('btn-newworld').addEventListener('click', () => {
     if (!confirm('현재 월드를 버리고 새 월드를 시작할까요?')) return;
     SaveSystem.clear();
@@ -370,6 +442,8 @@
         updateSky(dt);
         const sprinting = (keys['ShiftLeft'] || keys['ShiftRight']) && keys['KeyW'] && !Player.flying;
         Player.survivalTick(dt, sprinting);
+        const mineResult = Interact.updateMining(dt, state.mode === GAME_MODE.SURVIVAL);
+        if (mineResult.broken) blip(95, .12, 'triangle', .09);
         Mobs.update(dt, true);
         Drops.update(dt, Player.pos, state.mode === GAME_MODE.SURVIVAL && !Player.dead);
       } else {

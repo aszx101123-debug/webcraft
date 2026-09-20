@@ -49,6 +49,32 @@ const Terrain = (() => {
       const f = stretch(forestAt(cx * C + 8, cz * C + 8), 1.9);
       const count = Math.min(4, Math.floor(Math.max(0, f - .5) * 12));
       const rng = Noise.mulberry32(Math.floor(Noise.hash2(cx, cz, seed) * 4294967296));
+      function oreVein(blockId, minY, maxY, attempts, veinMin, veinMax) {
+        for (let v = 0; v < attempts; v++) {
+          let x = 1 + Math.floor(rng() * 14);
+          let y = minY + Math.floor(rng() * Math.max(1, maxY - minY + 1));
+          let z = 1 + Math.floor(rng() * 14);
+          if (y < 2 || y >= H - 1) continue;
+          const len = veinMin + Math.floor(rng() * (veinMax - veinMin + 1));
+          for (let n = 0; n < len; n++) {
+            const lx = Math.max(1, Math.min(14, x));
+            const ly = Math.max(minY, Math.min(maxY, y));
+            const lz = Math.max(1, Math.min(14, z));
+            const oi = idx(lx, ly, lz);
+            if (data[oi] === BLOCK.STONE) data[oi] = blockId;
+            x += rng() < .5 ? (rng() < .5 ? -1 : 1) : 0;
+            z += rng() < .5 ? (rng() < .5 ? -1 : 1) : 0;
+            y += rng() < .28 ? (rng() < .5 ? -1 : 1) : 0;
+          }
+        }
+      }
+
+      // 광석 생성층: 월드 높이 64 기준으로 깊어질수록 희귀해집니다.
+      oreVein(BLOCK.COAL_ORE, 6, 40, 12, 3, 7);
+      oreVein(BLOCK.IRON_ORE, 5, 32, 8, 3, 6);
+      oreVein(BLOCK.GOLD_ORE, 4, 24, 5, 2, 5);
+      oreVein(BLOCK.DIAMOND_ORE, 3, 16, 3, 1, 4);
+
       for (let t = 0; t < count; t++) {
         const tx = 2 + Math.floor(rng() * 12);
         const tz = 2 + Math.floor(rng() * 12);

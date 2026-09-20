@@ -87,6 +87,28 @@ const Textures = (() => {
       return null;
     });
 
+    const oreTile = (base, speck, chance=.24) => fill(base[0], base[1], (x, y) => {
+      if (rng() < chance) return vary(speck[0], speck[1], speck[2], 14);
+      return vary(127, 127, 127, 9);
+    });
+    oreTile([0,3],[35,35,35],.24);
+    oreTile([1,3],[210,205,190],.22);
+    oreTile([2,3],[236,190,46],.20);
+    oreTile([3,3],[80,220,215],.17);
+    fill(4,3,(x,y)=>{
+      if (y>12) return vary(105,70,40,7);
+      if ((x===7||x===8) && y>=4 && y<=12) return vary(112,73,40,7);
+      if (x>=6 && x<=9 && y<=5) return rng()<.7 ? vary(255,170,45,14) : vary(120,70,30,8);
+      return null;
+    });
+    fill(5,3,(x,y)=>{
+      const red = vary(178,58,58,10), hi = vary(233,92,92,9), pale = vary(238,224,210,8);
+      if(y<5) return pale;
+      if(y<11) return rng()<.78 ? red : hi;
+      if(y<13) return pale;
+      return vary(112,72,42,8);
+    });
+
     function hashCell(cx, cy) { return (cx * 7 + cy * 13) % 5 / 5; }
 
     texture = new THREE.CanvasTexture(canvas);
@@ -117,27 +139,120 @@ const Textures = (() => {
     c.width = c.height = 48;
     const g = c.getContext('2d');
     g.imageSmoothingEnabled = false;
-    if (id >= 100) {
-      const tile = ITEMS[id].tiles.all;
-      g.drawImage(canvas, tile[0] * TS, tile[1] * TS, TS, TS, 8, 8, 32, 32);
-      iconCache[id] = c.toDataURL();
-      return iconCache[id];
+
+    const shadow = () => { g.fillStyle='rgba(0,0,0,.30)'; g.fillRect(6,38,36,4); };
+    const glow = (x,y,r,color) => {
+      const gr=g.createRadialGradient(x,y,1,x,y,r);
+      gr.addColorStop(0,color); gr.addColorStop(1,'rgba(255,255,255,0)');
+      g.fillStyle=gr; g.fillRect(x-r,y-r,r*2,r*2);
+    };
+    const finish = () => { iconCache[id]=c.toDataURL(); return iconCache[id]; };
+
+    if(id===ITEM.STICK){
+      shadow();
+      g.fillStyle='#5d371f';g.fillRect(21,7,7,34);
+      g.fillStyle='#a96b39';g.fillRect(23,7,3,34);
+      g.fillStyle='#d0914d';g.fillRect(24,7,1,28);
+      return finish();
     }
-    const B = BLOCKS[id];
-    const topTile = B.tiles.top || B.tiles.all;
-    const sideTile = B.tiles.side || B.tiles.all;
-    const draw = (tile, m, dark) => {
-      g.save();
-      g.setTransform(m[0], m[1], m[2], m[3], m[4], m[5]);
-      g.drawImage(canvas, tile[0] * TS, tile[1] * TS, TS, TS, 0, 0, TS, TS);
-      if (dark) { g.fillStyle = `rgba(15,20,28,${dark})`; g.fillRect(0, 0, TS, TS); }
+
+    if(id===BLOCK.TORCH){
+      glow(24,12,15,'rgba(255,180,55,.30)');
+      shadow();
+      g.fillStyle='#5e3821';g.fillRect(20,17,8,25);
+      g.fillStyle='#a96d3c';g.fillRect(22,17,3,25);
+      g.fillStyle='#ff7b20';g.fillRect(18,10,12,12);
+      g.fillStyle='#ffd45a';g.fillRect(21,7,6,13);
+      g.fillStyle='#fff1b0';g.fillRect(23,7,3,7);
+      return finish();
+    }
+
+    if(getToolDef(id)){
+      const td=getToolDef(id);
+      const metal=td.tier===4?'#48dfe8':td.tier===3?'#dce4ed':td.tier===2?'#9ca7b2':'#b87343';
+      const hi=td.tier===4?'#d8ffff':td.tier===3?'#ffffff':td.tier===2?'#d7e0e8':'#e2a46b';
+      const handle='#6a4024';
+      shadow();
+      g.strokeStyle='rgba(0,0,0,.38)';g.lineWidth=8;g.lineCap='square';
+      g.beginPath();g.moveTo(11,39);g.lineTo(34,10);g.stroke();
+      g.strokeStyle='#8b572d';g.lineWidth=5;
+      g.beginPath();g.moveTo(11,39);g.lineTo(34,10);g.stroke();
+      if(td.tier===4){glow(25,22,18,'rgba(73,240,250,.18)');}
+      if(td.type==='sword'){
+        g.strokeStyle=metal;g.lineWidth=7;g.beginPath();g.moveTo(31,8);g.lineTo(13,30);g.stroke();
+        g.strokeStyle=hi;g.lineWidth=2;g.beginPath();g.moveTo(30,8);g.lineTo(14,29);g.stroke();
+        g.strokeStyle='#7a4a28';g.lineWidth=5;g.beginPath();g.moveTo(12,30);g.lineTo(20,38);g.stroke();
+        g.strokeStyle='#d6b15a';g.lineWidth=3;g.beginPath();g.moveTo(9,27);g.lineTo(18,36);g.stroke();
+        return finish();
+      } else if(td.type==='pickaxe'){
+        g.strokeStyle=metal;g.lineWidth=7;
+        g.beginPath();g.moveTo(17,13);g.lineTo(40,18);g.stroke();
+        g.beginPath();g.moveTo(17,13);g.lineTo(10,24);g.stroke();
+        g.strokeStyle=hi;g.lineWidth=2;g.beginPath();g.moveTo(18,12);g.lineTo(39,17);g.stroke();
+      } else if(td.type==='axe'){
+        g.fillStyle=metal;g.fillRect(15,9,18,9);g.fillRect(27,12,8,16);
+        g.fillStyle=hi;g.fillRect(16,10,14,3);
+      } else {
+        g.strokeStyle=metal;g.lineWidth=8;g.beginPath();g.moveTo(15,10);g.lineTo(29,18);g.stroke();
+        g.fillStyle=hi;g.fillRect(24,14,10,7);
+      }
+      return finish();
+    }
+
+    if(id===ITEM.COAL){
+      shadow(); g.fillStyle='#24262a';g.beginPath();g.moveTo(10,28);g.lineTo(15,12);g.lineTo(29,9);g.lineTo(39,20);g.lineTo(33,35);g.lineTo(18,39);g.closePath();g.fill();
+      g.fillStyle='#596069';g.fillRect(18,15,5,4);g.fillRect(27,21,4,4);g.fillRect(15,27,5,4);
+      return finish();
+    }
+    if(id===ITEM.RAW_IRON){
+      shadow();g.fillStyle='#7e7f82';g.beginPath();g.moveTo(8,30);g.lineTo(14,15);g.lineTo(27,9);g.lineTo(40,19);g.lineTo(34,35);g.lineTo(18,40);g.closePath();g.fill();
+      g.fillStyle='#e4d3bc';g.fillRect(16,16,7,6);g.fillRect(26,24,5,5);g.fillRect(13,28,5,4);
+      return finish();
+    }
+    if(id===ITEM.RAW_GOLD){
+      glow(25,24,18,'rgba(255,195,45,.12)');shadow();g.fillStyle='#8d6b20';g.beginPath();g.moveTo(8,30);g.lineTo(14,14);g.lineTo(28,9);g.lineTo(40,20);g.lineTo(33,36);g.lineTo(18,39);g.closePath();g.fill();
+      g.fillStyle='#f4c63e';g.fillRect(16,15,6,6);g.fillRect(28,19,5,7);g.fillRect(14,29,7,5);
+      return finish();
+    }
+    if(id===ITEM.DIAMOND){
+      glow(25,23,20,'rgba(98,236,255,.20)');shadow();
+      g.fillStyle='#51d8e5';g.beginPath();g.moveTo(11,20);g.lineTo(20,10);g.lineTo(33,13);g.lineTo(39,23);g.lineTo(28,38);g.lineTo(15,34);g.closePath();g.fill();
+      g.fillStyle='#d8ffff';g.beginPath();g.moveTo(20,10);g.lineTo(27,20);g.lineTo(17,24);g.closePath();g.fill();
+      g.fillStyle='#6ca8ff';g.fillRect(28,21,6,9);
+      return finish();
+    }
+
+    if(id>=100){
+      const colors={
+        [ITEM.PORK]:['#ef9da6','#ffced0','#b85b6a'],
+        [ITEM.BEEF]:['#a95443','#dc9074','#65322c'],
+        [ITEM.CHICKEN]:['#e7d9bb','#fff6df','#d19a4a'],
+        [ITEM.MUTTON]:['#b96f5f','#efb6a6','#6d3a34'],
+        [ITEM.ROTTEN]:['#5f7a49','#89a96a','#31462a'],
+        [ITEM.APPLE]:['#d83d39','#ff7a58','#6fae4a']
+      };
+      if(colors[id]){
+        shadow();const cc=colors[id];g.fillStyle=cc[0];g.beginPath();g.ellipse(24,25,14,10,0,0,Math.PI*2);g.fill();
+        g.fillStyle=cc[1];g.beginPath();g.ellipse(21,22,8,5,0,0,Math.PI*2);g.fill();
+        g.fillStyle=cc[2];g.fillRect(28,15,4,7);
+        if(id===ITEM.APPLE){g.fillStyle='#68a64d';g.fillRect(30,12,8,3);g.fillRect(34,10,3,3);}
+        return finish();
+      }
+    }
+
+    const B=BLOCKS[id];
+    const topTile=B.tiles.top||B.tiles.all;
+    const sideTile=B.tiles.side||B.tiles.all;
+    const draw=(tile,m,dark)=>{
+      g.save();g.setTransform(m[0],m[1],m[2],m[3],m[4],m[5]);
+      g.drawImage(canvas,tile[0]*TS,tile[1]*TS,TS,TS,0,0,TS,TS);
+      if(dark){g.fillStyle=`rgba(15,20,28,${dark})`;g.fillRect(0,0,TS,TS);}
       g.restore();
     };
-    draw(topTile, [1.25, .625, -1.25, .625, 24, 2], 0);
-    draw(sideTile, [1.25, .625, 0, 1.25, 4, 12], .22);
-    draw(sideTile, [1.25, -.625, 0, 1.25, 24, 22], .42);
-    iconCache[id] = c.toDataURL();
-    return iconCache[id];
+    draw(topTile,[1.25,.625,-1.25,.625,24,2],0);
+    draw(sideTile,[1.25,.625,0,1.25,4,12],.16);
+    draw(sideTile,[1.25,-.625,0,1.25,24,22],.35);
+    return finish();
   }
 
   let hudCache = null;
