@@ -110,6 +110,10 @@ const Fluids = (() => {
     }
   }
 
+  function init() {
+    reset();
+  }
+
   function reset() {
     for (const k of [...activeFlows]) {
       const p = k.split(',').map(Number);
@@ -119,5 +123,5 @@ const Fluids = (() => {
     elapsed = 0;
   }
 
-  return { update, reset };
+  return { init, update, reset };
 })();
