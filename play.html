@@ -14,6 +14,7 @@
 </head>
 <body>
 
+<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.2.1 · 검은 화면 버그 수정</div>
 <div id="cross">+</div>
 <div id="mine-progress" aria-hidden="true"><div id="mine-progress-fill"></div></div>
 <div id="hud-info"></div>
@@ -153,7 +154,7 @@
 <script src="js/game/main.js"></script>
 <script>
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-  addEventListener('load', () => navigator.serviceWorker.register('service-worker.js?v=20260920-v12-3').catch(() => {}));
+  addEventListener('load', () => navigator.serviceWorker.register('service-worker.js?v=20260920-v12-4').catch(() => {}));
 }
 </script>
 </body>
