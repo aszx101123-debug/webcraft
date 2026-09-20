@@ -12,15 +12,15 @@ const Crafting = (() => {
   r('crafting-table', '제작대 만들기', BLOCK.CRAFTING_TABLE, 1, [{ id: BLOCK.PLANK, count: 4 }], '판자 4개');
 
   const tiers = [
-    { key: 'wood', name: '나무', material: BLOCK.PLANK, pick: ITEM.WOODEN_PICKAXE, cutter: ITEM.WOODEN_AXE, shovel: ITEM.WOODEN_SHOVEL, hoe: ITEM.WOODEN_HOE },
-    { key: 'stone', name: '돌', material: BLOCK.COBBLE, pick: ITEM.STONE_PICKAXE, cutter: ITEM.STONE_AXE, shovel: ITEM.STONE_SHOVEL, hoe: ITEM.STONE_HOE },
-    { key: 'iron', name: '철', material: ITEM.IRON_INGOT, pick: ITEM.IRON_PICKAXE, cutter: ITEM.IRON_AXE, shovel: ITEM.IRON_SHOVEL, hoe: ITEM.IRON_HOE },
-    { key: 'gold', name: '금', material: ITEM.GOLD_INGOT, pick: ITEM.GOLD_PICKAXE, cutter: ITEM.GOLD_AXE, shovel: ITEM.GOLD_SHOVEL, hoe: ITEM.GOLD_HOE },
-    { key: 'diamond', name: '다이아몬드', material: ITEM.DIAMOND, pick: ITEM.DIAMOND_PICKAXE, cutter: ITEM.DIAMOND_AXE, shovel: ITEM.DIAMOND_SHOVEL, hoe: ITEM.DIAMOND_HOE }
+    { key: 'wood', name: '나무', material: BLOCK.PLANK, pick: ITEM.WOODEN_PICKAXE, cutter: ITEM.WOODEN_CUTTER, shovel: ITEM.WOODEN_SHOVEL, hoe: ITEM.WOODEN_HOE },
+    { key: 'stone', name: '돌', material: BLOCK.COBBLE, pick: ITEM.STONE_PICKAXE, cutter: ITEM.STONE_CUTTER, shovel: ITEM.STONE_SHOVEL, hoe: ITEM.STONE_HOE },
+    { key: 'iron', name: '철', material: ITEM.IRON_INGOT, pick: ITEM.IRON_PICKAXE, cutter: ITEM.IRON_CUTTER, shovel: ITEM.IRON_SHOVEL, hoe: ITEM.IRON_HOE },
+    { key: 'gold', name: '금', material: ITEM.GOLD_INGOT, pick: ITEM.GOLD_PICKAXE, cutter: ITEM.GOLD_CUTTER, shovel: ITEM.GOLD_SHOVEL, hoe: ITEM.GOLD_HOE },
+    { key: 'diamond', name: '다이아몬드', material: ITEM.DIAMOND, pick: ITEM.DIAMOND_PICKAXE, cutter: ITEM.DIAMOND_CUTTER, shovel: ITEM.DIAMOND_SHOVEL, hoe: ITEM.DIAMOND_HOE }
   ];
 
   for (const t of tiers) {
-    r(t.key + '-pickcutter', t.name + ' 곡괭이', t.pick, 1, [
+    r(t.key + '-pickaxe', t.name + ' 곡괭이', t.pick, 1, [
       { id: t.material, count: 3 }, { id: ITEM.STICK, count: 2 }
     ]);
     r(t.key + '-cutter', t.name + ' 벌목기', t.cutter, 1, [
