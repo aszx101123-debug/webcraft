@@ -125,6 +125,7 @@ const Crafting = (() => {
 
   function removeCell(index) {
     if (index < 0 || index >= 9) return 0;
+    if (!activeIndices().includes(index)) return 0;
     const id = grid[index];
     grid[index] = null;
     return id || 0;
