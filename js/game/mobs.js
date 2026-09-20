@@ -411,7 +411,7 @@ const Mobs = (() => {
               m.shootT = 2.2 + Math.random();
               shootArrow(m);
             }
-          } else if (distXZ < (m.def.width / 2 + .55) && Math.abs(pp.y - m.pos.y) < 1.8 && m.attackT <= 0) {
+          } else if (m.type !== 'creeper' && distXZ < (m.def.width / 2 + .55) && Math.abs(pp.y - m.pos.y) < 1.8 && m.attackT <= 0) {
             m.attackT = 1.2;
             Player.damage(m.def.dmg, m.def.name + '에게 당했다', m.pos);
           }
