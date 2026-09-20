@@ -110,10 +110,27 @@
 
 <div id="overlay-crafting" class="overlay hidden">
   <div class="panel crafting-panel">
-    <h2>제작</h2>
-    <p class="sub">재료를 모아 블록과 도구를 제작합니다.</p>
-    <div id="recipe-grid"></div>
-    <button id="crafting-close" class="btn ghost">닫기</button>
+    <h2>제작대</h2>
+    <p class="sub">재료를 격자에 배치하고 결과 칸을 눌러 제작합니다. 레시피를 누르면 격자에 배치할 수 있습니다.</p>
+    <div class="craft-layout">
+      <div class="craft-left">
+        <div class="craft-board">
+          <div class="craft-grid" id="craft-grid"></div>
+          <div class="craft-arrow">→</div>
+          <button id="craft-output" class="craft-output" disabled aria-label="제작 결과"></button>
+        </div>
+        <div class="craft-inventory-title">재료</div>
+        <div id="craft-inventory" class="craft-inventory"></div>
+        <div class="craft-actions">
+          <button id="craft-clear" class="btn small">격자 비우기</button>
+          <button id="crafting-close" class="btn ghost">닫기</button>
+        </div>
+      </div>
+      <div class="craft-recipes">
+        <div class="craft-recipes-title">레시피 북</div>
+        <div id="recipe-grid"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -124,6 +141,8 @@
 <script src="js/game/textures.js"></script>
 <script src="js/game/world.js"></script>
 <script src="js/game/player.js"></script>
+<script src="js/game/player-model.js"></script>
+<script src="js/game/fluids.js"></script>
 <script src="js/game/interaction.js"></script>
 <script src="js/game/items.js"></script>
 <script src="js/game/drops.js"></script>
