@@ -187,7 +187,7 @@ Inventory.init(GAME_MODE.SURVIVAL, [{ id: ITEM.STONE_PICKAXE, count: 1, durabili
 ok(Inventory.selectedToolDurability() === 2, '도구 내구도 저장');
 ok(Inventory.damageSelectedTool(1) === false && Inventory.selectedToolDurability() === 1, '도구 내구도 감소');
 ok(Inventory.damageSelectedTool(1) === true && Inventory.selectedSlot() === null, '도구 파손 후 슬롯 비움');
-ok(Inventory.SIZE === 27 && Inventory.HOTBAR_SIZE === 9, '인벤토리 27칸 + 핫바 9칸');
+ok(Inventory.SIZE === 36 && Inventory.HOTBAR_SIZE === 9, '인벤토리 27칸 + 핫바 9칸');
 Inventory.init(GAME_MODE.SURVIVAL, null);
 ok(Inventory.add(ITEM.PORK, 70) === 70 && Inventory.getSlots()[0].count === 64 && Inventory.getSlots()[1].count === 6, '27칸 스택 확장');
 ok(Inventory.move(0, 3, 10) === true && Inventory.getSlots()[0].count === 54 && Inventory.getSlots()[3].count === 10, '아이템 스택 이동');
@@ -202,6 +202,12 @@ ok(Inventory.dropFromSlot(0, 1).count === 1 && Inventory.getSlots()[0].count ===
 
 
 console.log('[Crafting data]');
+Crafting.setGridSize(2);
+Crafting.resetGrid(2);
+ok(Crafting.getGridSize() === 2 && Crafting.getVisibleCells().length === 4, '일반 인벤토리 2×2 제작');
+Crafting.setGridSize(3);
+Crafting.resetGrid(3);
+ok(Crafting.getGridSize() === 3 && Crafting.getVisibleCells().length === 9, '제작대 3×3 제작');
 ok(Array.isArray(DEFAULT_HOTBAR) && DEFAULT_HOTBAR.includes(BLOCK.CRAFTING_TABLE), '제작대가 기본 블록 목록에 포함');
 ok(PLACEABLE_IDS.includes(BLOCK.DIAMOND_ORE) && PLACEABLE_IDS.includes(BLOCK.EMERALD_ORE), '광석이 배치 가능한 블록 목록에 포함');
 
