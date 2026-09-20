@@ -25,6 +25,17 @@ const Terrain = (() => {
       return Noise.fbm2(x * .01 + 777, z * .01 - 777, seed + 29, 2);
     }
 
+    function biomeAt(x, z) {
+      const h = heightAt(x, z);
+      const temp = Noise.fbm2(x * .0018 + 900, z * .0018 - 900, seed + 101, 3);
+      const moisture = Noise.fbm2(x * .0022 - 1200, z * .0022 + 300, seed + 202, 3);
+      if (h >= 45 && temp < .58) return 'snowy';
+      if (h < SEA + 2 && temp > .72 && moisture < .5) return 'desert';
+      if (moisture > .64) return 'forest';
+      if (h >= 42) return 'highland';
+      return 'plains';
+    }
+
     function genChunk(cx, cz) {
       const data = new Uint8Array(C * C * H);
       const heights = new Int16Array(C * C);
@@ -32,12 +43,14 @@ const Terrain = (() => {
         const wx = cx * C + x, wz = cz * C + z;
         const h = heightAt(wx, wz);
         heights[x * C + z] = h;
-        const sandy = h <= SEA + 1;
+        const biome = biomeAt(wx, wz);
+        const sandy = h <= SEA + 1 || biome === 'desert';
+        const snowy = biome === 'snowy';
         for (let y = 0; y < H; y++) {
           let id = BLOCK.AIR;
           if (y === 0) id = BLOCK.BEDROCK;
           else if (y <= h) {
-            if (y === h) id = sandy ? BLOCK.SAND : BLOCK.GRASS;
+            if (y === h) id = sandy ? BLOCK.SAND : (snowy ? BLOCK.SNOW : BLOCK.GRASS);
             else if (y >= h - 3) id = sandy ? BLOCK.SAND : BLOCK.DIRT;
             else id = BLOCK.STONE;
             if (h > SEA + 2 && y >= 3 && y <= h - 2) {
@@ -55,24 +68,25 @@ const Terrain = (() => {
           if (id) data[idx(x, y, z)] = id;
         }
       }
-      // v1.2 deterministic ore veins. Ores replace stone only and stay below the surface.
+      // v1.2.4 ore pass: fewer veins and tighter vertical bands, adapted to WebCraft's 0-63 world height.
       const oreDefs = [
-        { id: BLOCK.COAL_ORE, minY: 10, maxY: 48, veins: 9, size: 7 },
-        { id: BLOCK.IRON_ORE, minY: 8, maxY: 38, veins: 8, size: 6 },
-        { id: BLOCK.COPPER_ORE, minY: 12, maxY: 42, veins: 7, size: 7 },
-        { id: BLOCK.GOLD_ORE, minY: 5, maxY: 25, veins: 5, size: 5 },
-        { id: BLOCK.LAPIS_ORE, minY: 6, maxY: 25, veins: 4, size: 4 },
-        { id: BLOCK.REDSTONE_ORE, minY: 4, maxY: 18, veins: 6, size: 6 },
-        { id: BLOCK.DIAMOND_ORE, minY: 3, maxY: 12, veins: 3, size: 4 },
-        { id: BLOCK.EMERALD_ORE, minY: 24, maxY: 52, veins: 2, size: 2 }
+        { id: BLOCK.COAL_ORE, minY: 26, maxY: 56, veins: 4, size: 4 },
+        { id: BLOCK.IRON_ORE, minY: 10, maxY: 36, veins: 3, size: 4 },
+        { id: BLOCK.IRON_ORE, minY: 45, maxY: 58, veins: 1, size: 3 },
+        { id: BLOCK.COPPER_ORE, minY: 18, maxY: 44, veins: 2, size: 4 },
+        { id: BLOCK.GOLD_ORE, minY: 7, maxY: 21, veins: 2, size: 3 },
+        { id: BLOCK.LAPIS_ORE, minY: 8, maxY: 19, veins: 1, size: 3 },
+        { id: BLOCK.REDSTONE_ORE, minY: 3, maxY: 13, veins: 2, size: 3 },
+        { id: BLOCK.DIAMOND_ORE, minY: 2, maxY: 8, veins: 1, size: 2 },
+        { id: BLOCK.EMERALD_ORE, minY: 38, maxY: 54, veins: 1, size: 1 }
       ];
       const oreRng = Noise.mulberry32(Math.floor(Noise.hash2(cx + 91, cz - 47, seed + 1901) * 4294967296));
       // 드물게 더 길게 이어지는 대형 철/구리 광맥을 추가한다.
       const largeVeinChance = oreRng();
-      if (largeVeinChance < .22) {
+      if (largeVeinChance < .04) {
         const large = largeVeinChance < .11
-          ? { id: BLOCK.IRON_ORE, minY: 10, maxY: 31, length: 18 }
-          : { id: BLOCK.COPPER_ORE, minY: 14, maxY: 40, length: 16 };
+          ? { id: BLOCK.IRON_ORE, minY: 10, maxY: 31, length: 9 }
+          : { id: BLOCK.COPPER_ORE, minY: 14, maxY: 40, length: 8 };
         let x = 2 + Math.floor(oreRng() * 12);
         let y = large.minY + Math.floor(oreRng() * (large.maxY - large.minY + 1));
         let z = 2 + Math.floor(oreRng() * 12);
@@ -115,7 +129,9 @@ const Terrain = (() => {
       }
 
       const f = stretch(forestAt(cx * C + 8, cz * C + 8), 1.9);
-      const count = Math.min(4, Math.floor(Math.max(0, f - .5) * 12));
+      let treeChance = f;
+      if (biomeAt(cx * C + 8, cz * C + 8) === 'desert' || biomeAt(cx * C + 8, cz * C + 8) === 'snowy') treeChance *= .35;
+      const count = Math.min(4, Math.floor(Math.max(0, treeChance - .5) * 12));
       const rng = Noise.mulberry32(Math.floor(Noise.hash2(cx, cz, seed) * 4294967296));
       for (let t = 0; t < count; t++) {
         const tx = 2 + Math.floor(rng() * 12);
@@ -142,10 +158,34 @@ const Terrain = (() => {
         if (data[idx(tx, h + th + 1, tz + 1)] === BLOCK.AIR) data[idx(tx, h + th + 1, tz + 1)] = BLOCK.LEAVES;
         if (data[idx(tx, h + th + 1, tz - 1)] === BLOCK.AIR) data[idx(tx, h + th + 1, tz - 1)] = BLOCK.LEAVES;
       }
+
+      // Tiny deterministic ruin: a rare landmark for exploration, kept inside one chunk.
+      const structRng = Noise.mulberry32(Math.floor(Noise.hash2(cx + 700, cz - 900, seed + 5050) * 4294967296));
+      if (structRng() < .035) {
+        const sx = 4 + Math.floor(structRng() * 8);
+        const sz = 4 + Math.floor(structRng() * 8);
+        const sh = heights[sx * C + sz];
+        const base = data[idx(sx, sh, sz)];
+        if (base === BLOCK.GRASS || base === BLOCK.SNOW) {
+          for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) {
+            const yy = sh + 1;
+            if (Math.abs(dx) === 2 || Math.abs(dz) === 2) {
+              for (let dy = 0; dy < 2; dy++) {
+                const li = idx(sx + dx, sh + 1 + dy, sz + dz);
+                if (sx + dx >= 0 && sx + dx < C && sz + dz >= 0 && sz + dz < C && data[li] === BLOCK.AIR) data[li] = BLOCK.COBBLE;
+              }
+            }
+          }
+          const center = idx(sx, sh + 1, sz);
+          if (data[center] === BLOCK.AIR) data[center] = BLOCK.CRAFTING_TABLE;
+          const light = idx(sx + 1, sh + 1, sz);
+          if (sx + 1 < C && data[light] === BLOCK.AIR) data[light] = BLOCK.GLOWSTONE;
+        }
+      }
       return data;
     }
 
-    return { seed, heightAt, forestAt, genChunk };
+    return { seed, heightAt, forestAt, biomeAt, genChunk };
   }
 
   return { makeGen, idx };
