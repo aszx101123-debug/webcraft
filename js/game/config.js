@@ -181,7 +181,7 @@ const MOB_DEFS = {
 };
 
 function isSolidBlock(id) {
-  return id !== BLOCK.AIR && id !== BLOCK.LEAVES && id !== BLOCK.WATER && !!BLOCKS[id] && !BLOCKS[id].liquid;
+  return id !== BLOCK.AIR && !!BLOCKS[id] && !BLOCKS[id].liquid;
 }
 
 function isPlaceable(id) {
