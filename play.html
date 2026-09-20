@@ -129,7 +129,49 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script>
+(function(){
+  const loading=document.getElementById('loading');
+  const textEl=loading&&loading.querySelector('.loading-text');
+
+  function show(message){
+    if(!loading)return;
+    loading.classList.remove('hidden');
+    if(textEl)textEl.textContent=message;
+  }
+
+  window.webcraftLoadingProgress=function(message){
+    if(textEl)textEl.textContent=message;
+  };
+
+  window.webcraftLoadingDone=function(){
+    if(loading)loading.classList.add('hidden');
+  };
+
+  window.webcraftScriptError=function(name){
+    show(name+'을 불러오지 못했습니다. 인터넷 연결 또는 브라우저 확장을 확인하세요.');
+  };
+
+  window.addEventListener('error',function(e){
+    const target=e&&e.target;
+    if(target&&target.tagName==='SCRIPT'&&target.src){
+      show('스크립트 로드 오류: '+target.src.split('/').pop());
+      return;
+    }
+    show('게임 오류: '+((e&&e.message)||'알 수 없는 오류'));
+  },true);
+
+  window.addEventListener('unhandledrejection',function(e){
+    show('게임 오류: '+((e&&e.reason&&e.reason.message)||'처리되지 않은 오류'));
+  });
+
+  if(!window.WebGLRenderingContext){
+    show('이 브라우저에서는 WebGL을 사용할 수 없습니다.');
+  }
+})();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js" onerror="window.webcraftScriptError('Three.js')"></script>
 <script src="js/game/config.js"></script>
 <script>CONFIG.SAVE_KEY='webcraft_save_v1';</script>
 <script src="js/game/noise.js"></script>
@@ -146,22 +188,6 @@
 <script src="js/game/save.js"></script>
 <script src="js/game/ui.js"></script>
 <script src="js/game/main.js"></script>
-<script>
-(function(){
-  const loading=document.getElementById('loading');
-  window.addEventListener('error',function(e){
-    if(!loading)return;
-    loading.classList.remove('hidden');
-    const t=loading.querySelector('.loading-text');
-    if(t)t.textContent='게임 오류: '+(e.message||'알 수 없는 오류');
-  });
-  window.addEventListener('unhandledrejection',function(e){
-    if(!loading)return;
-    const t=loading.querySelector('.loading-text');
-    if(t)t.textContent='게임 오류: '+((e.reason&&e.reason.message)||'알 수 없는 오류');
-  });
-  if(loading)loading.classList.add('hidden');
-})();
-</script>
+
 </body>
 </html>
