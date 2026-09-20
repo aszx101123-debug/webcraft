@@ -3,6 +3,9 @@
 const Fluids = (() => {
   let elapsed = 0;
   const activeFlows = new Set();
+  const MAX_LEVEL = 8;
+  const MAX_HORIZONTAL = 4;
+  const UPDATE_SEC = .28;
 
   function key(x, y, z) { return x + ',' + y + ',' + z; }
 
@@ -24,34 +27,31 @@ const Fluids = (() => {
 
   function isOpen(x, y, z) {
     const id = World.getBlock(x, y, z);
-    return id === BLOCK.AIR || id === BLOCK.WATER_FLOW;
+    return id === BLOCK.AIR;
   }
 
   function putFlow(x, y, z, level) {
     if (y < 1 || y >= CONFIG.HEIGHT) return false;
-    const id = World.getBlock(x, y, z);
-    if (id === BLOCK.WATER) return false;
-    if (!isOpen(x, y, z)) return false;
+    if (World.getBlock(x, y, z) !== BLOCK.AIR) return false;
     World.setBlock(x, y, z, BLOCK.WATER_FLOW, false);
-    const k = key(x, y, z);
-    // Encode level in World's private fluid map through repeated source setter fallback.
-    if (typeof World.setFluidLevel === 'function') World.setFluidLevel(x, y, z, level);
-    activeFlows.add(k);
+    World.setFluidLevel(x, y, z, level);
+    activeFlows.add(key(x, y, z));
     return true;
   }
 
   function update(px, py, pz, dt) {
     elapsed += dt;
-    if (elapsed < .35) return;
+    if (elapsed < UPDATE_SEC) return;
     elapsed = 0;
 
     const cx = Math.floor(px);
     const cz = Math.floor(pz);
-    const radius = 16;
-    const minY = Math.max(1, Math.floor(py) - 14);
-    const maxY = Math.min(CONFIG.HEIGHT - 2, Math.floor(py) + 16);
+    const radius = 18;
+    const minY = Math.max(1, Math.floor(py) - 18);
+    const maxY = Math.min(CONFIG.HEIGHT - 2, Math.floor(py) + 18);
 
-    clearOutside(cx, cz, radius + 3);
+    clearOutside(cx, cz, radius + 4);
+
     for (const k of [...activeFlows]) {
       const p = k.split(',').map(Number);
       if (p[0] >= cx - radius && p[0] <= cx + radius &&
@@ -65,46 +65,42 @@ const Fluids = (() => {
     const seen = new Set();
     const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
 
-    for (let x = cx - radius; x <= cx + radius; x++) {
-      for (let z = cz - radius; z <= cz + radius; z++) {
-        for (let y = maxY; y >= minY; y--) {
-          if (World.getBlock(x, y, z) !== BLOCK.WATER) continue;
-          let edge = false;
-          for (const [dx, dz] of dirs) {
-            const nb = World.getBlock(x + dx, y, z + dz);
-            if (nb === BLOCK.AIR || nb === BLOCK.WATER_FLOW) { edge = true; break; }
-          }
-          if (edge || World.getBlock(x, y - 1, z) === BLOCK.AIR) {
-            queue.push({ x, y, z, level: 8 });
-            seen.add(key(x, y, z));
-          }
-        }
-      }
+    for (const raw of World.getWaterSources()) {
+      const p = raw.split(',').map(Number);
+      const x = p[0], y = p[1], z = p[2];
+      if (x < cx - radius || x > cx + radius || z < cz - radius || z > cz + radius) continue;
+      if (y < minY || y > maxY) continue;
+      if (World.getBlock(x, y, z) !== BLOCK.WATER) continue;
+      queue.push({ x, y, z, level: MAX_LEVEL, horizontal: 0 });
+      seen.add(key(x, y, z));
     }
 
     let processed = 0;
-    while (queue.length && processed++ < 700) {
+    while (queue.length && processed++ < 420) {
       const node = queue.shift();
+      const below = World.getBlock(node.x, node.y - 1, node.z);
 
-      if (World.getBlock(node.x, node.y - 1, node.z) === BLOCK.AIR) {
+      if (below === BLOCK.AIR) {
         const ny = node.y - 1;
         const k = key(node.x, ny, node.z);
-        if (!seen.has(k) && putFlow(node.x, ny, node.z, 8)) {
+        if (!seen.has(k) && putFlow(node.x, ny, node.z, MAX_LEVEL)) {
           seen.add(k);
-          queue.push({ x: node.x, y: ny, z: node.z, level: 8 });
+          queue.push({ x: node.x, y: ny, z: node.z, level: MAX_LEVEL, horizontal: 0 });
         }
         continue;
       }
 
-      if (node.level <= 1) continue;
-      const nextLevel = node.level - 1;
+      if (node.level <= 1 || node.horizontal >= MAX_HORIZONTAL) continue;
+      const nextLevel = node.level - 2;
+      if (nextLevel <= 0) continue;
+
       for (const [dx, dz] of dirs) {
         const nx = node.x + dx, nz = node.z + dz, ny = node.y;
         const k = key(nx, ny, nz);
         if (seen.has(k)) continue;
         if (putFlow(nx, ny, nz, nextLevel)) {
           seen.add(k);
-          queue.push({ x: nx, y: ny, z: nz, level: nextLevel });
+          queue.push({ x: nx, y: ny, z: nz, level: nextLevel, horizontal: node.horizontal + 1 });
         }
       }
     }

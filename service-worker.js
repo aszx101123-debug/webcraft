@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.2.3-gameplay-inventory-ai-20260920';
+const VERSION = 'webcraft-v1.2.4-world-ecosystem-20260920';
 const CORE = [
   './',
   './index.html',

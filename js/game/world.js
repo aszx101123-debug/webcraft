@@ -10,6 +10,7 @@ const World = (() => {
   let pending = [];
   let pendingSet = new Set();
   let fluidLevels = new Map();
+  let waterSources = new Set();
   let matSolid = null, matWater = null;
 
   const key = (cx, cz) => cx + ',' + cz;
@@ -40,7 +41,21 @@ const World = (() => {
     pending = [];
     pendingSet = new Set();
     fluidLevels = new Map();
-    if (editsEntries) for (const [k, list] of editsEntries) edits.set(k, new Map(list));
+    waterSources = new Set();
+    if (editsEntries) {
+      for (const [k, list] of editsEntries) {
+        const map = new Map(list);
+        edits.set(k, map);
+        const parts = k.split(',').map(Number);
+        const ecx = parts[0], ecz = parts[1];
+        for (const [li, id] of map) {
+          if (id === BLOCK.WATER) {
+            const lx = (li >> 10) & 15, lz = (li >> 6) & 15, y = li & 63;
+            waterSources.add(ecx * C + lx + ',' + y + ',' + (ecz * C + lz));
+          }
+        }
+      }
+    }
     seed = seedNum;
     gen = Terrain.makeGen(seed);
     if (!matSolid) {
@@ -81,10 +96,10 @@ const World = (() => {
     const li = Terrain.idx(lx, y, lz);
     if (ch.data[li] === id) return false;
     const kCell = x + ',' + y + ',' + z;
-    if (id === BLOCK.WATER) fluidLevels.set(kCell, 8);
+    if (id === BLOCK.WATER) { fluidLevels.set(kCell, 8); if (record) waterSources.add(kCell); }
     else if (id === BLOCK.WATER_FLOW) {
       if (!fluidLevels.has(kCell)) fluidLevels.set(kCell, 1);
-    } else fluidLevels.delete(kCell);
+    } else { fluidLevels.delete(kCell); waterSources.delete(kCell); }
     ch.data[li] = id;
     if (record) {
       const k = key(cx, cz);
@@ -175,9 +190,10 @@ const World = (() => {
         for (let i = 0; i < 4; i++) {
           const c = f.c[i];
           let vy = y + c[1];
-          if (liquid && f.n[1] === 1) {
+          if (liquid) {
             const level = id === BLOCK.WATER ? 8 : (fluidLevels.get((ox + x) + ',' + y + ',' + (oz + z)) || 1);
-            vy = y + 0.15 + 0.72 * (level / 8);
+            const topY = y + 0.15 + 0.72 * (level / 8);
+            if (c[1] === 1) vy = topY;
           }
           P.push(ox + x + c[0], vy, oz + z + c[2]);
           N.push(f.n[0], f.n[1], f.n[2]);
@@ -238,6 +254,8 @@ const World = (() => {
     markDirty(x >> 4, z >> 4);
   }
 
+  function getWaterSources() { return [...waterSources]; }
+
   function getFluidLevel(x, y, z) {
     if (World.getBlock(x, y, z) === BLOCK.WATER) return 8;
     return fluidLevels.get(x + ',' + y + ',' + z) || 0;
@@ -258,7 +276,7 @@ const World = (() => {
     isReady: () => pending.length === 0 && dirtySet.size === 0,
     getSeed: () => seed,
     getGroup: () => group,
-    getFluidLevel, setFluidLevel
+    getFluidLevel, setFluidLevel, getWaterSources
 
   };
 })();

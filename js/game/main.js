@@ -114,6 +114,72 @@
     else if (type === 'shoot') blip(720, .06, 'square', .03);
   };
 
+
+  const weather = {
+    type: 'clear',
+    timer: 110,
+    rng: Noise.mulberry32((seed ^ 0x51f15e) >>> 0),
+    rainPoints: null,
+    snowPoints: null
+  };
+
+  function makeWeatherPoints(count, color, size) {
+    const pos = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      pos[i * 3] = (Math.random() - .5) * 32;
+      pos[i * 3 + 1] = Math.random() * 16;
+      pos[i * 3 + 2] = (Math.random() - .5) * 32;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const mat = new THREE.PointsMaterial({ color, size, transparent: true, opacity: .7, depthWrite: false });
+    return new THREE.Points(geo, mat);
+  }
+
+  weather.rainPoints = makeWeatherPoints(420, 0x9bcfff, .085);
+  weather.snowPoints = makeWeatherPoints(260, 0xf2f6ff, .12);
+  weather.rainPoints.visible = false;
+  weather.snowPoints.visible = false;
+  scene.add(weather.rainPoints, weather.snowPoints);
+
+  function chooseWeather() {
+    const r = weather.rng();
+    weather.type = r < .58 ? 'clear' : r < .87 ? 'rain' : 'snow';
+    weather.timer = 100 + weather.rng() * 120;
+  }
+
+  function updateWeather(dt) {
+    weather.timer -= dt;
+    if (weather.timer <= 0) chooseWeather();
+
+    const snowArea = World.heightAt(Player.pos.x, Player.pos.z) >= 40;
+    const actualSnow = weather.type === 'snow' && snowArea;
+    const rain = weather.type === 'rain' || (weather.type === 'snow' && !snowArea);
+    weather.rainPoints.visible = rain;
+    weather.snowPoints.visible = actualSnow;
+
+    const updatePoints = (points, fall, drift) => {
+      if (!points.visible) return;
+      const attr = points.geometry.getAttribute('position');
+      const a = attr.array;
+      for (let i = 0; i < a.length; i += 3) {
+        a[i] += drift * dt * (0.7 + ((i / 3) % 7) * .01);
+        a[i + 1] -= fall * dt;
+        a[i + 2] += drift * dt * .4;
+        if (a[i + 1] < -1) {
+          a[i] = (Math.random() - .5) * 32;
+          a[i + 1] = 12 + Math.random() * 8;
+          a[i + 2] = (Math.random() - .5) * 32;
+        }
+      }
+      attr.needsUpdate = true;
+      points.position.set(Player.pos.x, Player.pos.y, Player.pos.z);
+    };
+
+    updatePoints(weather.rainPoints, 18, .6);
+    updatePoints(weather.snowPoints, 2.8, .25);
+  }
+
   const skyDay = new THREE.Color(0x8ecfef);
   const skyNight = new THREE.Color(0x0a0e1a);
   const skyDusk = new THREE.Color(0xe8956b);
@@ -140,7 +206,8 @@
     const hours = (state.time * 24 + 6) % 24;
     const hh = String(Math.floor(hours)).padStart(2, '0');
     const mm = String(Math.floor((hours % 1) * 60)).padStart(2, '0');
-    UI.setTime(`${f > .45 ? '☀' : '☾'} ${hh}:${mm}`);
+    const weatherIcon = weather.type === 'rain' ? '☔' : weather.type === 'snow' ? '❄' : (f > .45 ? '☀' : '☾');
+    UI.setTime(`${weatherIcon} ${hh}:${mm}`);
   }
 
   function doSave(silent) {
@@ -353,8 +420,10 @@
   document.addEventListener('contextmenu', e => e.preventDefault());
   document.addEventListener('wheel', e => {
     if (!state.locked) return;
+    e.preventDefault();
+    if (e.ctrlKey || e.metaKey) return;
     UI.setSelected(Inventory.getSelected() + (e.deltaY > 0 ? 1 : -1));
-  }, { passive: true });
+  }, { passive: false });
 
   document.addEventListener('pointerlockchange', () => {
     state.locked = document.pointerLockElement === canvas;
@@ -484,6 +553,17 @@
     applyFog();
     UI.showToast(`렌더 거리: ${state.renderDist}청크`);
   });
+  const shareSeedBtn = document.getElementById('btn-share-seed');
+  shareSeedBtn.addEventListener('click', async () => {
+    const url = location.origin + location.pathname + '?seed=' + encodeURIComponent(seed);
+    try {
+      await navigator.clipboard.writeText(url);
+      UI.showToast('시드 링크를 복사했습니다');
+    } catch (e) {
+      prompt('시드 링크를 복사하세요:', url);
+    }
+  });
+
   const soundBtn = document.getElementById('btn-sound');
   const syncSoundBtn = () => soundBtn.textContent = state.sound ? '🔊 소리 켜짐' : '🔇 소리 꺼짐';
   syncSoundBtn();
@@ -525,6 +605,7 @@
         }
         if (!Interact.miningProgress()) miningHeld = false;
         updateSky(dt);
+        updateWeather(dt);
         Fluids.update(Player.pos.x, Player.pos.y, Player.pos.z, dt);
         const sprinting = (keys['ShiftLeft'] || keys['ShiftRight']) && keys['KeyW'] && !Player.flying;
         Player.survivalTick(dt, sprinting);
@@ -532,6 +613,7 @@
         Drops.update(dt, Player.pos, state.mode === GAME_MODE.SURVIVAL && !Player.dead);
       } else {
         updateSky(dt);
+        updateWeather(dt);
         Fluids.update(Player.pos.x, Player.pos.y, Player.pos.z, dt);
       }
       World.update(Player.pos.x, Player.pos.z, state.renderDist);

@@ -116,7 +116,8 @@ const Player = (() => {
       }
     } else starveT = 0;
 
-    const eyeWater = World.getBlock(Math.floor(pos.x), Math.floor(pos.y + EYE), Math.floor(pos.z)) === BLOCK.WATER;
+    const eyeWaterId = World.getBlock(Math.floor(pos.x), Math.floor(pos.y + EYE), Math.floor(pos.z));
+    const eyeWater = eyeWaterId === BLOCK.WATER || eyeWaterId === BLOCK.WATER_FLOW;
     if (eyeWater) {
       airT += dt;
       if (airT >= 1) {
@@ -150,7 +151,8 @@ const Player = (() => {
     const f = (keys['KeyW'] || keys['ArrowUp'] ? 1 : 0) - (keys['KeyS'] || keys['ArrowDown'] ? 1 : 0);
     const s = (keys['KeyD'] || keys['ArrowRight'] ? 1 : 0) - (keys['KeyA'] || keys['ArrowLeft'] ? 1 : 0);
     const sprint = keys['ShiftLeft'] || keys['ShiftRight'];
-    const inWater = World.getBlock(Math.floor(pos.x), Math.floor(pos.y + .5), Math.floor(pos.z)) === BLOCK.WATER;
+    const waterId = World.getBlock(Math.floor(pos.x), Math.floor(pos.y + .5), Math.floor(pos.z));
+    const inWater = waterId === BLOCK.WATER || waterId === BLOCK.WATER_FLOW;
     lastInWater = inWater;
     const canFly = mode === GAME_MODE.CREATIVE && flying;
     const speed = canFly ? CONFIG.FLY : (sprint && f > 0 ? CONFIG.SPRINT : CONFIG.SPEED) * (inWater ? .55 : 1);
