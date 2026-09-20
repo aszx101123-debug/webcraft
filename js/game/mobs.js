@@ -191,7 +191,7 @@ const Mobs = (() => {
       moving: false, onGround: false,
       wanderT: Math.random() * 2, attackT: 0, shootT: 1 + Math.random() * 2,
       strafeT: 2, strafeDir: 1, hurtT: 0, flashed: false,
-      burnT: 0, fleeT: 0, animT: 0,
+      burnT: 0, fleeT: 0, animT: 0, jumpT: 0, pathT: 0,
       dead: false, deadT: 0
     };
     mobs.push(m);
@@ -305,6 +305,20 @@ const Mobs = (() => {
     return null;
   }
 
+
+  function hasLineOfSight(from, to) {
+    const dx = to.x - from.x, dy = to.y - from.y, dz = to.z - from.z;
+    const steps = Math.max(1, Math.ceil(Math.hypot(dx, dy, dz) / .45));
+    for (let i = 1; i < steps; i++) {
+      const t = i / steps;
+      const x = Math.floor(from.x + dx * t);
+      const y = Math.floor(from.y + dy * t);
+      const z = Math.floor(from.z + dz * t);
+      if (isSolidBlock(World.getBlock(x, y, z))) return false;
+    }
+    return true;
+  }
+
   function shootArrow(m) {
     const from = new THREE.Vector3(m.pos.x, m.pos.y + m.def.height * .78, m.pos.z);
     const to = new THREE.Vector3(Player.pos.x, Player.pos.y + 1.1, Player.pos.z);
@@ -392,6 +406,8 @@ const Mobs = (() => {
 
       m.attackT -= dt;
       m.hurtT -= dt;
+      m.jumpT -= dt;
+      m.pathT -= dt;
       if (m.hurtT <= 0 && m.flashed) flash(m, false);
 
       let speed = m.def.speed;
@@ -429,7 +445,7 @@ const Mobs = (() => {
               m.dir.set(-dz * m.strafeDir, 0, dx * m.strafeDir).normalize();
             }
             m.shootT -= dt;
-            if (m.shootT <= 0 && dist < 22) {
+            if (m.shootT <= 0 && dist < 22 && hasLineOfSight({ x: m.pos.x, y: m.pos.y + 1.2, z: m.pos.z }, { x: pp.x, y: pp.y + 1.1, z: pp.z })) {
               m.shootT = 2.2 + Math.random();
               shootArrow(m);
             }
@@ -473,7 +489,10 @@ const Mobs = (() => {
         if (collideBox(m, 'x', m.vel.x * dt / steps)) { m.vel.x = 0; blockedH = true; }
         if (collideBox(m, 'z', m.vel.z * dt / steps)) { m.vel.z = 0; blockedH = true; }
       }
-      if (blockedH && m.onGround) m.vel.y = 7.8;
+      if (blockedH && m.onGround && m.jumpT <= 0) {
+        m.vel.y = 7.8;
+        m.jumpT = .8;
+      }
 
       if (m.pos.y < -12) { removeMob(i); continue; }
 
