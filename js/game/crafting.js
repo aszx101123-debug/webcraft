@@ -206,8 +206,8 @@ const Crafting = (() => {
 
   function autofill(recipeId) {
     const recipe = recipes.find(r => r.id === recipeId);
-    if (!recipe) return false;
-    resetGrid();
+    if (!recipe || !recipeFitsGrid(recipe)) return false;
+    resetGrid(gridSize);
     const materialId = recipe.ingredients.find(i => i.id !== ITEM.STICK)?.id || 0;
     if (recipe.shapeless) {
       let out = [];
