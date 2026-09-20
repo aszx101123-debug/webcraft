@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.2.6.1-homepage-sync-20260920';
+const VERSION = 'webcraft-v1.2.6.2-startup-hotfix-20260920';
 const CORE = [
   './',
   './index.html',
