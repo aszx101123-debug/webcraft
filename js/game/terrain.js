@@ -40,8 +40,17 @@ const Terrain = (() => {
             if (y === h) id = sandy ? BLOCK.SAND : BLOCK.GRASS;
             else if (y >= h - 3) id = sandy ? BLOCK.SAND : BLOCK.DIRT;
             else id = BLOCK.STONE;
-            if (h > SEA + 2 && y >= 3 && y <= h &&
-                Noise.noise3(wx * .085, y * .085, wz * .085, seed + 41) > .74) id = BLOCK.AIR;
+            if (h > SEA + 2 && y >= 3 && y <= h - 2) {
+              const cheese = Noise.noise3(wx * .026, y * .042, wz * .026, seed + 41);
+              const spaghetti = Math.abs(Noise.noise2(wx * .016 + y * .031, wz * .016 - y * .027, seed + 77) - .5);
+              const noodle = Math.abs(Noise.noise3(wx * .072, y * .11, wz * .072, seed + 113) - .5);
+              const largeRoom = cheese > .78 || (cheese > .72 && spaghetti < .075);
+              const tunnel = spaghetti < .055 || noodle < .045;
+              if (largeRoom || tunnel) {
+                const flooded = y <= SEA - 3 && Noise.noise3(wx * .09, y * .09, wz * .09, seed + 301) > .78;
+                id = flooded ? BLOCK.WATER : BLOCK.AIR;
+              }
+            }
           } else if (y <= SEA) id = BLOCK.WATER;
           if (id) data[idx(x, y, z)] = id;
         }
