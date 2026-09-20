@@ -109,8 +109,15 @@ for (let x = 0; x < 100 && !seedDiff; x++)
 ok(seedDiff, '시드별 지형 상이');
 
 console.log('[Items]');
+const woodPick = { toolType: 'pickaxe', tier: 1 };
+const stonePick = { toolType: 'pickaxe', tier: 2 };
+const ironPick = { toolType: 'pickaxe', tier: 3 };
 ok(getBlockDrop(BLOCK.GRASS) === BLOCK.DIRT, '잔디 → 흙 드롭');
-ok(getBlockDrop(BLOCK.STONE) === BLOCK.COBBLE, '돌 → 조약돌 드롭');
+ok(getBlockDrop(BLOCK.STONE, null, woodPick) === BLOCK.COBBLE, '돌 → 조약돌 드롭 (나무 곡괭이)');
+ok(getBlockDrop(BLOCK.IRON_ORE, null, woodPick) === 0, '철 광석 → 낮은 채굴 등급은 드롭 없음');
+ok(getBlockDrop(BLOCK.IRON_ORE, null, stonePick) === ITEM.IRON_INGOT, '철 광석 → 철 주괴');
+ok(getBlockDrop(BLOCK.GOLD_ORE, null, stonePick) === 0, '금 광석 → 돌 곡괭이는 드롭 불가');
+ok(getBlockDrop(BLOCK.GOLD_ORE, null, ironPick) === ITEM.GOLD_INGOT, '금 광석 → 철 이상 곡괭이로 드롭');
 ok(getBlockDrop(BLOCK.LOG) === BLOCK.LOG, '통나무 → 통나무 드롭');
 ok(getBlockDrop(BLOCK.WATER) === 0 && getBlockDrop(BLOCK.BEDROCK) === 0, '물/기반암 드롭 없음');
 ok(getBlockDrop(BLOCK.LEAVES, () => 0.01) === ITEM.APPLE, '잎 → 낮은 확률 사과');
@@ -118,6 +125,7 @@ ok(getBlockDrop(BLOCK.LEAVES, () => 0.5) === 0, '잎 → 대부분 드롭 없음
 ok(isFoodId(ITEM.PORK) && !isFoodId(BLOCK.STONE) && !isFoodId(999), '음식 ID 판별');
 ok(isBlockId(BLOCK.STONE) && !isBlockId(ITEM.PORK), '블록 ID 판별');
 ok(getItemName(ITEM.BEEF) === '소고기', '아이템 이름');
+ok(isToolId(ITEM.WOODEN_PICKAXE) && getToolDef(ITEM.DIAMOND_PICKAXE).tier === 5, '도구 등급 정의');
 
 console.log('[Inventory]');
 Inventory.init(GAME_MODE.SURVIVAL, null);
@@ -141,6 +149,14 @@ ok(Inventory.isCreative() && Inventory.getSlots()[0].count === Infinity, '크리
 ok(Inventory.consumeSelected() === true && Inventory.getSlots()[0].count === Infinity, '크리에이티브 소비해도 무한');
 Inventory.setMode(GAME_MODE.SURVIVAL);
 ok(Inventory.getSlots()[0].count === Inventory.MAX_STACK, '모드 전환 시 64개로 변환');
+Inventory.init(GAME_MODE.SURVIVAL, [{ id: ITEM.STONE_PICKAXE, count: 1, durability: 2 }]);
+ok(Inventory.selectedToolDurability() === 2, '도구 내구도 저장');
+ok(Inventory.damageSelectedTool(1) === false && Inventory.selectedToolDurability() === 1, '도구 내구도 감소');
+ok(Inventory.damageSelectedTool(1) === true && Inventory.selectedSlot() === null, '도구 파손 후 슬롯 비움');
+
+console.log('[Crafting data]');
+ok(Array.isArray(DEFAULT_HOTBAR) && DEFAULT_HOTBAR.includes(BLOCK.CRAFTING_TABLE), '제작대가 기본 블록 목록에 포함');
+ok(PLACEABLE_IDS.includes(BLOCK.DIAMOND_ORE) && PLACEABLE_IDS.includes(BLOCK.EMERALD_ORE), '광석이 배치 가능한 블록 목록에 포함');
 
 console.log('[Mobs]');
 let mobsOk = true;
