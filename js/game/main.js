@@ -162,6 +162,7 @@
   }
 
   UI.renderHotbar();
+  UI.setModeLabel(state.mode);
   UI.showOverlay('start');
   UI.setStartEnabled(false);
   Interact.init(camera, scene);
@@ -176,6 +177,7 @@
     Player.setMode(mode);
     Inventory.setMode(mode);
     Mobs.setMode(mode);
+    UI.setModeLabel(mode);
     UI.renderHotbar();
     syncModeBtn();
     doSave(true);
@@ -292,6 +294,7 @@
   btnSurvival.addEventListener('click', () => { if (!state.ready) return;
     state.mode = GAME_MODE.SURVIVAL;
     Player.setMode(GAME_MODE.SURVIVAL);
+    UI.setModeLabel(GAME_MODE.SURVIVAL);
     Inventory.init(GAME_MODE.SURVIVAL, null);
     Mobs.setMode(GAME_MODE.SURVIVAL);
     UI.renderHotbar();
@@ -300,6 +303,7 @@
   btnCreative.addEventListener('click', () => { if (!state.ready) return;
     state.mode = GAME_MODE.CREATIVE;
     Player.setMode(GAME_MODE.CREATIVE);
+    UI.setModeLabel(GAME_MODE.CREATIVE);
     Inventory.init(GAME_MODE.CREATIVE, null);
     Mobs.setMode(GAME_MODE.CREATIVE);
     UI.renderHotbar();
