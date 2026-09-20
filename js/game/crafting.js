@@ -228,7 +228,8 @@ const Crafting = (() => {
   }
 
   return {
-    getRecipes, getGrid, setCell, addToFirstEmpty, removeCell, resetGrid,
+    getRecipes, getGrid, getVisibleCells, getGridSize, setGridSize,
+    setCell, addToFirstEmpty, removeCell, resetGrid,
     getMatch, canCraft, canCraftGrid, craftGrid, autofill, summary
   };
 })();
