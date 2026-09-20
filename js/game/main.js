@@ -185,6 +185,7 @@
   }
 
   const keys = {};
+  let miningHeld = false;
   const canvas = renderer.domElement;
 
   document.addEventListener('keydown', e => {
@@ -230,8 +231,11 @@
       const hitMob = Mobs.tryAttack(camera.position, dir, 3.6);
       if (hitMob) {
         Player.addExhaustion(SURVIVAL.ATTACK_COST);
-      } else if (Interact.tryBreak(state.mode === GAME_MODE.SURVIVAL)) {
-        blip(95, .12, 'triangle', .09);
+      } else {
+        miningHeld = Interact.startBreak(state.mode === GAME_MODE.SURVIVAL);
+        if (!state.mode || miningHeld) {
+          UI.setMiningProgress(Interact.miningProgress());
+        }
       }
     } else if (e.button === 2) {
       const s = Inventory.selectedSlot();
@@ -260,6 +264,17 @@
       }
     }
   });
+  document.addEventListener('mouseup', e => {
+    if (e.button !== 0) return;
+    miningHeld = false;
+    Interact.cancelBreak();
+    UI.setMiningProgress(0);
+  });
+  addEventListener('blur', () => {
+    miningHeld = false;
+    Interact.cancelBreak();
+    UI.setMiningProgress(0);
+  });
   document.addEventListener('pointerlockerror', () => UI.showToast('마우스 잠금을 시작하지 못했습니다. 게임 화면을 한 번 클릭해 주세요.'));
   document.addEventListener('contextmenu', e => e.preventDefault());
   document.addEventListener('wheel', e => {
@@ -274,6 +289,9 @@
       state.suppressPause = false;
       UI.showOverlay(null);
     } else if (state.started && !Player.dead) {
+      miningHeld = false;
+      Interact.cancelBreak();
+      UI.setMiningProgress(0);
       if (state.suppressPause) { state.suppressPause = false; return; }
       UI.showOverlay('pause');
       doSave(true);
@@ -314,6 +332,9 @@
   document.getElementById('btn-save').addEventListener('click', () => doSave(false));
   document.getElementById('btn-home').addEventListener('click', () => { doSave(true); location.href = 'index.html'; });
   document.getElementById('btn-respawn').addEventListener('click', () => {
+    miningHeld = false;
+    Interact.cancelBreak();
+    UI.setMiningProgress(0);
     Player.respawn();
     UI.hideDeath();
     canvas.requestPointerLock();
@@ -374,6 +395,13 @@
       if (active) {
         Player.update(dt, keys);
         Interact.update();
+        const mined = Interact.updateMining(dt, state.mode === GAME_MODE.SURVIVAL);
+        UI.setMiningProgress(Interact.miningProgress());
+        if (mined) {
+          blip(95, .12, 'triangle', .09);
+          UI.showToast('블록을 캤습니다');
+        }
+        if (!Interact.miningProgress()) miningHeld = false;
         updateSky(dt);
         const sprinting = (keys['ShiftLeft'] || keys['ShiftRight']) && keys['KeyW'] && !Player.flying;
         Player.survivalTick(dt, sprinting);
