@@ -219,13 +219,13 @@
         <div class="ver">v1.0 <span class="date">모듈 10개 · 프로젝트 구조</span></div>
         <h3>엔진 구조화 + 콘텐츠 확장</h3>
         <p>청크 기반 무한 월드, 절차적 픽셀 텍스처, 나무·바다·동굴 지형, 낮밤 사이클, 블록 상자, localStorage 저장 시스템, 비행 모드, 로직 테스트 자동화까지.</p>
-        <a href="play.html?v=20260920-ui">→ play.html?v=20260920-ui에서 플레이</a>
+        <a href="play.html?v=20260920-v122">→ play.html?v=20260920-v122에서 플레이</a>
       </div>
       <div class="tl-item reveal">
         <div class="ver">v1.2.1 <span class="date">현재</span> <span class="date">버그 수정 업데이트</span></div>
         <h3>업데이트 완료: 안정화</h3>
         <p>v1.2에서 추가된 물 흐름·풍부한 동굴·광석·3×3 제작·3인칭 캐릭터를 안정화하고, v1.2.2에서 시작 오류 복구 화면과 업데이트 표시를 추가했습니다.</p>
-        <a href="play.html?v=20260920-ui">→ 서바이벌로 시작하기</a>
+        <a href="play.html?v=20260920-v122">→ 서바이벌로 시작하기</a>
       </div>
       <div class="tl-item dim reveal">
         <div class="ver">Next</div>
@@ -295,7 +295,7 @@
   <div class="wrap reveal">
     <h2>지금, 첫 블록을 놓아보세요</h2>
     <p>클릭 두 번이면 당신의 세계가 시작됩니다</p>
-    <a class="btn btn-green" href="play.html?v=20260920-ui">⛏ WebCraft 플레이하기</a>
+    <a class="btn btn-green" href="play.html?v=20260920-v122">⛏ WebCraft 플레이하기</a>
   </div>
 </section>
 
@@ -350,7 +350,7 @@ function copyLink() {
   }
 }
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-  addEventListener('load', () => navigator.serviceWorker.register('service-worker.js').catch(() => {}));
+  addEventListener('load', () => navigator.serviceWorker.register('service-worker.js?v=20260920-v122').catch(() => {}));
 }
 </script>
 </body>
