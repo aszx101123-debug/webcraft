@@ -875,3 +875,5 @@ button:disabled {
   .inventory-layout { grid-template-columns: 1fr; }
   .equipment-slots { grid-template-columns: repeat(4, 1fr); }
 }
+
+.equip-slot img { width: 42px; height: 42px; image-rendering: pixelated; }
