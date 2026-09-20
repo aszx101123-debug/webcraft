@@ -3,6 +3,27 @@
 const Crafting = (() => {
   const recipes = [];
   let grid = new Array(9).fill(null);
+  let gridSize = 3;
+
+  function activeIndices() {
+    return gridSize === 2 ? [0, 1, 3, 4] : [0, 1, 2, 3, 4, 5, 6, 7, 8];
+  }
+
+  function recipeFitsGrid(recipe) {
+    if (!recipe) return false;
+    if (recipe.shapeless) return recipe.ingredients.reduce((n, i) => n + i.count, 0) <= gridSize * gridSize;
+    return recipe.pattern.some(shape => {
+      let minX = 3, minY = 3, maxX = -1, maxY = -1;
+      for (let y = 0; y < 3; y++) for (let x = 0; x < 3; x++) {
+        if (!shape[y * 3 + x]) continue;
+        minX = Math.min(minX, x); minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+      }
+      return maxX >= minX &&
+        (maxX - minX + 1) <= gridSize &&
+        (maxY - minY + 1) <= gridSize;
+    });
+  }
 
   function add(id, name, outputId, count, opts) {
     recipes.push({
