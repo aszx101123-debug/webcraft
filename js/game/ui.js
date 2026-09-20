@@ -13,7 +13,7 @@ const UI = (() => {
     const bar = $('hotbar');
     bar.innerHTML = '';
     const sel = Inventory.getSelected();
-    Inventory.getSlots().forEach((s, i) => {
+    Inventory.getHotbarSlots().forEach((s, i) => {
       const el = document.createElement('div');
       el.className = 'slot' + (i === sel ? ' sel' : '') + (!s ? ' empty' : '');
       el.setAttribute('role', 'button');
@@ -268,9 +268,9 @@ const UI = (() => {
 
   function isInventoryOpen() { return inventoryOpen; }
 
-  function dropSelectedOne() {
-    if (Inventory.isCreative()) return false;
-    return Inventory.dropFromSlot(Inventory.getSelected(), 1);
+  function dropSelected(full = false) {
+    if (Inventory.isCreative()) return null;
+    return Inventory.dropFromSlot(Inventory.getSelected(), full ? null : 1);
   }
 
   function renderCraftingInventory() {
@@ -486,7 +486,7 @@ const UI = (() => {
   return {
     renderHotbar, setSelected, showItemName, showOverlay, showToast, setHUD, setTime, setMiningProgress,
     setModeLabel, renderWorlds, renderCrafting, openCrafting, closeCrafting, isCraftingOpen,
-    renderInventory, openInventory, closeInventory, isInventoryOpen, dropSelectedOne, updateInventoryCursor,
+    renderInventory, openInventory, closeInventory, isInventoryOpen, dropSelected, updateInventoryCursor,
     updateSurvival, showDeath, hideDeath, openPicker, closePicker, isPickerOpen, setStartEnabled, flashVignette
   };
 })();
