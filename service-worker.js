@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.2.5-water-ore-wheel-detail-20260920';
+const VERSION = 'webcraft-v1.2.6-underwater-inventory-thirdperson-20260920';
 const CORE = [
   './',
   './index.html',
