@@ -208,6 +208,11 @@
   document.addEventListener('keydown', e => {
     keys[e.code] = true;
     if (e.code === 'Space') e.preventDefault();
+    if (e.code === 'Escape' && UI.isCraftingOpen()) {
+      UI.closeCrafting();
+      canvas.requestPointerLock();
+      return;
+    }
     if (e.code === 'F3') { e.preventDefault(); const h = document.getElementById('hud-info'); h.style.display = h.style.display === 'none' ? '' : 'none'; }
     if (!state.locked) return;
     if (e.code.startsWith('Digit')) {
