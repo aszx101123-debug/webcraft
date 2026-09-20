@@ -141,7 +141,7 @@ ok(Inventory.isCreative() && Inventory.getSlots()[0].count === Infinity, '크리
 ok(Inventory.consumeSelected() === true && Inventory.getSlots()[0].count === Infinity, '크리에이티브 소비해도 무한');
 Inventory.setMode(GAME_MODE.SURVIVAL);
 ok(Inventory.getSlots()[0].count === Inventory.MAX_STACK, '모드 전환 시 64개로 변환');
-Crafting.setGridSize(2);
+Crafting.setGridSize(3);
 Crafting.clear();
 [BLOCK.PLANK, BLOCK.PLANK, BLOCK.PLANK, 0, ITEM.STICK, 0, 0, ITEM.STICK, 0].forEach((id,i) => Crafting.setCell(i,id));
 ok(Crafting.getResultRecipe() && Crafting.getResultRecipe().id === 'wood_pickaxe', '나무 곡괭이 제작법 인식');
