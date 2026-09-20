@@ -37,7 +37,7 @@
       <a href="#roadmap">로드맵</a>
       <a href="#faq">FAQ</a>
     </div>
-    <a class="btn btn-green btn-sm" href="play.html?v=20260920-v122">지금 플레이</a>
+    <a class="btn btn-green btn-sm" href="play.html?v=20260920-v123">지금 플레이</a>
   </div>
 </nav>
 
@@ -55,7 +55,7 @@
       <span class="note">PC · 마우스 & 키보드 권장</span>
     </div>
     <div class="stats">
-      <div class="stat"><div class="v">22종</div><div class="k">블록 종류</div></div>
+      <div class="stat"><div class="v">23종</div><div class="k">블록 종류 (물 흐름 포함)</div></div>
       <div class="stat"><div class="v">7종</div><div class="k">생물 · 몹</div></div>
       <div class="stat"><div class="v">8종</div><div class="k">광석 + 대형 광맥</div></div>
       <div class="stat"><div class="v">3×3</div><div class="k">제작 시스템</div></div>
@@ -67,16 +67,16 @@
   <div class="wrap">
     <div class="update-panel reveal">
       <div class="update-panel-main">
-        <div class="update-kicker">LATEST UPDATE · v1.2.2</div>
+        <div class="update-kicker">LATEST UPDATE · v1.2.3</div>
         <h2>이번 업데이트에서 달라진 점</h2>
-        <p>게임 안정성을 높이고, 홈페이지에서 현재 기능과 업데이트 상태를 한눈에 확인할 수 있도록 화면을 새로 다듬었습니다.</p>
+        <p>게임플레이 확장과 안정화를 함께 진행해 인벤토리, 아이템 이동, 몹 AI, 저장 검증을 추가했습니다.</p>
         <div class="update-tags">
-          <span>✓ 시작 오류 복구 화면</span><span>✓ 버전 표시</span><span>✓ 캐시 갱신</span><span>✓ 물·동굴·광석</span><span>→ v1.2.3 인벤토리/AI</span>
+          <span>✓ 시작 오류 복구 화면</span><span>✓ 버전 표시</span><span>✓ 캐시 갱신</span><span>✓ 물·동굴·광석</span><span>✓ v1.2.3 인벤토리/AI</span>
         </div>
       </div>
       <div class="update-status-card">
         <div class="status-top"><span class="status-dot"></span> WebCraft 상태</div>
-        <strong>현재 버전 <b>v1.2.2</b></strong>
+        <strong>현재 버전 <b>v1.2.3</b></strong>
         <span>홈페이지와 게임 코드가 같은 업데이트 버전을 사용합니다.</span>
         <a class="btn btn-green" href="play.html?v=20260920-v122">업데이트 버전 플레이</a>
       </div>
@@ -229,13 +229,13 @@
         <a href="play.html?v=20260920-v122">→ 서바이벌로 시작하기</a>
       </div>
       <div class="tl-item reveal" id="roadmap">
-        <div class="ver">v1.2.3 <span class="date">예정</span></div>
-        <h3>게임플레이 확장</h3>
-        <p>전체 인벤토리, 아이템 정리/분할/버리기, 장비 UI 기반, 몹 AI 개선, 전투·채굴 판정 보강, 저장 안정화와 성능 최적화를 진행합니다.</p>
-        <div class="roadmap-pills"><span>인벤토리</span><span>장비</span><span>몹 AI</span><span>저장 안정화</span></div>
+        <div class="ver">v1.2.3 <span class="date">현재</span></div>
+        <h3>게임플레이 확장 완료</h3>
+        <p>27칸 인벤토리와 아이템 이동/분할/버리기, 장비 슬롯 기반, 몹 장애물 대응과 원거리 시야 판정, 저장 데이터 검증을 추가했습니다.</p>
+        <div class="roadmap-pills"><span>인벤토리 ✓</span><span>아이템 이동 ✓</span><span>몹 AI ✓</span><span>저장 안정화 ✓</span></div>
       </div>
       <div class="tl-item dim reveal">
-        <div class="ver">v1.2.4 <span class="date">예정</span></div>
+        <div class="ver">v1.2.4 <span class="date">다음</span></div>
         <h3>월드 생태계 확장</h3>
         <p>바이옴, 날씨, 탐험 구조물, 조명·파티클, 환경 사운드, 시드 공유 기능을 추가하고 청크/메모리 최적화를 이어갑니다.</p>
         <div class="roadmap-pills"><span>바이옴</span><span>날씨</span><span>구조물</span><span>환경 효과</span></div>
@@ -358,7 +358,7 @@ function copyLink() {
   }
 }
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-  addEventListener('load', () => navigator.serviceWorker.register('service-worker.js?v=20260920-v122').catch(() => {}));
+  addEventListener('load', () => navigator.serviceWorker.register('service-worker.js?v=20260920-v123').catch(() => {}));
 }
 </script>
 </body>

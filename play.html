@@ -14,7 +14,7 @@
 </head>
 <body>
 
-<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.2.2 · 버그 안정화 + 홈페이지 개선</div>
+<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.2.3 · 인벤토리 + AI + 저장 안정화</div>
 <div id="boot-error" class="boot-error hidden" role="alert">
   <div class="boot-error-panel">
     <div class="boot-error-icon">!</div>
@@ -32,7 +32,7 @@
 <div id="hud-info"></div>
 <div id="hud-time"></div>
 <div id="mode-badge" aria-live="polite">크리에이티브</div>
-<div id="hud-hint">좌클릭 유지 캐기/공격 · 우클릭 놓기/먹기 · 휠/1~9 선택 · B 블록 상자 · C 제작 · F5 3인칭 · F 비행(크리에이티브) · Esc 메뉴</div>
+<div id="hud-hint">좌클릭 유지 캐기/공격 · 우클릭 놓기/먹기 · 휠/1~9 선택 · B 블록 상자 · E 인벤토리 · C 제작 · Q 버리기 · F5 3인칭 · F 비행(크리에이티브) · Esc 메뉴</div>
 <div id="toast"></div>
 
 <div id="survival-hud" class="hidden">
@@ -63,7 +63,7 @@
     <div class="keys">
       <div><b>WASD</b> 이동</div><div><b>Space</b> 점프/수영</div><div><b>Shift</b> 달리기</div>
       <div><b>좌클릭 유지</b> 캐기/공격</div><div><b>우클릭</b> 놓기/먹기</div><div><b>휠 / 1~9</b> 선택</div>
-      <div><b>B</b> 블록 상자<span class="cr">*</span></div><div><b>C</b> 제작 메뉴</div><div><b>F</b> 비행<span class="cr">*</span></div>
+      <div><b>B</b> 블록 상자<span class="cr">*</span></div><div><b>E</b> 인벤토리</div><div><b>C</b> 제작 메뉴</div><div><b>Q</b> 아이템 버리기</div><div><b>F</b> 비행<span class="cr">*</span></div>
       <div><b>F3</b> 정보</div><div><b>F5</b> 3인칭 카메라</div><div><b>Esc</b> 일시정지</div>
     </div>
     <div class="btn-col">
@@ -121,6 +121,37 @@
   </div>
 </div>
 
+
+<div id="overlay-inventory" class="overlay hidden">
+  <div class="panel inventory-panel">
+    <div class="inventory-head">
+      <div>
+        <h2>인벤토리</h2>
+        <p class="sub">클릭으로 아이템을 들고, 빈 칸에 놓습니다. 우클릭은 절반 나누기입니다.</p>
+      </div>
+      <button id="inventory-close" class="btn ghost">닫기 (E)</button>
+    </div>
+    <div class="inventory-layout">
+      <div class="inventory-main">
+        <div class="inventory-section-title">소지품</div>
+        <div id="inventory-grid" class="inventory-grid"></div>
+        <div class="inventory-section-title hotbar-title">핫바</div>
+        <div id="inventory-hotbar-grid" class="inventory-grid hotbar-grid"></div>
+      </div>
+      <div class="equipment-panel">
+        <div class="inventory-section-title">장비 슬롯</div>
+        <div class="equipment-slots">
+          <button class="equip-slot" data-equip="mainhand"><span>주손</span><b></b></button>
+          <button class="equip-slot" data-equip="offhand"><span>보조손</span><b></b></button>
+          <button class="equip-slot disabled" data-equip="head" disabled><span>투구</span><b>준비중</b></button>
+          <button class="equip-slot disabled" data-equip="body" disabled><span>상의</span><b>준비중</b></button>
+        </div>
+        <div id="inventory-cursor" class="inventory-cursor hidden"></div>
+        <div class="equipment-tip">장비 슬롯은 v1.2.3에서 기반을 만들고, 방어구는 다음 단계에서 확장합니다.</div>
+      </div>
+    </div>
+  </div>
+</div>
 <div id="overlay-crafting" class="overlay hidden">
   <div class="panel crafting-panel">
     <h2>제작대</h2>
@@ -179,7 +210,7 @@
 <script src="js/game/main.js"></script>
 <script>
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-  addEventListener('load', () => navigator.serviceWorker.register('service-worker.js?v=20260920-v12-5').catch(() => {}));
+  addEventListener('load', () => navigator.serviceWorker.register('service-worker.js?v=20260920-v12-6').catch(() => {}));
 }
 </script>
 </body>

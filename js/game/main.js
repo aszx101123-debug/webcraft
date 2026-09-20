@@ -28,7 +28,8 @@
   const seed = saved?.seed ?? worldMeta.seed;
 
   const renderer = new THREE.WebGLRenderer({ antialias: false });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+  const hardwareScale = (navigator.hardwareConcurrency || 4) <= 4 ? 1.25 : 1.5;
+  renderer.setPixelRatio(Math.min(devicePixelRatio, hardwareScale));
   renderer.setSize(innerWidth, innerHeight);
   document.body.prepend(renderer.domElement);
 
@@ -71,7 +72,10 @@
   if (saved && Array.isArray(saved.hotbar)) {
     savedHotbar = saved.hotbar.map(s => (typeof s === 'number' && s > 0) ? { id: s, count: -1 } : s);
   }
-  Inventory.init(state.mode, saved ? savedHotbar : null);
+  const savedInventory = saved && Array.isArray(saved.inventory)
+    ? saved.inventory.map(s => (typeof s === 'number' && s > 0) ? { id: s, count: -1 } : s)
+    : savedHotbar;
+  Inventory.init(state.mode, savedInventory, saved && saved.equipment ? saved.equipment : null);
 
   if (saved && saved.player) {
     const p = saved.player;
@@ -141,7 +145,7 @@
 
   function doSave(silent) {
     const ok = SaveSystem.save(worldId, {
-      version: 3,
+      version: 4,
       savedAt: Date.now(),
       worldId,
       worldName: worldMeta.name,
@@ -153,7 +157,9 @@
       hp: Player.hp,
       food: Player.food,
       spawn: { x: Player.spawnPoint.x, y: Player.spawnPoint.y, z: Player.spawnPoint.z },
-      hotbar: Inventory.serialize(),
+      hotbar: Inventory.serialize().slice(0, Inventory.HOTBAR_SIZE),
+      inventory: Inventory.serialize(),
+      equipment: Inventory.serializeEquipment(),
       thirdPerson: state.thirdPerson,
       player: {
         x: Player.pos.x, y: Player.pos.y, z: Player.pos.z,
@@ -212,6 +218,11 @@
   document.addEventListener('keydown', e => {
     keys[e.code] = true;
     if (e.code === 'Space') e.preventDefault();
+    if (e.code === 'Escape' && UI.isInventoryOpen()) {
+      UI.closeInventory();
+      canvas.requestPointerLock();
+      return;
+    }
     if (e.code === 'Escape' && UI.isCraftingOpen()) {
       UI.closeCrafting();
       canvas.requestPointerLock();
@@ -228,11 +239,27 @@
       const n = +e.code[5];
       if (n >= 1 && n <= 9) { UI.setSelected(n - 1); blip(300, .04, 'square', .02); }
     }
+    if (e.code === 'KeyQ') {
+      if (state.mode !== GAME_MODE.SURVIVAL) { UI.showToast('크리에이티브에서는 아이템이 사라지지 않습니다'); return; }
+      const dropped = UI.dropSelected(e.shiftKey);
+      if (dropped) {
+        Drops.spawn(dropped.id, dropped.count, Player.pos.x, Player.pos.y + .7, Player.pos.z);
+        UI.renderHotbar();
+        blip(180, .06, 'square', .03);
+      }
+      return;
+    }
     if (e.code === 'KeyF') {
       if (state.mode !== GAME_MODE.CREATIVE) { UI.showToast('서바이벌에서는 날 수 없습니다'); return; }
       Player.flying = !Player.flying;
       UI.showToast(Player.flying ? '비행 모드 ON' : '비행 모드 OFF');
       blip(Player.flying ? 520 : 260, .09, 'triangle', .04);
+    }
+    if (e.code === 'KeyE') {
+      state.suppressPause = true;
+      document.exitPointerLock();
+      UI.openInventory();
+      return;
     }
     if (e.code === 'KeyC') {
       state.suppressPause = true;
@@ -240,7 +267,7 @@
       UI.openCrafting();
       return;
     }
-    if (e.code === 'KeyB' || e.code === 'KeyE') {
+    if (e.code === 'KeyB') {
       if (state.mode !== GAME_MODE.CREATIVE) { UI.showToast('서바이벌에서는 블록을 직접 캐서 얻으세요'); return; }
       state.suppressPause = true;
       document.exitPointerLock();
@@ -301,6 +328,7 @@
         }
       }
     } else if (e.button === 1) {
+      if (UI.isInventoryOpen()) return;
       e.preventDefault();
       const id = Interact.pickBlock();
       if (id) {
@@ -357,6 +385,7 @@
 
   function openWorldMenu() {
     state.suppressPause = true;
+    UI.closeInventory();
     state.started = false;
     Interact.cancelBreak();
     UI.setMiningProgress(0);
@@ -401,6 +430,10 @@
     canvas.requestPointerLock();
   });
 
+  document.getElementById('inventory-close').addEventListener('click', () => {
+    UI.closeInventory();
+    canvas.requestPointerLock();
+  });
   document.getElementById('btn-resume').addEventListener('click', () => canvas.requestPointerLock());
   document.getElementById('btn-crafting').addEventListener('click', () => {
     state.suppressPause = true;
