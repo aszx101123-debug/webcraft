@@ -57,7 +57,7 @@ const UI = (() => {
   }
 
   function showOverlay(name) {
-    ['overlay-start', 'overlay-pause', 'overlay-death', 'overlay-inventory'].forEach(id => $(id)?.classList.add('hidden'));
+    ['overlay-start', 'overlay-pause', 'overlay-death', 'overlay-inventory', 'overlay-crafting'].forEach(id => $(id)?.classList.add('hidden'));
     if (name !== 'inventory') inventoryCursorReturn();
     if (name === 'start') $('overlay-start').classList.remove('hidden');
     else if (name === 'pause') $('overlay-pause').classList.remove('hidden');
@@ -241,11 +241,56 @@ const UI = (() => {
     for (let i = Inventory.HOTBAR_SIZE; i < Inventory.SIZE; i++) renderInventorySlot(i, grid);
     for (let i = 0; i < Inventory.HOTBAR_SIZE; i++) renderInventorySlot(i, hotbar);
     renderEquipment();
+    renderInventoryCrafting();
+  }
+
+  function renderInventoryCrafting() {
+    const grid = $('inventory-craft-grid');
+    const output = $('inventory-craft-output');
+    if (!grid || !output) return;
+    Crafting.setGridSize(2);
+    grid.innerHTML = '';
+    Crafting.getVisibleCells().forEach(cellData => {
+      const cell = document.createElement('button');
+      const id = cellData.id;
+      cell.className = 'craft-cell' + (id ? ' filled' : '');
+      cell.setAttribute('aria-label', id ? getItemName(id) : '빈 2x2 제작 칸');
+      if (id) {
+        cell.innerHTML = `<img src="${Textures.blockIcon(id)}" alt=""><span>${getItemName(id)}</span>`;
+        cell.title = '클릭하여 빼기';
+        cell.addEventListener('click', () => {
+          Crafting.removeCell(cellData.index);
+          renderInventoryCrafting();
+        });
+      } else {
+        cell.title = 'Shift+클릭으로 재료 넣기';
+      }
+      grid.appendChild(cell);
+    });
+    const match = Crafting.getMatch();
+    const ready = !!match && Crafting.canCraftGrid();
+    output.disabled = !ready;
+    output.className = 'craft-output' + (ready ? ' ready' : '');
+    output.innerHTML = match
+      ? `<img src="${Textures.blockIcon(match.outputId)}" alt=""><span>${match.name}<b>×${match.count}</b></span>`
+      : '<span class="craft-output-empty">?</span>';
+    output.onclick = () => {
+      if (!Crafting.craftGrid()) {
+        showToast('재료가 부족하거나 2×2로 만들 수 없습니다');
+        return;
+      }
+      renderInventoryCrafting();
+      renderHotbar();
+      renderInventory();
+      showToast('제작 완료');
+    };
   }
 
   function openInventory() {
     inventoryOpen = true;
     inventoryCursor = null;
+    Crafting.setGridSize(2);
+    Crafting.resetGrid(2);
     document.querySelectorAll('.equip-slot:not(.disabled)').forEach(btn => {
       if (btn.dataset.bound) return;
       btn.dataset.bound = '1';
@@ -301,7 +346,9 @@ const UI = (() => {
     if (!craftGrid || !output || !recipeList) return;
 
     craftGrid.innerHTML = '';
-    Crafting.getGrid().forEach((id, i) => {
+    Crafting.getVisibleCells().forEach(cellData => {
+      const id = cellData.id;
+      const i = cellData.index;
       const cell = document.createElement('button');
       cell.className = 'craft-cell' + (id ? ' filled' : '');
       cell.setAttribute('aria-label', id ? getItemName(id) : '빈 제작 칸');
@@ -361,7 +408,8 @@ const UI = (() => {
     if (inventoryOpen) renderInventory();
   }
   function openCrafting() {
-    Crafting.resetGrid();
+    Crafting.setGridSize(3);
+    Crafting.resetGrid(3);
     renderCrafting();
     $('overlay-crafting').classList.remove('hidden');
   }
