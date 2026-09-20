@@ -2,6 +2,7 @@
 
 const Interact = (() => {
   let highlight = null, target = null, camera = null;
+  let mining = null;
 
   function init(camera_, scene) {
     camera = camera_;
@@ -26,7 +27,7 @@ const Interact = (() => {
     let face = null;
     for (let i = 0; i < 160; i++) {
       const id = World.getBlock(x, y, z);
-      if (isSolidBlock(id)) return { x, y, z, id, face };
+      if (isTargetableBlock(id)) return { x, y, z, id, face };
       if (tmx < tmy && tmx < tmz) { if (tmx > maxDist) return null; x += stepX; tmx += tdx; face = [-stepX, 0, 0]; }
       else if (tmy < tmz) { if (tmy > maxDist) return null; y += stepY; tmy += tdy; face = [0, -stepY, 0]; }
       else { if (tmz > maxDist) return null; z += stepZ; tmz += tdz; face = [0, 0, -stepZ]; }
@@ -34,24 +35,125 @@ const Interact = (() => {
     return null;
   }
 
+  function sameTarget(a, b) {
+    return !!a && !!b && a.x===b.x && a.y===b.y && a.z===b.z && a.id===b.id;
+  }
+
   function update() {
     target = raycast(CONFIG.REACH);
     if (target) {
       highlight.position.set(target.x + .5, target.y + .5, target.z + .5);
+      highlight.scale.setScalar(1 + Math.sin(performance.now() * .006) * .006);
+      highlight.material.color.setHex(mining ? 0xffd66b : 0xffffff);
+      highlight.material.opacity = mining ? .95 : .72;
       highlight.visible = true;
     } else highlight.visible = false;
   }
 
-  function tryBreak(survival) {
-    if (!target) return false;
-    if (BLOCKS[target.id].unbreakable) return false;
-    const dropId = survival ? getBlockDrop(target.id, Math.random) : 0;
-    const ok = World.setBlock(target.x, target.y, target.z, BLOCK.AIR);
-    if (ok && survival) {
-      if (dropId) Drops.spawn(dropId, 1, target.x + .5, target.y + .5, target.z + .5);
+  function finishBreak(t, survival) {
+    if (!t || BLOCKS[t.id].unbreakable) return false;
+    const dropId = survival ? getBlockDrop(t.id, Math.random) : 0;
+    const ok = World.setBlock(t.x, t.y, t.z, BLOCK.AIR);
+    if (!ok) return false;
+    if (survival) {
+      if (dropId) Drops.spawn(dropId, 1, t.x + .5, t.y + .5, t.z + .5);
       Player.addExhaustion(SURVIVAL.MINE_COST);
+      if (getToolDef(t.toolId)) {
+        const result = Inventory.damageSelectedTool(1);
+        if (result.broken) UI.showToast('도구가 부서졌습니다');
+      }
     }
-    return ok;
+    return true;
+  }
+
+  function miningSeconds(t, survival) {
+    if (!t) return Infinity;
+    if (!survival) return 0;
+    const hardness = getBlockHardness(t.id);
+    if (!Number.isFinite(hardness)) return Infinity;
+    const base = Math.max(.22, hardness * .72 + .14);
+    const tool = getMiningToolMultiplier(t.id, t.toolId);
+    return base / Math.max(1, tool.speed);
+  }
+
+  function beginBreak(survival) {
+    if (!target || BLOCKS[target.id].unbreakable) return false;
+    const slot = Inventory.selectedSlot();
+    const toolId = slot && getToolDef(slot.id) ? slot.id : 0;
+    if (!survival) return finishBreak({...target, toolId}, false);
+    const tool = getToolDef(toolId);
+    if (tool && slot.durability <= 0) {
+      Inventory.damageSelectedTool(0);
+      return false;
+    }
+    const requiredTier = getRequiredMiningTier(target.id);
+    if (requiredTier > 0 && (!tool || tool.type !== 'pickaxe' || tool.tier < requiredTier)) {
+      const names = {1:'나무 곡괭이',2:'돌 곡괭이',3:'철 곡괭이'};
+      UI.showToast(names[requiredTier] + '이 필요합니다');
+      return false;
+    }
+    mining = {
+      key: target.x + ',' + target.y + ',' + target.z + ',' + target.id,
+      target: {...target},
+      toolId,
+      elapsed: 0,
+      duration: miningSeconds({...target, toolId}, true)
+    };
+    UI.showMiningProgress(0, getItemName(target.id), tool ? getItemName(toolId) : '손');
+    return true;
+  }
+
+  function cancelBreak() {
+    if (!mining) return;
+    mining = null;
+    UI.hideMiningProgress();
+  }
+
+  function updateMining(dt, survival) {
+    if (!mining || !survival) return {broken:false};
+    if (!target || !sameTarget(target, mining.target)) {
+      if (target && !BLOCKS[target.id].unbreakable) {
+        const slot = Inventory.selectedSlot();
+        const toolId = slot && getToolDef(slot.id) ? slot.id : 0;
+        mining = {
+          key: target.x + ',' + target.y + ',' + target.z + ',' + target.id,
+          target: {...target},
+          toolId,
+          elapsed: 0,
+          duration: miningSeconds({...target, toolId}, true)
+        };
+        UI.showMiningProgress(0, getItemName(target.id), toolId ? getItemName(toolId) : '손');
+      } else cancelBreak();
+      return {broken:false};
+    }
+    const selected = Inventory.selectedSlot();
+    const selectedToolId = selected && getToolDef(selected.id) ? selected.id : 0;
+    const requiredTier = getRequiredMiningTier(mining.target.id);
+    const selectedTool = selected && getToolDef(selected.id) ? getToolDef(selected.id) : null;
+    if (requiredTier > 0 && (!selectedTool || selectedTool.type !== 'pickaxe' || selectedTool.tier < requiredTier)) {
+      cancelBreak();
+      UI.showToast((requiredTier===1?'나무 곡괭이':requiredTier===2?'돌 곡괭이':'철 곡괭이') + '이 필요합니다');
+      return {broken:false};
+    }
+    if (selectedToolId !== mining.toolId) {
+      mining.toolId = selectedToolId;
+      mining.duration = miningSeconds({...mining.target, toolId:selectedToolId}, true);
+      mining.elapsed = 0;
+    }
+    if (mining.duration === Infinity) {
+      UI.showMiningProgress(0, getItemName(mining.target.id), mining.toolId ? getItemName(mining.toolId) : '손');
+      return {broken:false,progress:0};
+    }
+    mining.elapsed += dt;
+    const progress = Math.min(1, mining.elapsed / mining.duration);
+    UI.showMiningProgress(progress, getItemName(mining.target.id), mining.toolId ? getItemName(mining.toolId) : '손');
+    if (progress >= 1) {
+      const brokenTarget = {...mining.target, toolId:mining.toolId};
+      mining = null;
+      UI.hideMiningProgress();
+      return {broken:finishBreak(brokenTarget, true), target:brokenTarget};
+    }
+    return {broken:false,progress};
   }
 
   function overlapsPlayer(px, py, pz) {
@@ -78,5 +180,12 @@ const Interact = (() => {
     return target.id;
   }
 
-  return { init, update, raycast, tryBreak, tryPlace, pickBlock };
+  function isMining() { return !!mining; }
+  function miningState() { return mining ? {...mining} : null; }
+
+  return {
+    init, update, raycast,
+    tryBreak: beginBreak, beginBreak, updateMining, cancelBreak,
+    isMining, miningState, getTarget:()=>target, tryPlace, pickBlock
+  };
 })();
