@@ -12,12 +12,17 @@ const UI = (() => {
     const sel = Inventory.getSelected();
     Inventory.getSlots().forEach((s, i) => {
       const el = document.createElement('div');
-      el.className = 'slot' + (i === sel ? ' sel' : '');
+      el.className = 'slot' + (i === sel ? ' sel' : '') + (!s ? ' empty' : '');
+      el.setAttribute('role', 'button');
+      el.setAttribute('aria-label', s ? getItemName(s.id) + ' 슬롯 ' + (i + 1) : '빈 슬롯 ' + (i + 1));
       if (s) {
         let cnt = '';
         if (!Inventory.isCreative() && s.count !== Infinity) cnt = `<span class="cnt">${s.count}</span>`;
         el.innerHTML = `<span class="num">${i + 1}</span><img src="${Textures.blockIcon(s.id)}" alt="">${cnt}`;
         el.title = getItemName(s.id);
+      } else {
+        el.innerHTML = `<span class="num">${i + 1}</span>`;
+        el.title = '빈 슬롯';
       }
       el.addEventListener('click', () => setSelected(i));
       bar.appendChild(el);
@@ -28,7 +33,7 @@ const UI = (() => {
     Inventory.setSelected(i);
     renderHotbar();
     const s = Inventory.selectedSlot();
-    if (s) showItemName(getItemName(s.id));
+    showItemName(s ? getItemName(s.id) : '빈 슬롯');
   }
 
   function showItemName(name) {
@@ -60,6 +65,15 @@ const UI = (() => {
 
   function setHUD(text) { $('hud-info').textContent = text; }
   function setTime(text) { $('hud-time').textContent = text; }
+
+  function setModeLabel(mode) {
+    const el = $('mode-badge');
+    if (!el) return;
+    const survival = mode === GAME_MODE.SURVIVAL;
+    el.textContent = survival ? '🛡 서바이벌' : '✦ 크리에이티브';
+    el.classList.toggle('survival', survival);
+    el.classList.toggle('creative', !survival);
+  }
 
   function iconRow(el, value, max, icons) {
     el.innerHTML = '';
@@ -137,6 +151,11 @@ const UI = (() => {
       const el = $(id);
       if (el) el.disabled = !enabled;
     });
+    const status = $('start-status');
+    if (status) {
+      status.textContent = enabled ? '월드 준비 완료 · 원하는 모드로 시작하세요.' : '월드를 준비하고 있습니다…';
+      status.classList.toggle('ready', enabled);
+    }
   }
 
   function flashVignette() {
@@ -149,7 +168,7 @@ const UI = (() => {
   }
 
   return {
-    renderHotbar, setSelected, showItemName, showOverlay, showToast, setHUD, setTime,
+    renderHotbar, setSelected, showItemName, showOverlay, showToast, setHUD, setTime, setModeLabel,
     updateSurvival, showDeath, hideDeath, openPicker, closePicker, isPickerOpen, setStartEnabled, flashVignette
   };
 })();

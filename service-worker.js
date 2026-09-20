@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.1-ui-detail-stage1-20260920';
+const VERSION = 'webcraft-v1.1-ui-detail-stage2-20260920';
 const CORE = [
   './',
   './index.html',
@@ -39,8 +39,8 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
   const sameOrigin = url.origin === self.location.origin;
-  const cdn = /jsdelivr\\.net/.test(url.hostname);
-  const appAsset = sameOrigin && (e.request.mode === 'navigate' || /\\.(html|js|css)$/.test(url.pathname));
+  const cdn = /jsdelivr\.net/.test(url.hostname);
+  const appAsset = sameOrigin && (e.request.mode === 'navigate' || /\.(html|js|css)$/.test(url.pathname));
 
   e.respondWith(
     appAsset
