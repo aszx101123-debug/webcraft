@@ -168,6 +168,14 @@ const UI = (() => {
     btn.addEventListener('mousedown', e => {
       e.preventDefault();
       e.stopPropagation();
+      if (e.button === 0 && e.shiftKey && inventoryOpen && Crafting.getGridSize() === 2) {
+        const src = Inventory.getSlots()[index];
+        if (src && Crafting.addToFirstEmpty(src.id) >= 0) {
+          renderInventoryCrafting();
+          showToast(getItemName(src.id) + '을 2×2 제작칸에 넣었습니다');
+        }
+        return;
+      }
       if (e.button === 2) {
         if (!inventoryCursor) {
           const src = Inventory.getSlots()[index];
