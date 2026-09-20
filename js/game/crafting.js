@@ -157,6 +157,7 @@ const Crafting = (() => {
   }
 
   function matchesRecipe(recipe) {
+    if (!recipeFitsGrid(recipe)) return false;
     if (recipe.shapeless) {
       const want = [];
       recipe.ingredients.forEach(i => { for (let n = 0; n < i.count; n++) want.push(i.id); });
