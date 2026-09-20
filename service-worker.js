@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.2-mining-mobs-blocks-20260920';
+const VERSION = 'webcraft-v1.2-ores-tools-crafting-multiworld-20260920';
 const CORE = [
   './',
   './index.html',
@@ -16,7 +16,18 @@ const CORE = [
   './img/shot-night.png',
   './js/game/items.js',
   './js/game/drops.js',
-  './js/game/mobs.js'
+  './js/game/mobs.js',
+  './js/game/config.js',
+  './js/game/noise.js',
+  './js/game/terrain.js',
+  './js/game/textures.js',
+  './js/game/world.js',
+  './js/game/player.js',
+  './js/game/interaction.js',
+  './js/game/save.js',
+  './js/game/crafting.js',
+  './js/game/ui.js',
+  './js/game/main.js'
 ];
 
 self.addEventListener('install', e => {

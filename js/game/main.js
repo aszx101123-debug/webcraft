@@ -2,7 +2,6 @@
 
 (() => {
   const params = new URLSearchParams(location.search);
-  const saved = SaveSystem.load();
 
   function seedFromParam(v) {
     if (!v) return null;
@@ -11,7 +10,22 @@
     for (let i = 0; i < v.length; i++) h = ((h * 33) ^ v.charCodeAt(i)) >>> 0;
     return h % 2147483647;
   }
-  const seed = saved ? saved.seed : (seedFromParam(params.get('seed')) ?? Math.floor(Math.random() * 2147483647));
+
+  let worldId = params.get('world') || SaveSystem.getActiveId();
+  if (!worldId) worldId = SaveSystem.ensureDefault(seedFromParam(params.get('seed')));
+  if (!worldId) {
+    document.body.textContent = '월드를 만들 수 없습니다. 브라우저 저장 공간을 확인해 주세요.';
+    return;
+  }
+  SaveSystem.setActiveId(worldId);
+  let worldMeta = SaveSystem.get(worldId);
+  let saved = SaveSystem.load(worldId);
+  if (!worldMeta) {
+    worldId = SaveSystem.ensureDefault(seedFromParam(params.get('seed')));
+    worldMeta = SaveSystem.get(worldId);
+    saved = SaveSystem.load(worldId);
+  }
+  const seed = saved?.seed ?? worldMeta.seed;
 
   const renderer = new THREE.WebGLRenderer({ antialias: false });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
@@ -123,9 +137,11 @@
   }
 
   function doSave(silent) {
-    const ok = SaveSystem.save({
-      version: 2,
+    const ok = SaveSystem.save(worldId, {
+      version: 3,
       savedAt: Date.now(),
+      worldId,
+      worldName: worldMeta.name,
       seed,
       time: state.time,
       renderDist: state.renderDist,
@@ -163,6 +179,7 @@
 
   UI.renderHotbar();
   UI.setModeLabel(state.mode);
+  UI.renderWorlds(SaveSystem.list(), worldId);
   UI.showOverlay('start');
   UI.setStartEnabled(false);
   Interact.init(camera, scene);
@@ -170,7 +187,7 @@
   updateSky(0);
   const modeLabel = state.mode === GAME_MODE.SURVIVAL ? '서바이벌' : '크리에이티브';
   document.getElementById('seed-label').textContent =
-    `시드: ${seed} · ${saved ? `${modeLabel} 월드 불러옴` : '새 월드 생성'}`;
+    `월드: ${worldMeta.name} · 시드: ${seed} · ${saved ? `${modeLabel} 월드 불러옴` : '새 월드 생성'}`;
 
   function setMode(mode) {
     state.mode = mode;
@@ -191,6 +208,11 @@
   document.addEventListener('keydown', e => {
     keys[e.code] = true;
     if (e.code === 'Space') e.preventDefault();
+    if (e.code === 'Escape' && UI.isCraftingOpen()) {
+      UI.closeCrafting();
+      canvas.requestPointerLock();
+      return;
+    }
     if (e.code === 'F3') { e.preventDefault(); const h = document.getElementById('hud-info'); h.style.display = h.style.display === 'none' ? '' : 'none'; }
     if (!state.locked) return;
     if (e.code.startsWith('Digit')) {
@@ -203,8 +225,14 @@
       UI.showToast(Player.flying ? '비행 모드 ON' : '비행 모드 OFF');
       blip(Player.flying ? 520 : 260, .09, 'triangle', .04);
     }
+    if (e.code === 'KeyC') {
+      state.suppressPause = true;
+      document.exitPointerLock();
+      UI.openCrafting();
+      return;
+    }
     if (e.code === 'KeyB' || e.code === 'KeyE') {
-      if (state.mode !== GAME_MODE.CREATIVE) { UI.showToast('서바이벌에서는 직접 캐서 얻으세요'); return; }
+      if (state.mode !== GAME_MODE.CREATIVE) { UI.showToast('서바이벌에서는 블록을 직접 캐서 얻으세요'); return; }
       state.suppressPause = true;
       document.exitPointerLock();
       UI.openPicker(id => {
@@ -240,6 +268,13 @@
         blip(95, .12, 'triangle', .09);
       }
     } else if (e.button === 2) {
+      const target = Interact.getTarget();
+      if (target && target.id === BLOCK.CRAFTING_TABLE) {
+        state.suppressPause = true;
+        document.exitPointerLock();
+        UI.openCrafting();
+        return;
+      }
       const s = Inventory.selectedSlot();
       if (!s) return;
       if (isFoodId(s.id)) {
@@ -300,6 +335,29 @@
     }
   });
 
+  function createWorldAndOpen(name, rawSeed) {
+    const parsed = seedFromParam(rawSeed);
+    doSave(true);
+    const meta = SaveSystem.create(name, parsed ?? undefined);
+    if (!meta) {
+      UI.showToast('새 월드를 만들지 못했습니다. 저장 공간을 확인해 주세요.');
+      return;
+    }
+    location.href = 'play.html?world=' + encodeURIComponent(meta.id);
+  }
+
+  function openWorldMenu() {
+    state.suppressPause = true;
+    state.started = false;
+    Interact.cancelBreak();
+    UI.setMiningProgress(0);
+    document.exitPointerLock();
+    UI.closeCrafting();
+    UI.showOverlay('start');
+    UI.setStartEnabled(state.ready);
+    UI.renderWorlds(SaveSystem.list(), worldId);
+  }
+
   const startBtn = document.getElementById('start-btn');
   const btnSurvival = document.getElementById('btn-start-survival');
   const btnCreative = document.getElementById('btn-start-creative');
@@ -310,7 +368,11 @@
   } else {
     startBtn.classList.add('hidden');
   }
-  startBtn.addEventListener('click', () => { if (state.ready) canvas.requestPointerLock(); });
+  startBtn.addEventListener('click', () => {
+    if (!state.ready) return;
+    SaveSystem.setActiveId(worldId);
+    canvas.requestPointerLock();
+  });
   btnSurvival.addEventListener('click', () => { if (!state.ready) return;
     state.mode = GAME_MODE.SURVIVAL;
     Player.setMode(GAME_MODE.SURVIVAL);
@@ -331,6 +393,21 @@
   });
 
   document.getElementById('btn-resume').addEventListener('click', () => canvas.requestPointerLock());
+  document.getElementById('btn-crafting').addEventListener('click', () => {
+    state.suppressPause = true;
+    document.exitPointerLock();
+    UI.openCrafting();
+  });
+  document.getElementById('btn-worlds').addEventListener('click', openWorldMenu);
+  document.getElementById('crafting-close').addEventListener('click', () => {
+    UI.closeCrafting();
+    canvas.requestPointerLock();
+  });
+  document.getElementById('btn-create-world').addEventListener('click', () => {
+    const name = document.getElementById('world-name-input').value.trim();
+    const rawSeed = document.getElementById('world-seed-input').value.trim();
+    createWorldAndOpen(name, rawSeed);
+  });
   document.getElementById('btn-save').addEventListener('click', () => doSave(false));
   document.getElementById('btn-home').addEventListener('click', () => { doSave(true); location.href = 'index.html'; });
   document.getElementById('btn-respawn').addEventListener('click', () => {
@@ -343,10 +420,10 @@
   });
   document.getElementById('picker-close').addEventListener('click', () => { UI.closePicker(); canvas.requestPointerLock(); });
   document.getElementById('btn-newworld').addEventListener('click', () => {
-    if (!confirm('현재 월드를 버리고 새 월드를 시작할까요?')) return;
-    SaveSystem.clear();
+    if (!confirm('현재 월드는 저장된 상태로 남기고 새 월드를 만들까요?')) return;
     const v = document.getElementById('seed-input').value.trim();
-    location.href = 'play.html' + (v ? '?seed=' + encodeURIComponent(v) : '');
+    const name = document.getElementById('world-name-input').value.trim();
+    createWorldAndOpen(name, v);
   });
   const modeBtn = document.getElementById('btn-mode');
   function syncModeBtn() {
