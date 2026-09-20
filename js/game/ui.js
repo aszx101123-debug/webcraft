@@ -6,6 +6,8 @@ const UI = (() => {
   let itemNameTimer = null;
   let lastSurvivalSig = '';
   let currentWorldId = null;
+  let inventoryOpen = false;
+  let inventoryCursor = null;
 
   function renderHotbar() {
     const bar = $('hotbar');
@@ -55,7 +57,8 @@ const UI = (() => {
   }
 
   function showOverlay(name) {
-    ['overlay-start', 'overlay-pause', 'overlay-death'].forEach(id => $(id).classList.add('hidden'));
+    ['overlay-start', 'overlay-pause', 'overlay-death', 'overlay-inventory'].forEach(id => $(id)?.classList.add('hidden'));
+    if (name !== 'inventory') inventoryCursorReturn();
     if (name === 'start') $('overlay-start').classList.remove('hidden');
     else if (name === 'pause') $('overlay-pause').classList.remove('hidden');
     else if (name === 'death') $('overlay-death').classList.remove('hidden');
@@ -113,6 +116,151 @@ const UI = (() => {
 
   function escapeHTML(v) {
     return String(v).replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[ch]));
+  }
+
+
+  function stackLabel(s) {
+    if (!s) return '';
+    return s.count === Infinity ? '∞' : String(s.count);
+  }
+
+  function updateInventoryCursor(clientX, clientY) {
+    const el = $('inventory-cursor');
+    if (!el) return;
+    if (!inventoryCursor) {
+      el.classList.add('hidden');
+      return;
+    }
+    el.classList.remove('hidden');
+    el.style.left = (clientX || innerWidth / 2) + 'px';
+    el.style.top = (clientY || innerHeight / 2) + 'px';
+    el.innerHTML = \`<img src="\${Textures.blockIcon(inventoryCursor.id)}" alt=""><span>\${stackLabel(inventoryCursor)}</span>\`;
+  }
+
+  function inventoryCursorReturn() {
+    if (!inventoryCursor) return true;
+    let left = inventoryCursor;
+    for (let i = 0; i < Inventory.SIZE && left; i++) left = Inventory.putIntoSlot(i, left);
+    if (left) {
+      showToast('인벤토리가 가득 차서 아이템을 되돌릴 수 없습니다');
+      return false;
+    }
+    inventoryCursor = null;
+    const el = $('inventory-cursor');
+    if (el) el.classList.add('hidden');
+    renderHotbar();
+    return true;
+  }
+
+  function renderInventorySlot(index, target) {
+    const s = Inventory.getSlots()[index];
+    const btn = document.createElement('button');
+    btn.className = 'inventory-slot' + (!s ? ' empty' : '') + (index < Inventory.HOTBAR_SIZE ? ' inventory-hotbar-slot' : '');
+    btn.setAttribute('aria-label', s ? getItemName(s.id) + ' 슬롯 ' + (index + 1) : '빈 슬롯');
+    btn.innerHTML = \`<span class="inv-num">\${index < Inventory.HOTBAR_SIZE ? index + 1 : index - Inventory.HOTBAR_SIZE + 1}</span>\`;
+    if (s) {
+      const td = getToolDef(s.id);
+      const dur = td && s.durability ? \`<span class="inv-dur"><i style="transform:scaleX(\${Math.max(0, Math.min(1, s.durability / td.maxDurability))})"></i></span>\` : '';
+      btn.innerHTML += \`<img src="\${Textures.blockIcon(s.id)}" alt=""><span class="inv-count">\${stackLabel(s)}</span>\${dur}\`;
+      btn.title = td ? \`\${getItemName(s.id)} · 내구도 \${s.durability}/\${td.maxDurability}\` : getItemName(s.id);
+    } else btn.title = '빈 슬롯';
+
+    btn.addEventListener('mousedown', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.button === 2) {
+        if (!inventoryCursor) {
+          const src = Inventory.getSlots()[index];
+          if (!src) return;
+          if (src.count === Infinity) inventoryCursor = { id: src.id, count: 1 };
+          else inventoryCursor = Inventory.takeFromSlot(index, Math.ceil(src.count / 2));
+        } else {
+          const one = { id: inventoryCursor.id, count: 1 };
+          if (getToolDef(one.id)) one.durability = inventoryCursor.durability || getToolDef(one.id).maxDurability;
+          const left = Inventory.putIntoSlot(index, one);
+          if (!left) {
+            inventoryCursor.count -= 1;
+            if (inventoryCursor.count <= 0) inventoryCursor = null;
+          }
+        }
+      } else if (e.button === 0) {
+        const current = Inventory.getSlots()[index];
+        if (!inventoryCursor) {
+          if (current) inventoryCursor = Inventory.takeFromSlot(index);
+        } else if (!current) {
+          inventoryCursor = Inventory.putIntoSlot(index, inventoryCursor);
+        } else if (current.id === inventoryCursor.id && !getToolDef(current.id)) {
+          inventoryCursor = Inventory.putIntoSlot(index, inventoryCursor);
+        } else {
+          const old = Inventory.takeFromSlot(index);
+          const left = Inventory.putIntoSlot(index, inventoryCursor);
+          inventoryCursor = left || old;
+        }
+      }
+      renderInventory();
+      updateInventoryCursor(e.clientX, e.clientY);
+    });
+    btn.addEventListener('mouseenter', e => updateInventoryCursor(e.clientX, e.clientY));
+    btn.addEventListener('contextmenu', e => e.preventDefault());
+    target.appendChild(btn);
+  }
+
+  function renderEquipment() {
+    const equipment = Inventory.getEquipment();
+    document.querySelectorAll('.equip-slot').forEach(btn => {
+      const key = btn.dataset.equip;
+      const s = equipment[key];
+      const b = btn.querySelector('b');
+      if (!s) {
+        b.innerHTML = btn.classList.contains('disabled') ? '준비중' : '빈 슬롯';
+        return;
+      }
+      b.innerHTML = \`<img src="\${Textures.blockIcon(s.id)}" alt="">\`;
+      b.title = getItemName(s.id);
+    });
+  }
+
+  function handleEquipment(key) {
+    if (!inventoryCursor) {
+      const got = Inventory.takeEquipment(key);
+      if (got) inventoryCursor = got;
+    } else {
+      const left = Inventory.putEquipment(key, inventoryCursor);
+      inventoryCursor = left || null;
+    }
+    renderInventory();
+    updateInventoryCursor(innerWidth / 2, innerHeight / 2);
+  }
+
+  function renderInventory() {
+    const grid = $('inventory-grid');
+    const hotbar = $('inventory-hotbar-grid');
+    if (!grid || !hotbar) return;
+    grid.innerHTML = '';
+    hotbar.innerHTML = '';
+    for (let i = Inventory.HOTBAR_SIZE; i < Inventory.SIZE; i++) renderInventorySlot(i, grid);
+    for (let i = 0; i < Inventory.HOTBAR_SIZE; i++) renderInventorySlot(i, hotbar);
+    renderEquipment();
+  }
+
+  function openInventory() {
+    inventoryOpen = true;
+    inventoryCursor = null;
+    renderInventory();
+    $('overlay-inventory').classList.remove('hidden');
+  }
+
+  function closeInventory() {
+    inventoryCursorReturn();
+    inventoryOpen = false;
+    $('overlay-inventory').classList.add('hidden');
+  }
+
+  function isInventoryOpen() { return inventoryOpen; }
+
+  function dropSelectedOne() {
+    if (Inventory.isCreative()) return false;
+    return !!Inventory.dropFromSlot(Inventory.getSelected(), 1);
   }
 
   function renderCraftingInventory() {
@@ -200,6 +348,7 @@ const UI = (() => {
     });
 
     renderCraftingInventory();
+    if (inventoryOpen) renderInventory();
   }
   function openCrafting() {
     Crafting.resetGrid();
@@ -327,6 +476,7 @@ const UI = (() => {
   return {
     renderHotbar, setSelected, showItemName, showOverlay, showToast, setHUD, setTime, setMiningProgress,
     setModeLabel, renderWorlds, renderCrafting, openCrafting, closeCrafting, isCraftingOpen,
+    renderInventory, openInventory, closeInventory, isInventoryOpen, dropSelectedOne, updateInventoryCursor,
     updateSurvival, showDeath, hideDeath, openPicker, closePicker, isPickerOpen, setStartEnabled, flashVignette
   };
 })();
