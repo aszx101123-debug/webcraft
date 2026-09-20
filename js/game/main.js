@@ -2,7 +2,6 @@
 
 (() => {
   const params = new URLSearchParams(location.search);
-  const saved = SaveSystem.load();
 
   function seedFromParam(v) {
     if (!v) return null;
@@ -11,7 +10,22 @@
     for (let i = 0; i < v.length; i++) h = ((h * 33) ^ v.charCodeAt(i)) >>> 0;
     return h % 2147483647;
   }
-  const seed = saved ? saved.seed : (seedFromParam(params.get('seed')) ?? Math.floor(Math.random() * 2147483647));
+
+  let worldId = params.get('world') || SaveSystem.getActiveId();
+  if (!worldId) worldId = SaveSystem.ensureDefault(seedFromParam(params.get('seed')));
+  if (!worldId) {
+    document.body.textContent = '월드를 만들 수 없습니다. 브라우저 저장 공간을 확인해 주세요.';
+    return;
+  }
+  SaveSystem.setActiveId(worldId);
+  let worldMeta = SaveSystem.get(worldId);
+  let saved = SaveSystem.load(worldId);
+  if (!worldMeta) {
+    worldId = SaveSystem.ensureDefault(seedFromParam(params.get('seed')));
+    worldMeta = SaveSystem.get(worldId);
+    saved = SaveSystem.load(worldId);
+  }
+  const seed = saved?.seed ?? worldMeta.seed;
 
   const renderer = new THREE.WebGLRenderer({ antialias: false });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
@@ -123,9 +137,11 @@
   }
 
   function doSave(silent) {
-    const ok = SaveSystem.save({
-      version: 2,
+    const ok = SaveSystem.save(worldId, {
+      version: 3,
       savedAt: Date.now(),
+      worldId,
+      worldName: worldMeta.name,
       seed,
       time: state.time,
       renderDist: state.renderDist,
@@ -163,6 +179,7 @@
 
   UI.renderHotbar();
   UI.setModeLabel(state.mode);
+  UI.renderWorlds(SaveSystem.list(), worldId);
   UI.showOverlay('start');
   UI.setStartEnabled(false);
   Interact.init(camera, scene);
@@ -170,7 +187,7 @@
   updateSky(0);
   const modeLabel = state.mode === GAME_MODE.SURVIVAL ? '서바이벌' : '크리에이티브';
   document.getElementById('seed-label').textContent =
-    `시드: ${seed} · ${saved ? `${modeLabel} 월드 불러옴` : '새 월드 생성'}`;
+    `월드: ${worldMeta.name} · 시드: ${seed} · ${saved ? `${modeLabel} 월드 불러옴` : '새 월드 생성'}`;
 
   function setMode(mode) {
     state.mode = mode;
