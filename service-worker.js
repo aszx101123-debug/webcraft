@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.1-ui-start-fix-20260920';
+const VERSION = 'webcraft-v1.1-ui-checklist-20260920';
 const CORE = [
   './',
   './index.html',
@@ -37,20 +37,22 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  const url = new URL(e.request.url);
+  const sameOrigin = url.origin === self.location.origin;
+  const cdn = /jsdelivr\\.net/.test(url.hostname);
+  const appAsset = sameOrigin && (e.request.mode === 'navigate' || /\\.(html|js|css)$/.test(url.pathname));
+
   e.respondWith(
-    caches.match(e.request).then(hit => {
-      if (hit) return hit;
-      return fetch(e.request).then(res => {
-        if (res && res.ok) {
-          const sameOrigin = e.request.url.startsWith(self.location.origin);
-          const cdn = /jsdelivr\.net/.test(e.request.url);
-          if (sameOrigin || cdn) {
-            const copy = res.clone();
-            caches.open(VERSION).then(c => c.put(e.request, copy)).catch(() => {});
+    appAsset
+      ? fetch(e.request).then(res => {
+          if (res && res.ok) caches.open(VERSION).then(c => c.put(e.request, res.clone())).catch(() => {});
+          return res;
+        }).catch(() => caches.match(e.request))
+      : caches.match(e.request).then(hit => hit || fetch(e.request).then(res => {
+          if (res && res.ok && (sameOrigin || cdn)) {
+            caches.open(VERSION).then(c => c.put(e.request, res.clone())).catch(() => {});
           }
-        }
-        return res;
-      }).catch(() => hit);
-    })
+          return res;
+        }).catch(() => hit))
   );
 });
