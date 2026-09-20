@@ -65,13 +65,26 @@ const Interact = (() => {
   function breakNow(survival) {
     if (!target) return false;
     if (BLOCKS[target.id].unbreakable) return false;
-    const dropId = survival ? getBlockDrop(target.id, Math.random) : 0;
+    const tool = survival ? Inventory.selectedTool() : null;
+    const dropId = survival ? getBlockDrop(target.id, Math.random, tool) : 0;
     const ok = World.setBlock(target.x, target.y, target.z, BLOCK.AIR);
     if (ok && survival) {
       if (dropId) Drops.spawn(dropId, 1, target.x + .5, target.y + .5, target.z + .5);
       Player.addExhaustion(SURVIVAL.MINE_COST);
+      if (tool) Inventory.damageSelectedTool(1);
+      UI.renderHotbar();
     }
     return ok;
+  }
+
+  function miningTimeFor(targetBlock) {
+    const base = Number.isFinite(BLOCKS[targetBlock.id].miningTime) ? Math.max(.05, BLOCKS[targetBlock.id].miningTime) : 1;
+    const def = BLOCKS[targetBlock.id];
+    const tool = Inventory.selectedTool();
+    if (!tool || !def.tool) return base * (def.minTier ? 2.5 : 1.65);
+    if (tool.toolType !== def.tool) return base * (def.minTier ? 2.4 : 1.5);
+    if (def.minTier !== undefined && tool.tier < def.minTier) return base * 2.2;
+    return base / Math.max(1, tool.speed);
   }
 
   function startBreak(survival) {
@@ -79,7 +92,7 @@ const Interact = (() => {
     if (!survival) return breakNow(false);
     mining = true;
     miningElapsed = 0;
-    miningDuration = Number.isFinite(BLOCKS[target.id].miningTime) ? Math.max(.05, BLOCKS[target.id].miningTime) : 1;
+    miningDuration = miningTimeFor(target);
     miningKey = targetKey(target);
     return true;
   }
@@ -127,8 +140,10 @@ const Interact = (() => {
     return target.id;
   }
 
+  function getTarget() { return target; }
+
   return {
-    init, update, raycast, startBreak, updateMining, miningProgress,
+    init, update, raycast, getTarget, startBreak, updateMining, miningProgress,
     cancelBreak: resetMining, tryBreak: breakNow, tryPlace, pickBlock
   };
 })();
