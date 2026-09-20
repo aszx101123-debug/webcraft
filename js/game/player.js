@@ -8,6 +8,7 @@ const Player = (() => {
   let yaw = 0, pitch = -.2, onGround = false, flying = false;
   let mode = GAME_MODE.CREATIVE;
   let hp = SURVIVAL.MAX_HP, food = SURVIVAL.MAX_FOOD, air = SURVIVAL.MAX_AIR;
+  let xp = 0, level = 0;
   let exhaustion = 0, regenT = 0, starveT = 0, airT = 0, drownT = 0;
   let peakY = null, dead = false, lastInWater = false;
   let onHurt = null, onDeath = null, onEat = null;
@@ -73,6 +74,19 @@ const Player = (() => {
 
   function heal(n) {
     if (!dead) hp = Math.min(SURVIVAL.MAX_HP, hp + n);
+  }
+
+  function addXP(amount) {
+    if (mode !== GAME_MODE.SURVIVAL || dead || amount <= 0) return 0;
+    xp += amount;
+    let gained = 0;
+    while (xp >= xpForLevel(level)) { xp -= xpForLevel(level); level++; gained++; }
+    return gained;
+  }
+
+  function setXP(value, lvl = 0) {
+    xp = Math.max(0, Number(value) || 0);
+    level = Math.max(0, Math.floor(Number(lvl) || 0));
   }
 
   function eat(foodValue) {
@@ -143,6 +157,7 @@ const Player = (() => {
     exhaustion = 0;
     regenT = starveT = airT = drownT = 0;
     peakY = null;
+    xp = 0; level = 0;
     dead = false;
   }
 
@@ -207,7 +222,7 @@ const Player = (() => {
 
   return {
     pos, vel, reset, update, damage, heal, eat, addExhaustion, survivalTick, respawn,
-    setMode, setSpawn,
+    setMode, setSpawn, addXP, setXP,
     get eyeY() { return EYE; },
     get yaw() { return yaw; }, set yaw(v) { yaw = v; },
     get pitch() { return pitch; }, set pitch(v) { pitch = v; },
@@ -218,6 +233,9 @@ const Player = (() => {
     get hp() { return hp; }, set hp(v) { hp = Math.max(0, Math.min(SURVIVAL.MAX_HP, v)); },
     get food() { return food; }, set food(v) { food = Math.max(0, Math.min(SURVIVAL.MAX_FOOD, v)); },
     get air() { return air; },
+    get xp() { return xp; },
+    get level() { return level; },
+    get xpNeeded() { return xpForLevel(level); },
     get dead() { return dead; },
     get spawnPoint() { return spawnPoint; },
     set onHurt(fn) { onHurt = fn; },
