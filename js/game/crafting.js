@@ -177,7 +177,7 @@ const Crafting = (() => {
   }
 
   function canCraft(recipe) {
-    return !!recipe &&
+    return !!recipe && recipeFitsGrid(recipe) &&
       recipe.ingredients.every(x => Inventory.countItem(x.id) >= x.count) &&
       Inventory.canAdd(recipe.outputId, recipe.count);
   }
