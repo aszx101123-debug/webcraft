@@ -54,7 +54,7 @@ const Crafting = (() => {
   function updateResult(){
     result=null;resultRecipe=null;
     for(const r of RECIPES){
-      if(r.table!== (gridSize===3)) continue;
+      if(!!r.table !== (gridSize===3)) continue;
       if(matches(r.pattern)){result=r.out;resultRecipe=r;break;}
     }
   }
