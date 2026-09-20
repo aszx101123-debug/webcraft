@@ -68,24 +68,25 @@ const Terrain = (() => {
           if (id) data[idx(x, y, z)] = id;
         }
       }
-      // v1.2 deterministic ore veins. Ores replace stone only and stay below the surface.
+      // v1.2.5 ore pass: sparse, vertically targeted bands adapted to WebCraft's 0-63 height.
       const oreDefs = [
-        { id: BLOCK.COAL_ORE, minY: 10, maxY: 48, veins: 9, size: 7 },
-        { id: BLOCK.IRON_ORE, minY: 8, maxY: 38, veins: 8, size: 6 },
-        { id: BLOCK.COPPER_ORE, minY: 12, maxY: 42, veins: 7, size: 7 },
-        { id: BLOCK.GOLD_ORE, minY: 5, maxY: 25, veins: 5, size: 5 },
-        { id: BLOCK.LAPIS_ORE, minY: 6, maxY: 25, veins: 4, size: 4 },
-        { id: BLOCK.REDSTONE_ORE, minY: 4, maxY: 18, veins: 6, size: 6 },
-        { id: BLOCK.DIAMOND_ORE, minY: 3, maxY: 12, veins: 3, size: 4 },
-        { id: BLOCK.EMERALD_ORE, minY: 24, maxY: 52, veins: 2, size: 2 }
+        { id: BLOCK.COAL_ORE, minY: 27, maxY: 56, veins: 3, size: 4 },
+        { id: BLOCK.IRON_ORE, minY: 10, maxY: 34, veins: 3, size: 4 },
+        { id: BLOCK.IRON_ORE, minY: 45, maxY: 58, veins: 1, size: 3 },
+        { id: BLOCK.COPPER_ORE, minY: 18, maxY: 43, veins: 2, size: 3 },
+        { id: BLOCK.GOLD_ORE, minY: 7, maxY: 20, veins: 1, size: 3 },
+        { id: BLOCK.LAPIS_ORE, minY: 8, maxY: 18, veins: 1, size: 2 },
+        { id: BLOCK.REDSTONE_ORE, minY: 3, maxY: 12, veins: 1, size: 3 },
+        { id: BLOCK.DIAMOND_ORE, minY: 2, maxY: 8, veins: 1, size: 2 },
+        { id: BLOCK.EMERALD_ORE, minY: 40, maxY: 54, veins: 1, size: 1 }
       ];
       const oreRng = Noise.mulberry32(Math.floor(Noise.hash2(cx + 91, cz - 47, seed + 1901) * 4294967296));
       // 드물게 더 길게 이어지는 대형 철/구리 광맥을 추가한다.
       const largeVeinChance = oreRng();
-      if (largeVeinChance < .22) {
+      if (largeVeinChance < .035) {
         const large = largeVeinChance < .11
-          ? { id: BLOCK.IRON_ORE, minY: 10, maxY: 31, length: 18 }
-          : { id: BLOCK.COPPER_ORE, minY: 14, maxY: 40, length: 16 };
+          ? { id: BLOCK.IRON_ORE, minY: 10, maxY: 31, length: 8 }
+          : { id: BLOCK.COPPER_ORE, minY: 14, maxY: 40, length: 7 };
         let x = 2 + Math.floor(oreRng() * 12);
         let y = large.minY + Math.floor(oreRng() * (large.maxY - large.minY + 1));
         let z = 2 + Math.floor(oreRng() * 12);
