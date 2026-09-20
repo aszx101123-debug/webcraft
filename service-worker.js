@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.2-detail-caves-water-crafting-character-20260920';
+const VERSION = 'webcraft-v1.2.1-black-screen-fix-20260920';
 const CORE = [
   './',
   './index.html',
