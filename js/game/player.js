@@ -76,18 +76,15 @@ const Player = (() => {
     if (!dead) hp = Math.min(SURVIVAL.MAX_HP, hp + n);
   }
 
-  function addXP(amount) {
-    if (mode !== GAME_MODE.SURVIVAL || dead || amount <= 0) return 0;
+  function addXP(amount){
+    if(mode!==GAME_MODE.SURVIVAL||dead||amount<=0)return 0;
     xp += amount;
-    let gained = 0;
-    while (xp >= xpForLevel(level)) { xp -= xpForLevel(level); level++; gained++; }
+    let gained=0;
+    while(xp>=xpForLevel(level)){xp-=xpForLevel(level);level++;gained++;}
     return gained;
   }
 
-  function setXP(value, lvl = 0) {
-    xp = Math.max(0, Number(value) || 0);
-    level = Math.max(0, Math.floor(Number(lvl) || 0));
-  }
+  function setXP(value, lvl=0){xp=Math.max(0,Number(value)||0);level=Math.max(0,Math.floor(Number(lvl)||0));}
 
   function eat(foodValue) {
     if (mode !== GAME_MODE.SURVIVAL || dead || food >= SURVIVAL.MAX_FOOD) return false;
