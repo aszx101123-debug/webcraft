@@ -1,9 +1,12 @@
 'use strict';
 
 const Inventory = (() => {
-  const SIZE = 9;
+  const SIZE = 27;
+  const HOTBAR_SIZE = 9;
   const MAX_STACK = 64;
+  const EQUIPMENT_KEYS = ['mainhand', 'offhand', 'head', 'body'];
   let slots = new Array(SIZE).fill(null);
+  let equipment = { mainhand: null, offhand: null, head: null, body: null };
   let sel = 0;
   let mode = GAME_MODE.CREATIVE;
 
@@ -23,14 +26,24 @@ const Inventory = (() => {
     return { id: s.id, count };
   }
 
-  function init(m, saved) {
+  function cloneStack(s) {
+    return normalize(s);
+  }
+
+  function init(m, saved, savedEquipment) {
     mode = m;
     sel = 0;
     slots = new Array(SIZE).fill(null);
+    equipment = { mainhand: null, offhand: null, head: null, body: null };
+
     if (Array.isArray(saved) && saved.length) {
       saved.forEach((s, i) => { if (i < SIZE) slots[i] = normalize(s); });
     } else if (mode === GAME_MODE.CREATIVE) {
       DEFAULT_HOTBAR.forEach((id, i) => slots[i] = { id, count: Infinity });
+    }
+
+    if (savedEquipment && typeof savedEquipment === 'object') {
+      EQUIPMENT_KEYS.forEach(k => equipment[k] = normalize(savedEquipment[k]));
     }
   }
 
@@ -45,14 +58,23 @@ const Inventory = (() => {
       if (m === GAME_MODE.CREATIVE) return { id: s.id, count: Infinity };
       return s.count === Infinity ? { id: s.id, count: MAX_STACK } : s;
     });
+    EQUIPMENT_KEYS.forEach(k => {
+      const s = equipment[k];
+      if (!s) return;
+      const def = getItemDef(s.id);
+      if (def && def.toolType) equipment[k] = { id: s.id, count: 1, durability: def.maxDurability || s.durability || 1 };
+      else if (m !== GAME_MODE.CREATIVE && s.count === Infinity) equipment[k] = { id: s.id, count: MAX_STACK };
+    });
   }
 
   function getSlots() { return slots; }
+  function getHotbarSlots() { return slots.slice(0, HOTBAR_SIZE); }
   function getSelected() { return sel; }
-  function setSelected(i) { sel = ((i % SIZE) + SIZE) % SIZE; }
+  function setSelected(i) { sel = ((i % HOTBAR_SIZE) + HOTBAR_SIZE) % HOTBAR_SIZE; }
   function selectedSlot() { return slots[sel]; }
   function selectedId() { const s = slots[sel]; return s ? s.id : 0; }
   function isCreative() { return mode === GAME_MODE.CREATIVE; }
+  function getEquipment() { return equipment; }
 
   function setSlot(i, id) {
     if (i < 0 || i >= SIZE) return;
@@ -69,7 +91,9 @@ const Inventory = (() => {
     if (def.toolType) return slots.filter(s => !s).length >= count;
     let remaining = count;
     for (const s of slots) {
-      if (s && s.id === id && !getItemDef(s.id).toolType) remaining -= Math.max(0, MAX_STACK - s.count);
+      if (s && s.id === id && !getItemDef(s.id).toolType) {
+        remaining -= Math.max(0, MAX_STACK - s.count);
+      }
       if (remaining <= 0) return true;
     }
     const empties = slots.filter(s => !s).length;
@@ -127,7 +151,58 @@ const Inventory = (() => {
   function countItem(id) {
     let total = 0;
     slots.forEach(s => { if (s && s.id === id) total += s.count === Infinity ? 999999 : s.count; });
+    EQUIPMENT_KEYS.forEach(k => {
+      const s = equipment[k];
+      if (s && s.id === id) total += s.count === Infinity ? 999999 : s.count;
+    });
     return total;
+  }
+
+  function takeFromSlot(index, amount = null) {
+    if (index < 0 || index >= SIZE || !slots[index]) return null;
+    const s = slots[index];
+    if (s.count === Infinity) return cloneStack(s);
+    const n = amount == null ? s.count : Math.max(1, Math.min(s.count, amount | 0));
+    const out = { id: s.id, count: n };
+    if (getItemDef(s.id).toolType) out.durability = s.durability;
+    s.count -= n;
+    if (s.count <= 0) slots[index] = null;
+    return out;
+  }
+
+  function putIntoSlot(index, incoming) {
+    if (index < 0 || index >= SIZE || !incoming) return incoming;
+    const def = getItemDef(incoming.id);
+    if (!def) return incoming;
+    const current = slots[index];
+    if (!current) {
+      slots[index] = cloneStack(incoming);
+      return null;
+    }
+    if (current.id !== incoming.id || def.toolType || getItemDef(current.id).toolType) return incoming;
+    if (current.count === Infinity) return incoming;
+    const cap = MAX_STACK - current.count;
+    if (cap <= 0) return incoming;
+    const put = Math.min(cap, incoming.count);
+    current.count += put;
+    incoming.count -= put;
+    return incoming.count > 0 ? incoming : null;
+  }
+
+  function move(from, to, amount = null) {
+    if (from === to || from < 0 || to < 0 || from >= SIZE || to >= SIZE) return false;
+    const moving = takeFromSlot(from, amount);
+    if (!moving) return false;
+    const leftover = putIntoSlot(to, moving);
+    if (leftover) {
+      putIntoSlot(from, leftover);
+      return false;
+    }
+    return true;
+  }
+
+  function dropFromSlot(index, amount = 1) {
+    return takeFromSlot(index, amount);
   }
 
   function consumeSelected() {
@@ -169,9 +244,23 @@ const Inventory = (() => {
     });
   }
 
+  function serializeEquipment() {
+    const out = {};
+    EQUIPMENT_KEYS.forEach(k => {
+      const s = equipment[k];
+      if (!s) out[k] = null;
+      else if (getItemDef(s.id).toolType) out[k] = { id: s.id, count: 1, durability: s.durability };
+      else out[k] = { id: s.id, count: s.count === Infinity ? -1 : s.count };
+    });
+    return out;
+  }
+
   return {
-    SIZE, MAX_STACK, init, setMode, getSlots, getSelected, setSelected,
-    selectedSlot, selectedId, isCreative, setSlot, canAdd, add, removeItem, countItem,
-    consumeSelected, damageSelectedTool, selectedTool, selectedToolDurability, serialize
+    SIZE, HOTBAR_SIZE, MAX_STACK, EQUIPMENT_KEYS,
+    init, setMode, getSlots, getHotbarSlots, getSelected, setSelected,
+    selectedSlot, selectedId, isCreative, getEquipment, setSlot, canAdd, add,
+    removeItem, countItem, takeFromSlot, putIntoSlot, move, dropFromSlot,
+    consumeSelected, damageSelectedTool, selectedTool, selectedToolDurability,
+    serialize, serializeEquipment
   };
 })();
