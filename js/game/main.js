@@ -2,7 +2,8 @@
 
 (() => {
   const params = new URLSearchParams(location.search);
-  const saved = SaveSystem.load();
+  let worldId = params.get('world') || SaveSystem.currentId();
+  let saved = worldId ? SaveSystem.load(worldId) : null;
 
   function seedFromParam(v) {
     if (!v) return null;
@@ -11,7 +12,22 @@
     for (let i = 0; i < v.length; i++) h = ((h * 33) ^ v.charCodeAt(i)) >>> 0;
     return h % 2147483647;
   }
-  const seed = saved ? saved.seed : (seedFromParam(params.get('seed')) ?? Math.floor(Math.random() * 2147483647));
+  if (!worldId || !saved) {
+    const seedParam = seedFromParam(params.get('seed'));
+    worldId = SaveSystem.createWorld(
+      params.get('name') || '새로운 월드',
+      seedParam ?? Math.floor(Math.random() * 2147483647),
+      params.get('mode') || 'survival'
+    );
+    const meta = SaveSystem.getWorldMeta(worldId);
+    saved = meta && meta.data ? meta.data : {
+      version: 2,
+      seed: meta ? meta.seed : (seedParam ?? Math.floor(Math.random() * 2147483647)),
+      mode: meta ? meta.mode : (params.get('mode') || 'survival')
+    };
+  }
+
+  const seed = saved.seed;
 
   const renderer = new THREE.WebGLRenderer({ antialias: false });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
@@ -139,8 +155,10 @@
         x: Player.pos.x, y: Player.pos.y, z: Player.pos.z,
         yaw: Player.yaw, pitch: Player.pitch, flying: Player.flying
       },
+      worldId,
+      worldName: (SaveSystem.getWorldMeta(worldId) || {}).name || '새로운 월드',
       edits: World.getEdits()
-    });
+    }, worldId);
     if (!silent) UI.showToast(ok ? '월드가 저장되었습니다' : '저장 실패: 저장 공간 부족');
     return ok;
   }
@@ -161,23 +179,16 @@
     } catch (e) { }
   }
 
-  UI.renderHotbar();
   Interact.init(camera, scene);
   applyFog();
   updateSky(0);
-  const modeLabel = state.mode === GAME_MODE.SURVIVAL ? '서바이벌' : '크리에이티브';
-  document.getElementById('seed-label').textContent =
-    `시드: ${seed} · ${saved ? `${modeLabel} 월드 불러옴` : '새 월드 생성'}`;
 
   function setMode(mode) {
     state.mode = mode;
     Player.setMode(mode);
     Inventory.setMode(mode);
     Mobs.setMode(mode);
-    UI.renderHotbar();
-    syncModeBtn();
     doSave(true);
-    UI.showToast(mode === GAME_MODE.SURVIVAL ? '서바이벌 모드 — 행운을 빕니다' : '크리에이티브 모드');
   }
 
   const keys = {};
@@ -197,20 +208,8 @@
   document.addEventListener('keydown', e => {
     keys[e.code] = true;
     if (e.code === 'Space') e.preventDefault();
-    if (e.code === 'F3') { e.preventDefault(); const h = document.getElementById('hud-info'); h.style.display = h.style.display === 'none' ? '' : 'none'; }
-
-    if (e.code === 'KeyE' && state.started && !Player.dead) {
+    if (e.code === 'F3' || e.code === 'KeyE' || e.code === 'KeyB') {
       e.preventDefault();
-      if (UI.isInventoryOpen()) {
-        state.suppressPause = true;
-        UI.closeInventory();
-        canvas.requestPointerLock();
-      } else {
-        Interact.cancelBreak();
-        state.suppressPause = true;
-        UI.openInventory();
-        document.exitPointerLock();
-      }
       return;
     }
 
@@ -222,23 +221,11 @@
     }
 
     if (e.code === 'KeyF') {
-      if (state.mode !== GAME_MODE.CREATIVE) { UI.showToast('서바이벌에서는 날 수 없습니다'); return; }
+      if (state.mode !== GAME_MODE.CREATIVE) return;
       Player.flying = !Player.flying;
-      UI.showToast(Player.flying ? '비행 모드 ON' : '비행 모드 OFF');
       blip(Player.flying ? 520 : 260, .09, 'triangle', .04);
     }
 
-    if (e.code === 'KeyB') {
-      if (state.mode !== GAME_MODE.CREATIVE) { UI.showToast('블록 상자는 크리에이티브 전용입니다'); return; }
-      state.suppressPause = true;
-      document.exitPointerLock();
-      UI.openPicker(id => {
-        Inventory.setSlot(Inventory.getSelected(), id);
-        UI.renderHotbar();
-        blip(340, .05, 'square', .03);
-        canvas.requestPointerLock();
-      });
-    }
   });
 
   document.addEventListener('keyup', e => keys[e.code] = false);
@@ -270,8 +257,7 @@
           && getToolDef(selected.id).type === 'sword';
         if (state.mode === GAME_MODE.SURVIVAL && weapon) {
           const result = Inventory.damageSelectedTool(1);
-          if (result.broken) UI.showToast('검이 부서졌습니다');
-          UI.renderHotbar();
+
         }
       } else {
         Interact.beginBreak(state.mode === GAME_MODE.SURVIVAL);
@@ -281,15 +267,11 @@
 
       if (target && target.id === BLOCK.CRAFTING_TABLE) {
         Interact.cancelBreak();
-        state.suppressPause = true;
-        document.exitPointerLock();
-        UI.openCraftingTable();
         return;
       }
 
       if (target && target.id === BLOCK.BED) {
         Player.setSpawn(target.x + .5, target.y + 1, target.z + .5);
-        UI.showToast('침대가 새로운 리스폰 지점이 되었습니다');
         blip(440, .08, 'sine', .04);
         return;
       }
@@ -302,13 +284,11 @@
           blip(280, .07, 'triangle', .05);
           setTimeout(() => blip(200, .08, 'triangle', .05), 100);
           Inventory.consumeSelected();
-          UI.renderHotbar();
-        } else UI.showToast('배가 부릅니다');
+        }
       } else if (isBlockId(s.id)) {
         if (Interact.tryPlace(s.id)) {
           Inventory.consumeSelected();
           blip(190, .07, 'square', .05);
-          UI.renderHotbar();
         }
       }
     } else if (e.button === 1) {
@@ -316,7 +296,6 @@
       const id = Interact.pickBlock();
       if (id) {
         Inventory.setSlot(Inventory.getSelected(), id);
-        UI.renderHotbar();
         blip(340, .05, 'square', .03);
       }
     }
@@ -337,80 +316,15 @@
     if (state.locked) {
       state.started = true;
       state.suppressPause = false;
-      UI.showOverlay(null);
     } else if (state.started && !Player.dead) {
       Interact.cancelBreak();
-      if (state.suppressPause) { state.suppressPause = false; return; }
-      UI.showOverlay('pause');
       doSave(true);
     }
   });
 
-  const startBtn = document.getElementById('start-btn');
-  const btnSurvival = document.getElementById('btn-start-survival');
-  const btnCreative = document.getElementById('btn-start-creative');
-  if (saved) {
-    btnSurvival.classList.add('hidden');
-    btnCreative.classList.add('hidden');
-    startBtn.textContent = `이어서 플레이 (${modeLabel})`;
-  } else {
-    startBtn.classList.add('hidden');
-  }
-  startBtn.addEventListener('click', () => startGameInput());
-  btnSurvival.addEventListener('click', () => {
-    state.mode = GAME_MODE.SURVIVAL;
-    Player.setMode(GAME_MODE.SURVIVAL);
-    Inventory.init(GAME_MODE.SURVIVAL, null);
-    Mobs.setMode(GAME_MODE.SURVIVAL);
-    UI.renderHotbar();
-    startGameInput();
+  canvas.addEventListener('click', () => {
+    if (state.ready && !state.locked && !Player.dead) startGameInput();
   });
-  btnCreative.addEventListener('click', () => {
-    state.mode = GAME_MODE.CREATIVE;
-    Player.setMode(GAME_MODE.CREATIVE);
-    Inventory.init(GAME_MODE.CREATIVE, null);
-    Mobs.setMode(GAME_MODE.CREATIVE);
-    UI.renderHotbar();
-    startGameInput();
-  });
-
-  document.getElementById('btn-resume').addEventListener('click', () => startGameInput());
-  document.getElementById('btn-save').addEventListener('click', () => doSave(false));
-  document.getElementById('btn-home').addEventListener('click', () => { doSave(true); location.href = 'index.html'; });
-  document.getElementById('btn-respawn').addEventListener('click', () => {
-    Player.respawn();
-    UI.hideDeath();
-    startGameInput();
-  });
-  document.getElementById('picker-close').addEventListener('click', () => { UI.closePicker(); startGameInput(); });
-
-  document.getElementById('btn-newworld').addEventListener('click', () => {
-    if (!confirm('현재 월드를 버리고 새 월드를 시작할까요?')) return;
-    SaveSystem.clear();
-    const v = document.getElementById('seed-input').value.trim();
-    location.href = 'play.html' + (v ? '?seed=' + encodeURIComponent(v) : '');
-  });
-  const modeBtn = document.getElementById('btn-mode');
-  function syncModeBtn() {
-    modeBtn.textContent = state.mode === GAME_MODE.SURVIVAL
-      ? '모드: 서바이벌 (전환)'
-      : '모드: 크리에이티브 (전환)';
-  }
-  syncModeBtn();
-  modeBtn.addEventListener('click', () => {
-    setMode(state.mode === GAME_MODE.SURVIVAL ? GAME_MODE.CREATIVE : GAME_MODE.SURVIVAL);
-  });
-  const rdSel = document.getElementById('sel-renderdist');
-  rdSel.value = String(state.renderDist);
-  rdSel.addEventListener('change', () => {
-    state.renderDist = +rdSel.value;
-    applyFog();
-    UI.showToast(`렌더 거리: ${state.renderDist}청크`);
-  });
-  const soundBtn = document.getElementById('btn-sound');
-  const syncSoundBtn = () => soundBtn.textContent = state.sound ? '🔊 소리 켜짐' : '🔇 소리 꺼짐';
-  syncSoundBtn();
-  soundBtn.addEventListener('click', () => { state.sound = !state.sound; syncSoundBtn(); });
 
   addEventListener('resize', () => {
     camera.aspect = innerWidth / innerHeight;
@@ -422,7 +336,6 @@
 
   let frames = 0, fpsTime = 0, fps = 0;
   const clock = new THREE.Clock();
-  let hudTick = 0;
 
   function loop() {
     requestAnimationFrame(loop);
@@ -432,7 +345,6 @@
       World.update(Player.pos.x, Player.pos.z, state.renderDist, 6, 10);
       if (World.isReady()) {
         state.ready = true;
-        UI.showOverlay('start');
       }
     } else {
       const active = state.started && state.locked && !Player.dead;
@@ -465,12 +377,6 @@
     frames++;
     fpsTime += dt;
     if (fpsTime >= .5) { fps = Math.round(frames / fpsTime); frames = 0; fpsTime = 0; }
-    if (++hudTick % 10 === 0) {
-      const p = Player.pos;
-      const mc = Mobs.counts();
-      UI.setHUD(`FPS ${fps} · x ${p.x.toFixed(0)} y ${p.y.toFixed(0)} z ${p.z.toFixed(0)} · 청크 ${World.chunkCount()} · 몹 ${mc.total}`);
-      UI.updateSurvival(state.mode, Player.hp, Player.food, Player.air);
-    }
 
     renderer.render(scene, camera);
   }
