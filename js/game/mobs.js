@@ -36,74 +36,153 @@ const Mobs = (() => {
 
   function buildMob(type) {
     const g = new THREE.Group();
-    const parts = { legs: [] };
-    const leg = (w, h, d, color, x, y, z) => {
-      const l = box(w, h, d, color, x, y, z);
-      parts.legs.push(l);
-      g.add(l);
+    const parts = { legs: [], bob: [], face: null, attack: null };
+    const M = (color, rough=true) => new THREE.MeshStandardMaterial({ color, roughness: rough ? .84 : .58, metalness: .04, flatShading:true });
+    const eyeM = new THREE.MeshBasicMaterial({ color:0x18222a });
+    const redEye = new THREE.MeshBasicMaterial({ color:0xff3d3d });
+    const white = new THREE.MeshLambertMaterial({ color:0xf6f1df, flatShading:true });
+    const dark = new THREE.MeshLambertMaterial({ color:0x20252c, flatShading:true });
+
+    const add = (mesh, x=0, y=0, z=0, bob=true) => {
+      mesh.position.set(x,y,z); if(bob) parts.bob.push(mesh); g.add(mesh); return mesh;
     };
-    if (type === 'pig') {
-      g.add(box(.9, .55, .65, 0xe89aa4, 0, .58, 0));
-      g.add(box(.55, .5, .45, 0xe89aa4, 0, .68, .5));
-      g.add(box(.22, .14, .08, 0xd07a88, 0, .6, .75));
-      leg(.18, .34, .18, 0xd4818c, .26, .17, .2);
-      leg(.18, .34, .18, 0xd4818c, -.26, .17, .2);
-      leg(.18, .34, .18, 0xd4818c, .26, .17, -.2);
-      leg(.18, .34, .18, 0xd4818c, -.26, .17, -.2);
-    } else if (type === 'cow') {
-      g.add(box(1.05, .68, .78, 0x6e4a33, 0, .92, 0));
-      g.add(box(.5, .55, .42, 0x7a5540, 0, 1.05, .58));
-      g.add(box(.26, .2, .08, 0xd8d0c4, 0, .95, .82));
-      leg(.2, .6, .2, 0x5a3c2a, .34, .3, .26);
-      leg(.2, .6, .2, 0x5a3c2a, -.34, .3, .26);
-      leg(.2, .6, .2, 0x5a3c2a, .34, .3, -.26);
-      leg(.2, .6, .2, 0x5a3c2a, -.34, .3, -.26);
-    } else if (type === 'sheep') {
-      g.add(box(.95, .72, .75, 0xe8e4da, 0, .92, 0));
-      g.add(box(.4, .42, .42, 0xcbb9a5, 0, 1.08, .52));
-      leg(.16, .56, .16, 0xb9ab98, .3, .28, .24);
-      leg(.16, .56, .16, 0xb9ab98, -.3, .28, .24);
-      leg(.16, .56, .16, 0xb9ab98, .3, .28, -.24);
-      leg(.16, .56, .16, 0xb9ab98, -.3, .28, -.24);
-    } else if (type === 'chicken') {
-      g.add(box(.42, .42, .55, 0xe8e2d5, 0, .42, 0));
-      g.add(box(.28, .35, .25, 0xe8e2d5, 0, .68, .26));
-      g.add(box(.12, .08, .14, 0xd8a03a, 0, .66, .44));
-      g.add(box(.1, .12, .1, 0xc03a34, 0, .88, .24));
-      leg(.06, .24, .06, 0xd8a03a, .1, .12, 0);
-      leg(.06, .24, .06, 0xd8a03a, -.1, .12, 0);
-    } else if (type === 'zombie') {
-      leg(.22, .7, .22, 0x2a4a6a, .13, .35, 0);
-      leg(.22, .7, .22, 0x2a4a6a, -.13, .35, 0);
-      g.add(box(.52, .72, .3, 0x3a7a6a, 0, 1.06, 0));
-      g.add(box(.48, .48, .48, 0x5a9a4a, 0, 1.66, 0));
-      g.add(box(.08, .08, .04, 0x1a1a1a, .12, 1.7, .25));
-      g.add(box(.08, .08, .04, 0x1a1a1a, -.12, 1.7, .25));
-      g.add(box(.16, .16, .62, 0x5a9a4a, .34, 1.28, .28));
-      g.add(box(.16, .16, .62, 0x5a9a4a, -.34, 1.28, .28));
-    } else if (type === 'skeleton') {
-      leg(.14, .7, .14, 0xd8d8d0, .11, .35, 0);
-      leg(.14, .7, .14, 0xd8d8d0, -.11, .35, 0);
-      g.add(box(.4, .68, .24, 0xd8d8d0, 0, 1.06, 0));
-      g.add(box(.42, .42, .42, 0xe4e4dc, 0, 1.64, 0));
-      g.add(box(.07, .07, .04, 0x1a1a1a, .1, 1.68, .22));
-      g.add(box(.07, .07, .04, 0x1a1a1a, -.1, 1.68, .22));
-      g.add(box(.12, .12, .5, 0xd8d8d0, .3, 1.24, .24));
-      g.add(box(.12, .12, .5, 0xd8d8d0, -.3, 1.24, .24));
-      g.add(box(.06, .44, .06, 0x6b4a2a, .42, 1.2, .5));
-    } else if (type === 'spider') {
-      g.add(box(.9, .5, 1.05, 0x2a2a30, 0, .48, -.1));
-      g.add(box(.5, .4, .5, 0x34343c, 0, .45, .62));
-      g.add(box(.09, .09, .05, 0xd03a3a, .14, .52, .88));
-      g.add(box(.09, .09, .05, 0xd03a3a, -.14, .52, .88));
-      g.add(box(.09, .09, .05, 0x8a2a2a, .05, .42, .88));
-      g.add(box(.09, .09, .05, 0x8a2a2a, -.05, .42, .88));
-      leg(.75, .08, .08, 0x1e1e24, .68, .4, .32);
-      leg(.75, .08, .08, 0x1e1e24, -.68, .4, .32);
-      leg(.75, .08, .08, 0x1e1e24, .68, .4, -.32);
-      leg(.75, .08, .08, 0x1e1e24, -.68, .4, -.32);
+    const cube = (w,h,d,color,x=0,y=0,z=0,bob=true) => add(new THREE.Mesh(new THREE.BoxGeometry(w,h,d), M(color)),x,y,z,bob);
+    const sph = (rx,ry,rz,color,x=0,y=0,z=0,bob=true) => add(new THREE.Mesh(new THREE.SphereGeometry(1,8,6), M(color)),x,y,z,bob).scale.set(rx,ry,rz);
+    const cyl = (r1,r2,h,color,x=0,y=0,z=0,bob=true) => add(new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,8), M(color)),x,y,z,bob);
+    const cone = (r,h,color,x=0,y=0,z=0,bob=true) => add(new THREE.Mesh(new THREE.ConeGeometry(r,h,7), M(color)),x,y,z,bob);
+    const leg = (w,h,d,color,x,y,z) => {
+      const l = cube(w,h,d,color,x,y,z,true); parts.legs.push(l); return l;
+    };
+    const eye = (x,y,z,matl=eyeM,s=0.055) => {
+      const e = new THREE.Mesh(new THREE.BoxGeometry(s,s,.035),matl); e.position.set(x,y,z); g.add(e); return e;
+    };
+
+    if(type==='pig'){
+      cube(.95,.55,.72,0xf19aa7,0,.58,0);
+      const head=cube(.54,.46,.5,0xf5abb6,0,.72,.48);
+      parts.face=head;
+      cube(.18,.13,.06,0xc97785,0,.62,.77);
+      eye(.12,.80,.74,eyeM,.055); eye(-.12,.80,.74,eyeM,.055);
+      for(const sx of [-.23,.23]){ cube(.12,.12,.10,0xe08d99,sx,.88,.45); }
+      cube(.14,.08,.14,0xd67c8c,0,.92,.47);
+      const tail=new THREE.Mesh(new THREE.TorusGeometry(.11,.035,6,8,Math.PI*1.7),M(0xf19aa7));tail.rotation.x=Math.PI/2;tail.position.set(-.52,.72,-.18);g.add(tail);
+      [[.25,.2,.22],[-.25,.2,.22],[.25,.2,-.22],[-.25,.2,-.22]].forEach(p=>leg(.18,.35,.18,0xd9818d,p[0],p[1],p[2]));
     }
-    return { mesh: g, parts };
+    if(type==='cow'){
+      cube(1.08,.68,.82,0x5b3c2d,0,.92,0);
+      const head=cube(.54,.58,.48,0x7a5643,0,1.12,.53); parts.face=head;
+      cube(.27,.19,.09,0xe5dfd1,0,.97,.81);
+      eye(.12,1.18,.80,eyeM,.06); eye(-.12,1.18,.80,eyeM,.06);
+      for(const sx of [-.19,.19]){ cone(.07,.26,0xe9e1cf,sx,1.48,.48); }
+      cube(.20,.12,.16,0x6a4938,.33,1.32,.45); cube(.20,.12,.16,0x6a4938,-.33,1.32,.45);
+      const udder=cube(.28,.16,.22,0xe8c4c9,0,.55,-.18);
+      udder.rotation.x=.08;
+      [[.34,.3,.28],[-.34,.3,.28],[.34,.3,-.28],[-.34,.3,-.28]].forEach(p=>leg(.2,.58,.2,0x493226,p[0],p[1],p[2]));
+      const tail=cyl(.035,.055,.5,0x3c2b23,-.44,.8,-.38);tail.rotation.x=-.65;
+    }
+    if(type==='sheep'){
+      sph(.52,.48,.43,0xf0eee7,0,.9,0);
+      const head=cube(.42,.48,.42,0x5a504c,0,1.08,.48); parts.face=head;
+      eye(.10,1.16,.70,eyeM,.055); eye(-.10,1.16,.70,eyeM,.055);
+      cube(.10,.16,.13,0xd0c8be,.24,1.20,.48); cube(.10,.16,.13,0xd0c8be,-.24,1.20,.48);
+      cube(.13,.07,.10,0x2d2730,0,1.00,.70);
+      [[.27,.28,.23],[-.27,.28,.23],[.27,.28,-.23],[-.27,.28,-.23]].forEach(p=>leg(.15,.55,.15,0x8a817c,p[0],p[1],p[2]));
+      const tail=sph(.13,.14,.12,0xf0eee7,-.43,1.0,-.35);
+    }
+    if(type==='chicken'){
+      sph(.28,.28,.34,0xf0ece2,0,.48,0);
+      const head=sph(.19,.2,.18,0xf7f4eb,0,.72,.25); parts.face=head;
+      eye(.075,.76,.40,eyeM,.045); eye(-.075,.76,.40,eyeM,.045);
+      cone(.08,.13,0xe6a63b,0,.68,.46);
+      cone(.055,.14,0xd5473c,0,.94,.20);
+      const wing1=sph(.12,.20,.24,0xd4cfc4,.23,.48,.02); wing1.rotation.z=-.25;
+      const wing2=sph(.12,.20,.24,0xd4cfc4,-.23,.48,.02); wing2.rotation.z=.25;
+      parts.wings=[wing1,wing2];
+      leg(.055,.23,.055,0xe4a52f,.10,.13,0); leg(.055,.23,.055,0xe4a52f,-.10,.13,0);
+    }
+    if(type==='zombie'){
+      leg(.22,.72,.24,0x253f64,.13,.36,0); leg(.22,.72,.24,0x253f64,-.13,.36,0);
+      cube(.56,.76,.34,0x2e6f63,0,1.08,0);
+      cube(.18,.26,.36,0x244f4c,.35,1.23,.02); cube(.18,.26,.36,0x244f4c,-.35,1.23,.02);
+      const head=cube(.5,.5,.48,0x5b9c57,0,1.68,0); parts.face=head;
+      cube(.16,.11,.035,0x4a7f48,.23,1.78,.245); cube(.16,.11,.035,0x4a7f48,-.23,1.78,.245);
+      eye(.12,1.72,.26,redEye,.07); eye(-.12,1.72,.26,redEye,.07);
+      cube(.30,.09,.05,0x2d3a2a,0,1.58,.25);
+      const arm1=cube(.16,.62,.18,0x5b9c57,.42,1.18,.18); arm1.rotation.z=-.22;
+      const arm2=cube(.16,.62,.18,0x5b9c57,-.42,1.18,.18); arm2.rotation.z=.22;
+      cube(.12,.1,.12,0x3c6840,.42,1.02,.42); cube(.12,.1,.12,0x3c6840,-.42,1.02,.42);
+    }
+    if(type==='skeleton'){
+      leg(.15,.72,.15,0xbec0ba,.11,.36,0); leg(.15,.72,.15,0xbec0ba,-.11,.36,0);
+      cube(.43,.68,.25,0xbec0ba,0,1.07,0);
+      const head=cube(.44,.44,.44,0xdcdcd3,0,1.63,0); parts.face=head;
+      eye(.10,1.68,.225,redEye,.06); eye(-.10,1.68,.225,redEye,.06);
+      cube(.26,.07,.045,0x6d6961,0,1.56,.23);
+      cube(.12,.48,.12,0xb6b8b1,.32,1.22,.18); cube(.12,.48,.12,0xb6b8b1,-.32,1.22,.18);
+      const bow=cyl(.025,.025,.58,0x6d4727,.42,1.25,.42);bow.rotation.z=Math.PI/2;
+      const string=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(.01,.62,.01)),new THREE.LineBasicMaterial({color:0xd9d9d2}));string.position.set(.42,1.25,.42);g.add(string);
+    }
+    if(type==='spider'){
+      sph(.48,.30,.55,0x25262c,0,.55,0);
+      sph(.28,.24,.30,0x353941,0,.53,.62);
+      for(const sx of [-1,1]) for(const sz of [-1,1]) {
+        const legBase=cyl(.035,.055,.72,0x17191d,sx*.48,.54,sz*.27);
+        legBase.rotation.z=sx*(.9); legBase.rotation.x=sz*.2;
+        const foot=cyl(.025,.04,.68,0x17191d,sx*.76,.36,sz*.42);
+        foot.rotation.z=sx*(1.15); foot.rotation.x=sz*.16;
+        parts.legs.push(legBase,foot);
+      }
+      eye(.12,.58,.91,redEye,.085); eye(-.12,.58,.91,redEye,.085);
+      eye(.04,.48,.93,redEye,.05); eye(-.04,.48,.93,redEye,.05);
+      const fang1=cone(.04,.18,0xd7d5cc,.10,.34,.86); fang1.rotation.x=Math.PI;
+      const fang2=cone(.04,.18,0xd7d5cc,-.10,.34,.86); fang2.rotation.x=Math.PI;
+    }
+    if(type==='cow'){
+      cube(.26,.12,.035,0x2b201a,.33,1.00,.40,false);
+      cube(.20,.10,.035,0x2b201a,-.30,1.07,-.35,false);
+      cube(.16,.09,.035,0x2b201a,.12,.74,-.39,false);
+    }
+    if(type==='sheep'){
+      for(const p of [[.34,1.10,.18],[-.34,1.08,.18],[.28,.72,-.20],[-.28,.72,-.20]]){
+        sph(.18,.14,.16,0xfffaf1,p[0],p[1],p[2],false);
+      }
+    }
+    if(type==='pig'){
+      cone(.10,.16,0xf7b5bf,.23,.91,.48,false).rotation.z=-.35;
+      cone(.10,.16,0xf7b5bf,-.23,.91,.48,false).rotation.z=.35;
+    }
+    if(type==='chicken'){
+      for(const sx of [-.11,.11]){ const feather=cone(.06,.22,0xfff7e9,sx,.60,-.27,false); feather.rotation.x=.45; }
+    }
+    if(type==='zombie'){
+      for(const sx of [-.11,.11]) cube(.035,.035,.025,0xb6d65e,sx,1.42,.19,false);
+      cube(.40,.035,.04,0x1c3a35,0,.91,.20,false);
+      cube(.12,.08,.08,0x1a2637,.15,.08,.06,false);
+      cube(.12,.08,.08,0x1a2637,-.15,.08,.06,false);
+    }
+    if(type==='skeleton'){
+      for(const y of [1.02,1.16,1.30]) cube(.29,.035,.035,0x7e817d,0,y,.14,false);
+      cube(.05,.30,.035,0x7e817d,0,1.16,.13,false);
+    }
+    if(type==='spider'){
+      for(const z of [.18,-.18]) cube(.62,.055,.055,0x4b1e27,0,.63,z,false);
+    }
+    if(type==='creeper'){
+      const body=cube(.52,.88,.44,0x5e9f47,0,.86,0);
+      const head=cube(.48,.48,.46,0x6fb84f,0,1.52,0); parts.face=head;
+      eye(.105,1.58,.235,redEye,.07); eye(-.105,1.58,.235,redEye,.07);
+      cube(.10,.18,.035,0x1b2520,.12,1.43,.245); cube(.10,.18,.035,0x1b2520,-.12,1.43,.245);
+      cube(.06,.20,.04,0x18221c,0,1.38,.245);
+      cube(.10,.28,.40,0x4e8c3f,.34,.43,.02); cube(.10,.28,.40,0x4e8c3f,-.34,.43,.02);
+      const legA=leg(.16,.42,.16,0x477b38,.17,.20,.18);
+      const legB=leg(.16,.42,.16,0x477b38,-.17,.20,.18);
+      const legC=leg(.16,.42,.16,0x477b38,.17,.20,-.18);
+      const legD=leg(.16,.42,.16,0x477b38,-.17,.20,-.18);
+      parts.legs.push(legA,legB,legC,legD);
+      parts.fuse=head;
+    }
+    g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+    return { mesh:g, parts };
   }
 
   function spawn(type, x, y, z) {
@@ -123,7 +202,8 @@ const Mobs = (() => {
       wanderT: Math.random() * 2, attackT: 0, shootT: 1 + Math.random() * 2,
       strafeT: 2, strafeDir: 1, hurtT: 0, flashed: false,
       burnT: 0, fleeT: 0, animT: 0,
-      dead: false, deadT: 0
+      dead: false, deadT: 0,
+      aggroT: 0, jumpT: 0, thinkT: 0, fuseT: 0
     };
     mobs.push(m);
     return m;
@@ -184,6 +264,7 @@ const Mobs = (() => {
       m.vel.y = Math.max(m.vel.y, 4.5);
     }
     if (!m.def.hostile) m.fleeT = 4;
+    else m.aggroT = 8;
     if (onEvent) onEvent('hurt', m);
     if (m.hp <= 0) {
       m.dead = true;
@@ -194,6 +275,7 @@ const Mobs = (() => {
 
   function dropLoot(m) {
     if (mode === GAME_MODE.CREATIVE) return;
+    if (m.def.hostile && onEvent) onEvent('xp', {mob:m, amount: m.type==='creeper' ? 6 : (m.type==='skeleton' ? 5 : 4)});
     (m.def.drops || []).forEach(d => {
       if (d.chance && Math.random() > d.chance) return;
       const n = d.min + Math.floor(Math.random() * (d.max - d.min + 1));
@@ -219,7 +301,7 @@ const Mobs = (() => {
     return t0;
   }
 
-  function tryAttack(eye, dir, reach) {
+  function tryAttack(eye, dir, reach, damage=SURVIVAL.FIST_DMG) {
     let best = null, bestT = Infinity;
     for (const m of mobs) {
       if (m.dead) continue;
@@ -230,7 +312,7 @@ const Mobs = (() => {
       if (t !== null && t < reach && t < bestT) { bestT = t; best = m; }
     }
     if (best) {
-      hurtMob(best, SURVIVAL.FIST_DMG, Player.pos);
+      hurtMob(best, damage, Player.pos);
       return best;
     }
     return null;
@@ -247,6 +329,23 @@ const Mobs = (() => {
     group.add(mesh);
     arrows.push({ pos: from.clone(), vel, mesh, life: 5 });
     if (onEvent) onEvent('shoot', m);
+  }
+
+  function explodeCreeper(m) {
+    if (onEvent) onEvent('explode', m);
+    if (mode === GAME_MODE.SURVIVAL && !Player.dead) {
+      const dx=Player.pos.x-m.pos.x, dy=(Player.pos.y+.9)-(m.pos.y+1), dz=Player.pos.z-m.pos.z;
+      const d=Math.hypot(dx,dy,dz);
+      if(d<4.8) Player.damage(Math.max(2,Math.floor(10*(1-d/4.8))), '크리퍼 폭발', m.pos);
+    }
+    const cx=Math.floor(m.pos.x), cy=Math.floor(m.pos.y+.8), cz=Math.floor(m.pos.z);
+    for(let x=cx-2;x<=cx+2;x++)for(let y=cy-1;y<=cy+2;y++)for(let z=cz-2;z<=cz+2;z++){
+      const dd=Math.hypot(x+.5-m.pos.x,y+.5-(m.pos.y+.8),z+.5-m.pos.z);
+      if(dd>2.35)continue;
+      const id=World.getBlock(x,y,z);
+      if(id && id!==BLOCK.BEDROCK && id!==BLOCK.CRAFTING_TABLE && id!==BLOCK.FURNACE) World.setBlock(x,y,z,BLOCK.AIR);
+    }
+    m.dead=true;m.deadT=.12;
   }
 
   function surfaceY(x, z) {
@@ -266,6 +365,70 @@ const Mobs = (() => {
     return true;
   }
 
+  function hasLineOfSight(m) {
+    const from = new THREE.Vector3(m.pos.x, m.pos.y + m.def.height * .72, m.pos.z);
+    const to = new THREE.Vector3(Player.pos.x, Player.pos.y + 1.15, Player.pos.z);
+    const d = to.clone().sub(from);
+    const len = d.length();
+    if (len <= .001) return true;
+    d.multiplyScalar(1 / len);
+    const steps = Math.ceil(len / .22);
+    for (let i = 1; i < steps; i++) {
+      const p = from.clone().addScaledVector(d, i * .22);
+      if (isSolidBlock(World.getBlock(Math.floor(p.x), Math.floor(p.y), Math.floor(p.z)))) return false;
+    }
+    return true;
+  }
+
+  function torchNearby(x, y, z, radius = 8) {
+    const r = Math.ceil(radius);
+    for (let dx = -r; dx <= r; dx++) {
+      for (let dz = -r; dz <= r; dz++) {
+        if (dx * dx + dz * dz > radius * radius) continue;
+        for (let dy = -4; dy <= 4; dy++) {
+          const id = World.getBlock(Math.floor(x + dx), Math.floor(y + dy), Math.floor(z + dz));
+          if (id === BLOCK.TORCH) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  function undergroundSpawnPoint(x, z) {
+    for (let y = CONFIG.HEIGHT - 3; y >= 3; y--) {
+      const here = World.getBlock(x, y, z);
+      const floor = World.getBlock(x, y - 1, z);
+      const above = World.getBlock(x, y + 1, z);
+      if (here !== BLOCK.AIR || !isSolidBlock(floor) || above !== BLOCK.AIR) continue;
+      let sky = true;
+      for (let sy = y + 2; sy < CONFIG.HEIGHT; sy++) {
+        if (isSolidBlock(World.getBlock(x, sy, z))) { sky = false; break; }
+      }
+      if (!sky) return {x, y, z};
+    }
+    return null;
+  }
+
+  function trySpawnCaveHostile() {
+    const pp = Player.pos;
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const ang = Math.random() * Math.PI * 2;
+      const dist = 18 + Math.random() * 22;
+      const x = Math.floor(pp.x + Math.cos(ang) * dist);
+      const z = Math.floor(pp.z + Math.sin(ang) * dist);
+      if (!World.getChunk(x >> 4, z >> 4)) continue;
+      const p = undergroundSpawnPoint(x, z);
+      const surface = surfaceY(x, z);
+      if (!p || p.y > surface - 3) continue;
+      if (Math.abs(p.x + .5 - pp.x) < 10 && Math.abs(p.z + .5 - pp.z) < 10) continue;
+      if (torchNearby(p.x + .5, p.y, p.z + .5, 8)) continue;
+      const r = Math.random();
+      const type = r < .38 ? 'zombie' : r < .63 ? 'skeleton' : r < .84 ? 'spider' : 'creeper';
+      return spawn(type, p.x + .5, p.y, p.z + .5);
+    }
+    return null;
+  }
+
   function trySpawn(category) {
     const pp = Player.pos;
     const ang = Math.random() * Math.PI * 2;
@@ -280,7 +443,8 @@ const Mobs = (() => {
     if (category === 'hostile') {
       if (!isSolidBlock(top) || top === BLOCK.LEAVES) return;
       const r = Math.random();
-      spawn(r < .45 ? 'zombie' : r < .75 ? 'skeleton' : 'spider', x + .5, y + 1, z + .5);
+      const type = r < .38 ? 'zombie' : r < .63 ? 'skeleton' : r < .84 ? 'spider' : 'creeper';
+      spawn(type, x + .5, y + 1, z + .5);
     } else {
       if (top !== BLOCK.GRASS) return;
       const r = Math.random();
@@ -322,6 +486,9 @@ const Mobs = (() => {
       if (dist > 64) { removeMob(i); continue; }
 
       m.attackT -= dt;
+      m.jumpT -= dt;
+      m.thinkT -= dt;
+      m.aggroT = Math.max(0, m.aggroT - dt);
       m.hurtT -= dt;
       if (m.hurtT <= 0 && m.flashed) flash(m, false);
 
@@ -347,26 +514,56 @@ const Mobs = (() => {
           } else m.moving = m.wanderT > 0 && m.dir.lengthSq() > 0;
         }
       } else {
-        const aggro = survival && !Player.dead && m.def.aggro && dist < m.def.aggro;
+        const visible = dist < 32 ? hasLineOfSight(m) : false;
+        const aggro = survival && !Player.dead && m.def.aggro && (dist < m.def.aggro || m.aggroT > 0);
         if (aggro) {
-          m.dir.set(dx, 0, dz).normalize();
-          m.moving = true;
-          if (m.def.ranged) {
-            if (dist > 11) { /* approach */ }
-            else if (dist < 5) { m.dir.set(-dx, 0, -dz).normalize(); }
-            else {
+          if (m.type === 'creeper') {
+            if (visible && dist < 3.3) {
+              m.fuseT += dt;
+              m.moving = false;
+              if (m.fuseT >= 1.25) {
+                explodeCreeper(m);
+                continue;
+              }
+            } else {
+              m.fuseT = Math.max(0, m.fuseT - dt * .8);
+              m.dir.set(dx, 0, dz).normalize();
+              m.moving = true;
+            }
+          } else if (m.def.ranged) {
+            if (!visible || dist > 12) {
+              m.dir.set(dx, 0, dz).normalize();
+              m.moving = true;
+            } else if (dist < 6.5) {
+              m.dir.set(-dx, 0, -dz).normalize();
+              m.moving = true;
+            } else {
               m.strafeT -= dt;
-              if (m.strafeT <= 0) { m.strafeT = 1.5 + Math.random() * 2; m.strafeDir *= -1; }
+              if (m.strafeT <= 0) {
+                m.strafeT = 1 + Math.random() * 1.6;
+                m.strafeDir *= -1;
+              }
               m.dir.set(-dz * m.strafeDir, 0, dx * m.strafeDir).normalize();
+              m.moving = true;
             }
             m.shootT -= dt;
-            if (m.shootT <= 0 && dist < 22) {
-              m.shootT = 2.2 + Math.random();
+            if (visible && m.shootT <= 0 && dist > 5.5 && dist < 24) {
+              m.shootT = 1.8 + Math.random() * .9;
               shootArrow(m);
             }
-          } else if (distXZ < (m.def.width / 2 + .55) && Math.abs(pp.y - m.pos.y) < 1.8 && m.attackT <= 0) {
-            m.attackT = 1.2;
-            Player.damage(m.def.dmg, m.def.name + '에게 당했다', m.pos);
+          } else {
+            m.dir.set(dx, 0, dz).normalize();
+            m.moving = true;
+            if (m.type === 'spider' && distXZ > 2.5 && distXZ < 9 && m.jumpT <= 0 && m.onGround) {
+              m.vel.y = 7.5;
+              m.vel.x += m.dir.x * 3.5;
+              m.vel.z += m.dir.z * 3.5;
+              m.jumpT = 2;
+            }
+            if (distXZ < (m.def.width / 2 + .65) && Math.abs(pp.y - m.pos.y) < 2.1 && m.attackT <= 0) {
+              m.attackT = m.type === 'spider' ? 1.5 : 1.0;
+              Player.damage(m.def.dmg, m.def.name + '에게 당했다', m.pos);
+            }
           }
         } else {
           m.wanderT -= dt;
@@ -381,7 +578,7 @@ const Mobs = (() => {
           } else m.moving = m.dir.lengthSq() > 0;
         }
 
-        if (!env.night && skyExposed(m)) {
+        if (m.type !== 'creeper' && !env.night && skyExposed(m)) {
           m.burnT += dt;
           if (m.burnT >= 1) {
             m.burnT = 0;
@@ -411,10 +608,33 @@ const Mobs = (() => {
       if (m.moving) m.yaw = lerpAngle(m.yaw, Math.atan2(m.dir.x, m.dir.z), Math.min(1, dt * 8));
       m.mesh.rotation.y = m.yaw;
       m.mesh.position.copy(m.pos);
-      m.animT += dt * (m.moving ? speed * 3.2 : 0);
+      m.animT += dt * (m.moving ? speed * 3.2 : 1);
+      const idle = Math.sin(m.animT * 1.7) * .018;
+      if (m.parts.face) {
+        if (m.parts.face.userData.baseY === undefined) m.parts.face.userData.baseY = m.parts.face.position.y;
+        m.parts.face.position.y = m.parts.face.userData.baseY + idle;
+        m.parts.face.rotation.x = Math.sin(m.animT * .7) * .025;
+      }
       m.parts.legs.forEach((l, li) => {
-        l.rotation.x = m.moving ? Math.sin(m.animT + (li % 2) * Math.PI) * .55 : l.rotation.x * .8;
+        const phase = (li % 2) * Math.PI;
+        l.rotation.x = m.moving ? Math.sin(m.animT + phase) * .55 : l.rotation.x * .78;
       });
+      if(m.parts.wings){
+        const flap = Math.sin(m.animT * 2.8) * (m.moving ? .16 : .04);
+        m.parts.wings[0].rotation.z = -.25 - flap;
+        m.parts.wings[1].rotation.z = .25 + flap;
+      }
+      if(m.type==='spider' && m.moving){
+        m.parts.legs.forEach((l,li)=>{
+          l.rotation.y = Math.sin(m.animT*1.5 + li) * .12;
+          l.rotation.x += Math.sin(m.animT + li*.7) * .08;
+        });
+      }
+      if(m.type==='creeper' && m.parts.fuse){
+        const pulse=1+Math.max(0,m.fuseT)*.12+Math.sin(m.fuseT*25)*Math.max(0,m.fuseT)*.05;
+        m.parts.face.scale.setScalar(pulse);
+        if(m.fuseT>0) m.parts.face.material.emissive && m.parts.face.material.emissive.setHex(0x123000);
+      }
     }
 
     for (let i = arrows.length - 1; i >= 0; i--) {
@@ -444,7 +664,10 @@ const Mobs = (() => {
         spawnTimer = 2.5;
         const hostiles = mobs.filter(m => m.def.hostile && !m.dead).length;
         const passives = mobs.filter(m => !m.def.hostile && !m.dead).length;
-        if (env.night && hostiles < MOB_CAPS.hostile) trySpawn('hostile');
+        if (hostiles < MOB_CAPS.hostile) {
+          if (env.night) trySpawn('hostile');
+          if (!env.night || Math.random() < .7) trySpawnCaveHostile();
+        }
         if (passives < MOB_CAPS.passive && Math.random() < .5) trySpawn('passive');
       }
     }
