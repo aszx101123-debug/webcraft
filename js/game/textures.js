@@ -118,6 +118,45 @@ const Textures = (() => {
       return null;
     });
 
+    const oreTile = (base, speck, speck2) => (x, y) => {
+      const r = rng();
+      if ((x * 11 + y * 7) % 9 === 0) return vary(...speck, 9);
+      if ((x * 5 + y * 13) % 17 === 0 && r < .8) return vary(...speck2, 7);
+      return vary(...base, 10);
+    };
+    fill(0, 3, oreTile([76, 76, 80], [38, 38, 42], [112, 112, 118]));
+    fill(1, 3, oreTile([104, 104, 108], [214, 170, 92], [226, 190, 116]));
+    fill(2, 3, oreTile([105, 104, 108], [244, 205, 56], [255, 227, 96]));
+    fill(3, 3, oreTile([104, 104, 110], [232, 145, 80], [190, 105, 60]));
+    fill(4, 3, oreTile([104, 104, 110], [206, 54, 46], [244, 72, 58]));
+    fill(5, 3, oreTile([104, 104, 110], [62, 86, 190], [86, 110, 220]));
+    fill(6, 3, oreTile([104, 104, 110], [78, 214, 246], [154, 242, 255]));
+    fill(7, 3, oreTile([104, 104, 110], [86, 214, 104], [146, 242, 132]));
+
+    const toolTile = (metal, handle) => (x, y) => {
+      const dx = x - 7.5, dy = y - 7.5;
+      if (dy > dx * .5 + 1 && dy < dx * .5 + 3) return metal;
+      if ((x + y) % 5 === 0) return handle;
+      return null;
+    };
+    fill(0, 5, toolTile('#d6c08b', '#7d5535'));
+    fill(1, 5, toolTile('#9299a3', '#6d6d72'));
+    fill(2, 5, toolTile('#e3a93d', '#6d5531'));
+    fill(3, 5, toolTile('#d8dce2', '#69462f'));
+    fill(4, 5, toolTile('#80dff4', '#5b4f7b'));
+    fill(5, 5, toolTile('#d6c08b', '#7d5535'));
+    fill(6, 5, toolTile('#9299a3', '#6d6d72'));
+    fill(7, 5, toolTile('#e3a93d', '#6d5531'));
+    fill(0, 6, toolTile('#d8dce2', '#69462f'));
+    fill(1, 6, toolTile('#80dff4', '#5b4f7b'));
+    fill(2, 6, toolTile('#d6c08b', '#7d5535'));
+    fill(3, 6, toolTile('#9299a3', '#6d6d72'));
+    fill(4, 6, toolTile('#e3a93d', '#6d5531'));
+    fill(5, 6, toolTile('#d8dce2', '#69462f'));
+    fill(6, 6, (x, y) => ((x < 4 && y < 4) || (y % 5 === 0)) ? vary(151, 104, 62, 8) : vary(176, 123, 76, 8));
+    fill(7, 6, (x, y) => ((x + y) % 4 === 0) ? vary(102, 70, 46, 8) : vary(138, 94, 61, 8));
+    fill(6, 7, (x, y) => ((x - y) % 5 === 0) ? vary(112, 112, 120, 8) : vary(150, 150, 158, 8));
+
     function hashCell(cx, cy) { return (cx * 7 + cy * 13) % 5 / 5; }
 
     texture = new THREE.CanvasTexture(canvas);
