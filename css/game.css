@@ -367,7 +367,145 @@ canvas { display: block; }
 }
 .world-create input { width: 100%; }
 
-.crafting-panel { min-width: 560px; }
+.crafting-panel { min-width: 860px; }
+.craft-layout {
+  display: grid;
+  grid-template-columns: 430px minmax(300px, 1fr);
+  gap: 18px;
+  margin: 12px 0 8px;
+  text-align: left;
+}
+.craft-left {
+  padding: 12px;
+  border: 1px solid #243244;
+  border-radius: 8px;
+  background: #0d141d;
+}
+.craft-board {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 14px 8px 18px;
+}
+.craft-grid {
+  width: 222px;
+  height: 222px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 6px;
+  border-radius: 8px;
+  background: #1b2530;
+  border: 2px solid #3a4756;
+}
+.craft-cell, .craft-output {
+  border: 2px solid #2d3b4b;
+  border-radius: 6px;
+  background: #0a1017;
+  min-width: 0;
+  color: #dfe9f2;
+  padding: 4px;
+  position: relative;
+}
+.craft-cell:hover { border-color: #7895b0; }
+.craft-cell.filled { background: #151f2a; }
+.craft-cell img, .craft-output img {
+  width: 46px;
+  height: 46px;
+  image-rendering: pixelated;
+}
+.craft-cell span {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  bottom: 2px;
+  font-size: 7px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.craft-arrow {
+  font-size: 26px;
+  color: #8ea4b8;
+}
+.craft-output {
+  width: 84px;
+  height: 84px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+.craft-output.ready {
+  border-color: #7ec850;
+  box-shadow: 0 0 0 2px rgba(126,200,80,.16);
+}
+.craft-output:disabled { opacity: .7; }
+.craft-output span { font-size: 8px; color: #b9c8d6; }
+.craft-output span b {
+  display: block;
+  color: #f7e6a8;
+  margin-top: 2px;
+}
+.craft-output-empty {
+  font-size: 24px !important;
+  color: #536579 !important;
+}
+.craft-inventory-title, .craft-recipes-title {
+  font-size: 11px;
+  color: #9eb2c4;
+  margin: 2px 0 7px;
+}
+.craft-inventory {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 4px;
+}
+.craft-inv-slot {
+  height: 48px;
+  padding: 3px;
+  position: relative;
+  border: 1px solid #344454;
+  border-radius: 5px;
+  background: #121b25;
+}
+.craft-inv-slot:hover:not(:disabled) { border-color: #7ec850; }
+.craft-inv-slot img { width: 32px; height: 32px; image-rendering: pixelated; }
+.craft-inv-slot.empty { opacity: .55; }
+.craft-inv-num {
+  position: absolute;
+  top: 1px;
+  left: 3px;
+  font-size: 8px;
+  color: #8ea4b8;
+}
+.craft-inv-count {
+  position: absolute;
+  right: 3px;
+  bottom: 1px;
+  font-size: 9px;
+  color: #fff;
+  text-shadow: 0 1px 2px #000;
+}
+.craft-actions {
+  margin-top: 9px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+}
+.craft-recipes {
+  min-height: 340px;
+  max-height: 62vh;
+  overflow: auto;
+}
+.craft-recipes #recipe-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  margin: 0;
+}
 #recipe-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -508,7 +646,10 @@ button:disabled {
 @media (max-width: 640px) {
   #world-create { grid-template-columns: 1fr; }
   .world-create { grid-template-columns: 1fr; }
-  .crafting-panel { min-width: 0; width: 94vw; }
+  .crafting-panel { min-width: 0; width: 96vw; }
+  .craft-layout { grid-template-columns: 1fr; }
+  .craft-board { padding-inline: 0; }
+  .craft-inventory { grid-template-columns: repeat(9, 1fr); }
   #recipe-grid { grid-template-columns: 1fr; }
   #hud-info { font-size: 10px; max-width: 55vw; }
   #hud-time { font-size: 12px; }
