@@ -128,7 +128,8 @@ webcraft/
 - **메싱:** 청크당 지오메트리 1개(솔리드) + 1개(물). 이웃 블록 조건별 컬링, 면별 셰이딩 버텍스 컬러, 아틀라스 UV 반픽셀 인셋으로 블리딩 방지
 - **광선 캐스팅:** Amanatides & Woo 복셀 DDA. 설치 시 플레이어 AABB 겹침 검사
 - **충돌:** 축별 이동 + AABB 클램프, 서브스텝으로 고속 터널링 방지
-- **저장 포맷:** `{ seed, time, player, hotbar, edits: [chunkKey → [[localIdx, blockId], …]] }` — 청크 재생성 시 오버레이 적용
+- **저장 포맷:** 월드마다 별도 localStorage 키를 사용하며 `{ version, worldId, worldName, seed, time, player, hotbar, hp, food, spawn, edits }` 구조로 저장
+- **월드 관리:** 이름/시드 기반 여러 월드 생성, 월드별 자동 저장, 전환/삭제, 기존 v1.1 단일 저장 자동 마이그레이션
 - **지형:** fbm 밸류 노이즈(스트레치 보정) + 3D 노이즈 동굴, 청크 좌표 기반 결정론적 나무 배치
 
 ## 테스트
