@@ -28,7 +28,8 @@
   const seed = saved?.seed ?? worldMeta.seed;
 
   const renderer = new THREE.WebGLRenderer({ antialias: false });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+  const hardwareScale = (navigator.hardwareConcurrency || 4) <= 4 ? 1.25 : 1.5;
+  renderer.setPixelRatio(Math.min(devicePixelRatio, hardwareScale));
   renderer.setSize(innerWidth, innerHeight);
   document.body.prepend(renderer.domElement);
 
