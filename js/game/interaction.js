@@ -2,6 +2,10 @@
 
 const Interact = (() => {
   let highlight = null, target = null, camera = null;
+  let mining = false;
+  let miningElapsed = 0;
+  let miningDuration = 0;
+  let miningKey = '';
 
   function init(camera_, scene) {
     camera = camera_;
@@ -34,15 +38,31 @@ const Interact = (() => {
     return null;
   }
 
+  function targetKey(t) {
+    return t ? `${t.x},${t.y},${t.z},${t.id}` : '';
+  }
+
+  function resetMining() {
+    mining = false;
+    miningElapsed = 0;
+    miningDuration = 0;
+    miningKey = '';
+  }
+
   function update() {
-    target = raycast(CONFIG.REACH);
+    const next = raycast(CONFIG.REACH);
+    if (targetKey(next) !== miningKey && mining) resetMining();
+    target = next;
     if (target) {
       highlight.position.set(target.x + .5, target.y + .5, target.z + .5);
       highlight.visible = true;
-    } else highlight.visible = false;
+    } else {
+      highlight.visible = false;
+      if (mining) resetMining();
+    }
   }
 
-  function tryBreak(survival) {
+  function breakNow(survival) {
     if (!target) return false;
     if (BLOCKS[target.id].unbreakable) return false;
     const dropId = survival ? getBlockDrop(target.id, Math.random) : 0;
@@ -52,6 +72,35 @@ const Interact = (() => {
       Player.addExhaustion(SURVIVAL.MINE_COST);
     }
     return ok;
+  }
+
+  function startBreak(survival) {
+    if (!target || BLOCKS[target.id].unbreakable) return false;
+    if (!survival) return breakNow(false);
+    mining = true;
+    miningElapsed = 0;
+    miningDuration = Number.isFinite(BLOCKS[target.id].miningTime) ? Math.max(.05, BLOCKS[target.id].miningTime) : 1;
+    miningKey = targetKey(target);
+    return true;
+  }
+
+  function updateMining(dt, survival) {
+    if (!mining || !survival) return false;
+    if (!target || targetKey(target) !== miningKey || BLOCKS[target.id].unbreakable) {
+      resetMining();
+      return false;
+    }
+    miningElapsed += Math.max(0, dt);
+    if (miningElapsed >= miningDuration) {
+      const ok = breakNow(true);
+      resetMining();
+      return ok;
+    }
+    return false;
+  }
+
+  function miningProgress() {
+    return mining && miningDuration > 0 ? Math.max(0, Math.min(1, miningElapsed / miningDuration)) : 0;
   }
 
   function overlapsPlayer(px, py, pz) {
@@ -78,5 +127,8 @@ const Interact = (() => {
     return target.id;
   }
 
-  return { init, update, raycast, tryBreak, tryPlace, pickBlock };
+  return {
+    init, update, raycast, startBreak, updateMining, miningProgress,
+    cancelBreak: resetMining, tryBreak: breakNow, tryPlace, pickBlock
+  };
 })();
