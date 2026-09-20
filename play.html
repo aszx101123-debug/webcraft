@@ -19,7 +19,7 @@
 <div id="hud-info"></div>
 <div id="hud-time"></div>
 <div id="mode-badge" aria-live="polite">크리에이티브</div>
-<div id="hud-hint">좌클릭 유지 캐기/공격 · 우클릭 놓기/먹기 · 휠/1~9 선택 · B 블록 상자 · F 비행(크리에이티브) · Esc 메뉴</div>
+<div id="hud-hint">좌클릭 유지 캐기/공격 · 우클릭 놓기/먹기 · 휠/1~9 선택 · B 블록 상자 · C 제작 · F5 3인칭 · F 비행(크리에이티브) · Esc 메뉴</div>
 <div id="toast"></div>
 
 <div id="survival-hud" class="hidden">
@@ -51,7 +51,7 @@
       <div><b>WASD</b> 이동</div><div><b>Space</b> 점프/수영</div><div><b>Shift</b> 달리기</div>
       <div><b>좌클릭 유지</b> 캐기/공격</div><div><b>우클릭</b> 놓기/먹기</div><div><b>휠 / 1~9</b> 선택</div>
       <div><b>B</b> 블록 상자<span class="cr">*</span></div><div><b>C</b> 제작 메뉴</div><div><b>F</b> 비행<span class="cr">*</span></div>
-      <div><b>F3</b> 정보</div><div><b>Esc</b> 일시정지</div><div><b>월드</b> 여러 개 저장</div>
+      <div><b>F3</b> 정보</div><div><b>F5</b> 3인칭 카메라</div><div><b>Esc</b> 일시정지</div>
     </div>
     <div class="btn-col">
       <button id="btn-start-survival" class="btn-primary">서바이벌로 시작</button>
@@ -153,7 +153,7 @@
 <script src="js/game/main.js"></script>
 <script>
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-  addEventListener('load', () => navigator.serviceWorker.register('service-worker.js?v=20260920-v12-2').catch(() => {}));
+  addEventListener('load', () => navigator.serviceWorker.register('service-worker.js?v=20260920-v12-3').catch(() => {}));
 }
 </script>
 </body>
