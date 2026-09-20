@@ -373,6 +373,7 @@ footer .wrap {
 .reveal.on { opacity: 1; transform: none; }
 
 @media (max-width: 860px) {
+  .update-panel { grid-template-columns: 1fr; }
   .grid { grid-template-columns: 1fr 1fr; }
   .shots { grid-template-columns: 1fr; }
   .howto { grid-template-columns: 1fr; }
@@ -380,7 +381,99 @@ footer .wrap {
 }
 
 @media (max-width: 560px) {
+  nav .wrap { height: 54px; }
+  nav .btn-sm { padding: 7px 12px; }
+  .hero .wrap { padding-top: 72px; }
+  .update-panel { padding: 20px; }
   .grid { grid-template-columns: 1fr; }
   .stats { gap: 22px; }
   section { padding: 60px 0; }
+}
+
+
+.update-panel-section {
+  padding-top: 28px;
+}
+.update-panel {
+  display: grid;
+  grid-template-columns: 1.45fr .8fr;
+  gap: 20px;
+  padding: 26px;
+  border: 1px solid rgba(111,191,74,.28);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 15% 15%, rgba(111,191,74,.1), transparent 38%),
+    linear-gradient(135deg, rgba(19,27,38,.98), rgba(13,20,29,.98));
+  box-shadow: 0 18px 50px rgba(0,0,0,.2);
+}
+.update-kicker {
+  display: inline-flex;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(111,191,74,.12);
+  border: 1px solid rgba(111,191,74,.3);
+  color: #b9eaa5;
+  font: 11px 'Galmuri11', monospace;
+  letter-spacing: .5px;
+}
+.update-panel-main h2 {
+  margin: 13px 0 7px;
+  font-size: clamp(22px, 3vw, 30px);
+}
+.update-panel-main p {
+  max-width: 650px;
+  color: var(--muted);
+  font-size: 13.5px;
+}
+.update-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 16px;
+}
+.update-tags span {
+  padding: 6px 9px;
+  border-radius: 7px;
+  background: #0d141d;
+  border: 1px solid var(--line);
+  color: #bdcddd;
+  font-size: 11px;
+}
+.update-status-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-self: stretch;
+  padding: 17px;
+  border-radius: 12px;
+  background: #0b121a;
+  border: 1px solid #2a394c;
+}
+.status-top {
+  color: #9fb0c1;
+  font-size: 11px;
+}
+.status-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 9px rgba(111,191,74,.8);
+}
+.update-status-card strong {
+  font: 17px 'Galmuri11', monospace;
+}
+.update-status-card strong b { color: var(--green); }
+.update-status-card > span {
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.55;
+  flex: 1;
+}
+.update-status-card .btn {
+  text-align: center;
+  font-size: 12px;
+  padding: 9px 12px;
 }

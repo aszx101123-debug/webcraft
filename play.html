@@ -14,7 +14,19 @@
 </head>
 <body>
 
-<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.2.1 · 검은 화면 버그 수정</div>
+<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.2.2 · 버그 안정화 + 홈페이지 개선</div>
+<div id="boot-error" class="boot-error hidden" role="alert">
+  <div class="boot-error-panel">
+    <div class="boot-error-icon">!</div>
+    <h2>게임을 준비하지 못했습니다</h2>
+    <p>브라우저에서 WebCraft 초기화 중 문제가 발생했습니다.</p>
+    <div class="boot-error-actions">
+      <button id="boot-retry" class="btn-primary">다시 불러오기</button>
+      <button id="boot-home" class="btn">홈으로</button>
+    </div>
+    <small>페이지 새로고침으로 대부분의 일시적인 로딩 문제를 해결할 수 있습니다.</small>
+  </div>
+</div>
 <div id="cross">+</div>
 <div id="mine-progress" aria-hidden="true"><div id="mine-progress-fill"></div></div>
 <div id="hud-info"></div>
@@ -136,6 +148,19 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script>
+(() => {
+  const showBootError = () => document.getElementById("boot-error")?.classList.remove("hidden");
+  window.addEventListener("error", event => {
+    if (event?.error || event?.message) showBootError();
+  });
+  window.addEventListener("unhandledrejection", () => showBootError());
+  addEventListener("load", () => {
+    document.getElementById("boot-retry")?.addEventListener("click", () => location.reload());
+    document.getElementById("boot-home")?.addEventListener("click", () => { location.href = "index.html"; });
+  });
+})();
+</script>
 <script src="js/game/config.js"></script>
 <script src="js/game/noise.js"></script>
 <script src="js/game/terrain.js"></script>
@@ -154,7 +179,7 @@
 <script src="js/game/main.js"></script>
 <script>
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-  addEventListener('load', () => navigator.serviceWorker.register('service-worker.js?v=20260920-v12-4').catch(() => {}));
+  addEventListener('load', () => navigator.serviceWorker.register('service-worker.js?v=20260920-v12-5').catch(() => {}));
 }
 </script>
 </body>

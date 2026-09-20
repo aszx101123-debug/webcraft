@@ -689,3 +689,51 @@ button:disabled {
   * { scroll-behavior: auto !important; }
   .slot, button, #toast, #item-name, #vignette { transition: none !important; }
 }
+
+.boot-error {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(4, 8, 13, .92);
+  backdrop-filter: blur(8px);
+  z-index: 80;
+}
+.boot-error.hidden { display: none !important; }
+.boot-error-panel {
+  width: min(460px, 94vw);
+  padding: 28px;
+  border: 1px solid #3a4a5e;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #141e2a, #0d141d);
+  box-shadow: 0 20px 70px rgba(0,0,0,.55);
+  text-align: center;
+}
+.boot-error-icon {
+  width: 46px;
+  height: 46px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 92, 92, .14);
+  border: 1px solid rgba(255, 110, 110, .42);
+  color: #ff8b8b;
+  font: 700 24px/1 'Galmuri11', monospace;
+}
+.boot-error-panel h2 { font-size: 22px; margin-bottom: 8px; }
+.boot-error-panel p { color: #9fb0c1; font-size: 13px; }
+.boot-error-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: 18px 0 12px;
+}
+.boot-error-panel small {
+  display: block;
+  color: #6f8194;
+  font-size: 10px;
+  line-height: 1.5;
+}
