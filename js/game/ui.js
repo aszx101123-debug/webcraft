@@ -483,6 +483,10 @@ const UI = (() => {
     setTimeout(() => v.classList.remove('show'), 120);
   }
 
+  document.addEventListener('mousemove', e => {
+    if (inventoryOpen) updateInventoryCursor(e.clientX, e.clientY);
+  });
+
   return {
     renderHotbar, setSelected, showItemName, showOverlay, showToast, setHUD, setTime, setMiningProgress,
     setModeLabel, renderWorlds, renderCrafting, openCrafting, closeCrafting, isCraftingOpen,
