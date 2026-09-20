@@ -21,7 +21,7 @@ function showMiningProgress(progress,blockName,toolName){
     el=document.createElement('div');el.id='mining-progress';
     el.innerHTML='<div class="mining-label"></div><div class="mining-track"><div class="mining-fill"></div></div>';
     const st=document.createElement('style');
-    st.textContent='#mining-progress{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);z-index:12;min-width:250px;padding:8px 10px;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(10,15,20,.82);backdrop-filter:blur(3px);pointer-events:none}.mining-label{font:12px Arial,sans-serif;color:#e8eef5;text-align:center;margin-bottom:6px}.mining-track{height:8px;border-radius:99px;background:#27333e;overflow:hidden}.mining-fill{height:100%;width:0;background:#d9b15d;transition:width .06s linear}@media(max-width:780px){#mining-progress{min-width:200px;bottom:76px}}';
+    st.textContent='#mining-progress{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);z-index:12;min-width:250px;padding:8px 10px;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(10,15,20,.82);backdrop-filter:blur(3px);pointer-events:none}.mining-label{font:12px Arial,sans-serif;color:#e8eef5;text-align:center;margin-bottom:6px}.mining-track{height:8px;border-radius:99px;background:#27333e;overflow:hidden}.mining-fill{height:100%;width:0;background:#d9b15d;transition:width .06s linear}';
     document.head.appendChild(st);document.body.appendChild(el);
   }
   $('mining-progress').classList.remove('hidden');
@@ -61,7 +61,7 @@ function ensureInventoryUI(){
     .craft-cursor{min-height:30px;padding:7px 9px;border-radius:6px;background:#0a1118;border:1px solid #2d3b49;color:#dce7ef;font-size:11px;text-align:center;margin-bottom:10px}
     .craft-help{font-size:11px;line-height:1.6;color:#718597}
     .craft-arrow{font-size:28px;color:#9caebe}
-    @media(max-width:780px){.inventory-layout{grid-template-columns:1fr}.inventory-slot{min-width:30px}.inventory-slot img,.craft-cell img{width:32px;height:32px}.inventory-panel{padding:13px}.craft-grid{grid-template-columns:repeat(3,46px)}.craft-grid.size-2{grid-template-columns:repeat(2,46px)}.craft-cell{width:46px;height:46px}.craft-out{width:60px;height:60px}}
+    
   `;
   document.head.appendChild(style);
   const screen=document.createElement('div');screen.id='inventory-screen';screen.className='hidden';
