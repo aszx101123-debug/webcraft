@@ -269,6 +269,19 @@ canvas { display: block; }
 
 #vignette.show { opacity: 1; transition: none; }
 
+#underwater-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 14;
+  opacity: 0;
+  background:
+    linear-gradient(180deg, rgba(58, 150, 196, .24), rgba(15, 74, 112, .30)),
+    radial-gradient(ellipse at center, rgba(102, 196, 224, .08), rgba(8, 39, 63, .34));
+  transition: opacity .12s ease;
+  mix-blend-mode: multiply;
+}
+#underwater-overlay.show { opacity: 1; }
 .death-panel { border-color: #6a2530; }
 .death-title { color: #ff6b6b; font-size: 26px; }
 .cr { color: #7a8da1; font-size: 10px; }
