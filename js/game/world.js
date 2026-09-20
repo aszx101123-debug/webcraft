@@ -233,6 +233,11 @@ const World = (() => {
     }
   }
 
+  function setFluidLevel(x, y, z, level) {
+    fluidLevels.set(x + ',' + y + ',' + z, Math.max(1, Math.min(8, level | 0)));
+    markDirty(x >> 4, z >> 4);
+  }
+
   function getFluidLevel(x, y, z) {
     if (World.getBlock(x, y, z) === BLOCK.WATER) return 8;
     return fluidLevels.get(x + ',' + y + ',' + z) || 0;
@@ -253,7 +258,7 @@ const World = (() => {
     isReady: () => pending.length === 0 && dirtySet.size === 0,
     getSeed: () => seed,
     getGroup: () => group,
-    getFluidLevel
+    getFluidLevel, setFluidLevel
 
   };
 })();
