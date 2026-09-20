@@ -1,7 +1,8 @@
 'use strict';
 
 const Inventory = (() => {
-  const SIZE = 27;
+  // 27 main inventory slots + 9-slot hotbar = 36 total, like the vanilla player layout.
+  const SIZE = 36;
   const HOTBAR_SIZE = 9;
   const MAX_STACK = 64;
   const EQUIPMENT_KEYS = ['mainhand', 'offhand', 'head', 'body'];
