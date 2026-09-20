@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.1.0';
+const VERSION = 'webcraft-v2-features-1';
 const CORE = [
   './',
   './index.html',
@@ -15,9 +15,26 @@ const CORE = [
   './img/shot-forest.png',
   './img/shot-night.png',
   './js/game/items.js',
+  './js/game/save.js',
+  './js/game/crafting.js',
   './js/game/drops.js',
   './js/game/mobs.js'
 ];
+
+function isCacheable(req, res) {
+  if (!res || !res.ok) return false;
+  const u = new URL(req.url);
+  return u.origin === self.location.origin || /jsdelivr\.net$/.test(u.hostname);
+}
+
+function shouldNetworkFirst(req) {
+  const u = new URL(req.url);
+  if (u.origin !== self.location.origin) return false;
+  return u.pathname.endsWith('.html')
+    || u.pathname.endsWith('.js')
+    || u.pathname.endsWith('.css')
+    || u.pathname.endsWith('.webmanifest');
+}
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -37,20 +54,26 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
-  e.respondWith(
-    caches.match(e.request).then(hit => {
-      if (hit) return hit;
-      return fetch(e.request).then(res => {
-        if (res && res.ok) {
-          const sameOrigin = e.request.url.startsWith(self.location.origin);
-          const cdn = /jsdelivr\.net/.test(e.request.url);
-          if (sameOrigin || cdn) {
+
+  const networkFirst = shouldNetworkFirst(e.request);
+
+  e.respondWith((networkFirst
+    ? fetch(e.request, { cache: 'no-store' })
+        .then(res => {
+          if (isCacheable(e.request, res)) {
             const copy = res.clone();
             caches.open(VERSION).then(c => c.put(e.request, copy)).catch(() => {});
           }
-        }
-        return res;
-      }).catch(() => hit);
-    })
-  );
+          return res;
+        })
+        .catch(() => caches.match(e.request))
+    : caches.match(e.request)
+        .then(hit => hit || fetch(e.request).then(res => {
+          if (isCacheable(e.request, res)) {
+            const copy = res.clone();
+            caches.open(VERSION).then(c => c.put(e.request, copy)).catch(() => {});
+          }
+          return res;
+        }))
+  ));
 });
