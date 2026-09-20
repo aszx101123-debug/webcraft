@@ -40,6 +40,32 @@ const SaveSystem = (() => {
     return Math.floor(Math.random() * 2147483647);
   }
 
+
+  function isFiniteNumber(v) {
+    return typeof v === 'number' && Number.isFinite(v);
+  }
+
+  function validateWorldData(data) {
+    if (!data || typeof data !== 'object') return false;
+    if (data.seed !== undefined && !isFiniteNumber(data.seed)) return false;
+    if (data.player) {
+      if (!isFiniteNumber(data.player.x) || !isFiniteNumber(data.player.y) || !isFiniteNumber(data.player.z)) return false;
+    }
+    if (data.edits !== undefined && !Array.isArray(data.edits)) return false;
+    if (data.inventory !== undefined && !Array.isArray(data.inventory)) return false;
+    if (data.equipment !== undefined && (typeof data.equipment !== 'object' || Array.isArray(data.equipment))) return false;
+    return true;
+  }
+
+  function safeParse(raw) {
+    try {
+      const data = JSON.parse(raw);
+      return validateWorldData(data) ? data : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   function migrateLegacy() {
     const existing = readIndex();
     if (existing.length) return existing;
@@ -117,8 +143,19 @@ const SaveSystem = (() => {
 
   function save(id, data) {
     const w = get(id);
-    if (!w) return false;
-    const ok = writeJSON(PREFIX + id, data);
+    if (!w || !validateWorldData(data)) return false;
+    const payload = {
+      ...data,
+      savedAt: Number.isFinite(data.savedAt) ? data.savedAt : Date.now()
+    };
+    const raw = JSON.stringify(payload);
+    if (!raw) return false;
+    try {
+      JSON.parse(raw);
+    } catch (e) {
+      return false;
+    }
+    const ok = writeJSON(PREFIX + id, payload);
     if (!ok) return false;
     const listNow = list();
     const meta = listNow.find(x => x.id === id);
@@ -132,8 +169,13 @@ const SaveSystem = (() => {
 
   function load(id) {
     if (!id) return null;
-    const data = readJSON(PREFIX + id, null);
-    return data && typeof data === 'object' ? data : null;
+    try {
+      const raw = localStorage.getItem(PREFIX + id);
+      if (!raw) return null;
+      return safeParse(raw);
+    } catch (e) {
+      return null;
+    }
   }
 
   function clear(id) {
