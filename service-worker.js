@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.1-ui-detail-stage2-20260920';
+const VERSION = 'webcraft-v1.2-mining-mobs-blocks-20260920';
 const CORE = [
   './',
   './index.html',

@@ -20,41 +20,72 @@ const Textures = (() => {
     fill(0, 0, () => vary(96, 158, 76, 14));
     fill(1, 0, (x, y) => (y < 3 || (y === 3 && rng() < .5)) ? vary(96, 158, 76, 14) : vary(134, 96, 67, 12));
     fill(2, 0, () => vary(134, 96, 67, 12));
-    fill(3, 0, () => { const v = rng() < .18 ? 108 : 127; return vary(v, v, v, 8); });
+    fill(3, 0, (x, y) => {
+      const base = rng() < .18 ? 108 : 127;
+      if ((x * 11 + y * 7) % 47 === 0) return vary(154, 154, 154, 8);
+      if ((x * 5 + y * 13) % 53 === 0) return vary(86, 88, 92, 7);
+      return vary(base, base, base, 8);
+    });
     fill(4, 0, (x, y) => {
       const cx = Math.floor(x / 4), cy = Math.floor(y / 4);
       const px = x % 4, py = y % 4;
-      const g = 100 + hashCell(cx, cy) * 50;
-      return (px === 0 || py === 0) ? vary(70, 70, 70, 8) : vary(g, g, g, 10);
+      const g = 96 + hashCell(cx, cy) * 58;
+      if ((x + y * 2) % 17 === 0) return vary(172, 172, 172, 7);
+      return (px === 0 || py === 0) ? vary(64, 66, 68, 8) : vary(g, g, g, 10);
     });
-    fill(5, 0, () => vary(219, 207, 163, 10));
-    fill(6, 0, (x) => (x % 4 === 0 || (x % 4 === 3 && rng() < .3)) ? vary(86, 62, 38, 6) : vary(122, 90, 55, 8));
+    fill(5, 0, (x, y) => {
+      if ((x * 9 + y * 5) % 23 === 0) return vary(190, 178, 132, 7);
+      if ((x * 3 + y * 11) % 31 === 0) return vary(236, 226, 190, 6);
+      return vary(219, 207, 163, 10);
+    });
+    fill(6, 0, (x, y) => {
+      const groove = x % 4 === 0 || (x % 4 === 3 && rng() < .3);
+      if (y % 7 === 0 && !groove) return vary(151, 110, 66, 7);
+      return groove ? vary(78, 56, 36, 6) : vary(122, 90, 55, 8);
+    });
     fill(7, 0, (x, y) => {
       const d = Math.hypot(x - 7.5, y - 7.5);
       if (d > 7.2) return vary(78, 56, 34, 6);
-      return Math.floor(d) % 2 === 0 ? vary(138, 102, 63, 8) : vary(104, 74, 44, 8);
+      const ring = Math.floor(d * 1.35) % 3;
+      return ring === 0 ? vary(148, 108, 66, 8) : ring === 1 ? vary(113, 78, 47, 8) : vary(132, 94, 57, 7);
     });
-    fill(0, 1, () => (rng() < .14) ? null : vary(52, 112, 44, 20));
+    fill(0, 1, (x, y) => {
+      if ((x + y) % 11 === 0) return null;
+      if ((x * 7 + y * 5) % 29 === 0) return vary(112, 156, 78, 12);
+      return vary(52, 112, 44, 20);
+    });
     fill(1, 1, (x, y) => {
       const seam = y % 4 === 3;
       const joint = (Math.floor(y / 4) % 2 === 0) ? (x === 7) : (x === 3 || x === 12);
-      return (seam || joint) ? vary(110, 84, 50, 6) : vary(168, 132, 84, 10);
+      if (seam || joint) return vary(110, 84, 50, 6);
+      if ((x * 13 + y * 3) % 37 === 0) return vary(190, 151, 95, 7);
+      return vary(168, 132, 84, 10);
     });
     fill(2, 1, (x, y) => {
       const edge = x === 0 || x === 15 || y === 0 || y === 15;
       const shine = (x - y === 4 || x - y === 5) && x < 13;
       if (edge) return css(202, 228, 235, .95);
       if (shine) return css(238, 248, 252, .9);
+      if ((x + y) % 17 === 0) return css(168, 208, 220, .35);
       return null;
     });
     fill(3, 1, (x, y) => {
       const row = Math.floor(y / 4);
       const shift = (row % 2) * 4;
       const mortar = y % 4 === 3 || (x + shift) % 8 === 7;
-      return mortar ? vary(176, 164, 152, 6) : vary(158, 74, 58, 10);
+      if (mortar) return vary(174, 162, 150, 7);
+      if ((x * 7 + y * 11) % 43 === 0) return vary(189, 91, 67, 7);
+      return vary(158, 74, 58, 10);
     });
-    fill(4, 1, () => (rng() < .32) ? vary(248, 220, 120, 12) : vary(146, 108, 58, 10));
-    fill(5, 1, () => vary(60, 116, 196, 12));
+    fill(4, 1, (x, y) => {
+      if ((x * 5 + y * 9) % 19 === 0) return vary(255, 239, 146, 10);
+      if ((x + y) % 13 === 0) return vary(115, 83, 45, 8);
+      return rng() < .36 ? vary(248, 220, 120, 12) : vary(146, 108, 58, 10);
+    });
+    fill(5, 1, (x, y) => {
+      const wave = Math.sin((x + y * .7) * .8) > .55;
+      return wave ? vary(76, 135, 210, 10) : vary(54, 109, 184, 12);
+    });
     fill(6, 1, () => { const v = rng() < .5 ? 52 : 88; return vary(v, v, v, 14); });
 
     const meat = (col, row, r, g, b, r2, g2, b2) => fill(col, row, (x, y) => {

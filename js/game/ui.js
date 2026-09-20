@@ -66,6 +66,16 @@ const UI = (() => {
   function setHUD(text) { $('hud-info').textContent = text; }
   function setTime(text) { $('hud-time').textContent = text; }
 
+  function setMiningProgress(progress) {
+    const wrap = $('mine-progress');
+    const fill = $('mine-progress-fill');
+    if (!wrap || !fill) return;
+    const p = Math.max(0, Math.min(1, progress || 0));
+    fill.style.transform = `scaleX(${p})`;
+    wrap.classList.toggle('show', p > 0);
+    wrap.setAttribute('aria-hidden', p > 0 ? 'false' : 'true');
+  }
+
   function setModeLabel(mode) {
     const el = $('mode-badge');
     if (!el) return;
@@ -168,7 +178,7 @@ const UI = (() => {
   }
 
   return {
-    renderHotbar, setSelected, showItemName, showOverlay, showToast, setHUD, setTime, setModeLabel,
+    renderHotbar, setSelected, showItemName, showOverlay, showToast, setHUD, setTime, setMiningProgress, setModeLabel,
     updateSurvival, showDeath, hideDeath, openPicker, closePicker, isPickerOpen, setStartEnabled, flashVignette
   };
 })();

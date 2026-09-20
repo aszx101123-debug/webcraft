@@ -25,19 +25,19 @@ const BLOCK = Object.freeze({
 
 const BLOCKS = [
   null,
-  { name: '잔디 블록',  tiles: { top: [0, 0], side: [1, 0], bottom: [2, 0] } },
-  { name: '흙',        tiles: { all: [2, 0] } },
-  { name: '돌',        tiles: { all: [3, 0] } },
-  { name: '조약돌',    tiles: { all: [4, 0] } },
-  { name: '모래',      tiles: { all: [5, 0] } },
-  { name: '통나무',    tiles: { top: [7, 0], side: [6, 0], bottom: [7, 0] } },
-  { name: '잎',        tiles: { all: [0, 1] }, cutout: true },
-  { name: '판자',      tiles: { all: [1, 1] } },
-  { name: '유리',      tiles: { all: [2, 1] }, cutout: true },
-  { name: '벽돌',      tiles: { all: [3, 1] } },
-  { name: '발광석',    tiles: { all: [4, 1] } },
-  { name: '물',        tiles: { all: [5, 1] }, liquid: true },
-  { name: '기반암',    tiles: { all: [6, 1] }, unbreakable: true }
+  { name: '잔디 블록',  tiles: { top: [0, 0], side: [1, 0], bottom: [2, 0] }, miningTime: .45 },
+  { name: '흙',        tiles: { all: [2, 0] }, miningTime: .38 },
+  { name: '돌',        tiles: { all: [3, 0] }, miningTime: 1.05 },
+  { name: '조약돌',    tiles: { all: [4, 0] }, miningTime: 1.15 },
+  { name: '모래',      tiles: { all: [5, 0] }, miningTime: .32 },
+  { name: '통나무',    tiles: { top: [7, 0], side: [6, 0], bottom: [7, 0] }, miningTime: .78 },
+  { name: '잎',        tiles: { all: [0, 1] }, cutout: true, miningTime: .16 },
+  { name: '판자',      tiles: { all: [1, 1] }, miningTime: .62 },
+  { name: '유리',      tiles: { all: [2, 1] }, cutout: true, miningTime: .24 },
+  { name: '벽돌',      tiles: { all: [3, 1] }, miningTime: .98 },
+  { name: '발광석',    tiles: { all: [4, 1] }, miningTime: .72 },
+  { name: '물',        tiles: { all: [5, 1] }, liquid: true, miningTime: .2 },
+  { name: '기반암',    tiles: { all: [6, 1] }, unbreakable: true, miningTime: Infinity }
 ];
 
 const ITEM = Object.freeze({ PORK: 100, BEEF: 101, CHICKEN: 102, MUTTON: 103, ROTTEN: 104, APPLE: 105 });
@@ -83,13 +83,13 @@ const SURVIVAL = {
 const MOB_CAPS = { hostile: 12, passive: 10 };
 
 const MOB_DEFS = {
-  pig:      { name: '돼지',    hostile: false, hp: 10, speed: 1.5, height: .85, width: .8,  drops: [{ id: ITEM.PORK, min: 1, max: 2 }] },
-  cow:      { name: '소',      hostile: false, hp: 10, speed: 1.4, height: 1.25, width: .85, drops: [{ id: ITEM.BEEF, min: 1, max: 3 }] },
-  sheep:    { name: '양',      hostile: false, hp: 8,  speed: 1.4, height: 1.2,  width: .8,  drops: [{ id: ITEM.MUTTON, min: 1, max: 2 }] },
+  pig:      { name: '돼지',    hostile: false, hp: 12, speed: 1.5, height: .9, width: .82,  drops: [{ id: ITEM.PORK, min: 1, max: 2 }] },
+  cow:      { name: '소',      hostile: false, hp: 12, speed: 1.4, height: 1.28, width: .9, drops: [{ id: ITEM.BEEF, min: 1, max: 3 }] },
+  sheep:    { name: '양',      hostile: false, hp: 10, speed: 1.4, height: 1.22, width: .82, drops: [{ id: ITEM.MUTTON, min: 1, max: 2 }] },
   chicken:  { name: '닭',      hostile: false, hp: 4,  speed: 1.3, height: .65, width: .45, drops: [{ id: ITEM.CHICKEN, min: 1, max: 1 }] },
-  zombie:   { name: '좀비',    hostile: true,  hp: 12, speed: 2.3, height: 1.9,  width: .6,  dmg: 3, aggro: 24, drops: [{ id: ITEM.ROTTEN, min: 1, max: 1, chance: .45 }] },
-  skeleton: { name: '스켈레톤', hostile: true, hp: 12, speed: 2.1, height: 1.9,  width: .55, dmg: 3, aggro: 26, ranged: true, drops: [] },
-  spider:   { name: '거미',    hostile: true,  hp: 10, speed: 3.2, height: .75, width: 1.0,  dmg: 2, aggro: 18, drops: [] }
+  zombie:   { name: '좀비',    hostile: true,  hp: 16, speed: 2.35, height: 1.9,  width: .62, dmg: 3, aggro: 24, drops: [{ id: ITEM.ROTTEN, min: 1, max: 1, chance: .45 }] },
+  skeleton: { name: '스켈레톤', hostile: true, hp: 14, speed: 2.15, height: 1.9, width: .56, dmg: 3, aggro: 26, ranged: true, drops: [] },
+  spider:   { name: '거미',    hostile: true,  hp: 12, speed: 3.2, height: .75, width: 1.0,  dmg: 2.5, aggro: 18, drops: [] }
 };
 
 function isSolidBlock(id) {

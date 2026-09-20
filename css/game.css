@@ -35,6 +35,34 @@ canvas { display: block; }
 #cross::before { width: 14px; height: 2px; transform: translate(-50%,-50%); }
 #cross::after { width: 2px; height: 14px; transform: translate(-50%,-50%); }
 
+
+#mine-progress {
+  position: fixed;
+  left: 50%;
+  top: calc(50% + 18px);
+  width: 92px;
+  height: 5px;
+  transform: translateX(-50%);
+  padding: 1px;
+  border: 1px solid rgba(255,255,255,.45);
+  border-radius: 4px;
+  background: rgba(7,12,18,.72);
+  box-shadow: 0 1px 4px rgba(0,0,0,.55);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 26;
+  transition: opacity .08s;
+}
+#mine-progress.show { opacity: 1; }
+#mine-progress-fill {
+  width: 100%;
+  height: 100%;
+  transform: scaleX(0);
+  transform-origin: left center;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #d6b65a, #f7e6a8);
+}
+
 #hud-info {
   position: fixed;
   top: 10px; left: 12px;
@@ -397,6 +425,7 @@ button:disabled {
   #hud-time { font-size: 12px; }
   #mode-badge { top: 38px; right: 8px; font-size: 10px; min-width: 88px; }
   #item-name { bottom: 126px; font-size: 12px; }
+  #mine-progress { width: 78px; top: calc(50% + 16px); }
   .start-status { font-size: 10px; }
   #hud-hint { display: none; }
   .slot { width: 42px; height: 42px; }
