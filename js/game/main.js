@@ -353,8 +353,10 @@
   document.addEventListener('contextmenu', e => e.preventDefault());
   document.addEventListener('wheel', e => {
     if (!state.locked) return;
+    e.preventDefault();
+    if (e.ctrlKey || e.metaKey) return;
     UI.setSelected(Inventory.getSelected() + (e.deltaY > 0 ? 1 : -1));
-  }, { passive: true });
+  }, { passive: false });
 
   document.addEventListener('pointerlockchange', () => {
     state.locked = document.pointerLockElement === canvas;
