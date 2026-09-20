@@ -17,6 +17,7 @@
 <div id="cross">+</div>
 <div id="hud-info"></div>
 <div id="hud-time"></div>
+<div id="mode-badge" aria-live="polite">크리에이티브</div>
 <div id="hud-hint">좌클릭 캐기/공격 · 우클릭 놓기/먹기 · 휠/1~9 선택 · B 블록 상자 · F 비행(크리에이티브) · Esc 메뉴</div>
 <div id="toast"></div>
 
@@ -35,6 +36,7 @@
   <div class="panel">
     <h1 class="logo">⛏ WebCraft</h1>
     <p id="seed-label" class="sub"></p>
+    <p id="start-status" class="start-status" role="status">월드를 준비하고 있습니다…</p>
     <div class="keys">
       <div><b>WASD</b> 이동</div><div><b>Space</b> 점프/수영</div><div><b>Shift</b> 달리기</div>
       <div><b>좌클릭</b> 캐기/공격</div><div><b>우클릭</b> 놓기/먹기</div><div><b>휠 / 1~9</b> 선택</div>
@@ -109,7 +111,7 @@
 <script src="js/game/main.js"></script>
 <script>
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-  addEventListener('load', () => navigator.serviceWorker.register('service-worker.js?v=20260920-ui').catch(() => {}));
+  addEventListener('load', () => navigator.serviceWorker.register('service-worker.js?v=20260920-ui2').catch(() => {}));
 }
 </script>
 </body>
