@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.2-mining-mobs-blocks-20260920';
+const VERSION = 'webcraft-v1.2-ores-tools-crafting-multiworld-20260920';
 const CORE = [
   './',
   './index.html',
