@@ -24,6 +24,7 @@ const World = (() => {
 
   function faceVisible(id, nb) {
     if (nb === -1) return false;
+    if (nb === BLOCK.TORCH) return true;
     if (nb === BLOCK.AIR) return true;
     const NB = BLOCKS[nb];
     if (NB.liquid) return !BLOCKS[id].liquid;
@@ -54,6 +55,19 @@ const World = (() => {
   function disposeChunk(ch) {
     if (ch.mesh) { group.remove(ch.mesh); ch.mesh.geometry.dispose(); ch.mesh = null; }
     if (ch.waterMesh) { group.remove(ch.waterMesh); ch.waterMesh.geometry.dispose(); ch.waterMesh = null; }
+    if (ch.specials) {
+      ch.specials.forEach(o => {
+        group.remove(o);
+        o.traverse(n => {
+          if (n.geometry) n.geometry.dispose();
+          if (n.material) {
+            if (Array.isArray(n.material)) n.material.forEach(m => m.dispose());
+            else n.material.dispose();
+          }
+        });
+      });
+      ch.specials.length = 0;
+    }
   }
 
   function getChunk(cx, cz) { return chunks.get(key(cx, cz)); }
@@ -129,7 +143,7 @@ const World = (() => {
     const data = gen.genChunk(p.cx, p.cz);
     const e = edits.get(k);
     if (e) for (const [li, id] of e) data[li] = id;
-    chunks.set(k, { cx: p.cx, cz: p.cz, data, mesh: null, waterMesh: null });
+    chunks.set(k, { cx: p.cx, cz: p.cz, data, mesh: null, waterMesh: null, specials: [] });
     markDirty(p.cx, p.cz);
     markDirty(p.cx - 1, p.cz);
     markDirty(p.cx + 1, p.cz);
@@ -140,6 +154,7 @@ const World = (() => {
 
   function buildChunkMesh(ch) {
     disposeChunk(ch);
+    ch.specials = [];
     const pos = [], nor = [], uv = [], col = [], ind = [];
     const wp = [], wn = [], wu = [], wc = [], wi = [];
     const ox = ch.cx * C, oz = ch.cz * C;
@@ -157,6 +172,27 @@ const World = (() => {
       const id = ch.data[Terrain.idx(x, y, z)];
       if (!id) continue;
       const B = BLOCKS[id];
+      if (B.special === 'torch') {
+        const tg = new THREE.Group();
+        tg.position.set(ox + x + .5, y + .08, oz + z + .5);
+        const stem = new THREE.Mesh(
+          new THREE.CylinderGeometry(.055, .065, .62, 6),
+          new THREE.MeshLambertMaterial({color:0x70482c})
+        );
+        stem.position.y = .31;
+        const flame = new THREE.Mesh(
+          new THREE.ConeGeometry(.14, .30, 8),
+          new THREE.MeshBasicMaterial({color:0xffb52e})
+        );
+        flame.position.y = .82;
+        tg.add(stem, flame);
+        const light = new THREE.PointLight(0xffbd58, .95, 8.5, 2);
+        light.position.set(0, .82, 0);
+        tg.add(light);
+        group.add(tg);
+        ch.specials.push(tg);
+        continue;
+      }
       const liquid = !!B.liquid;
       for (const f of FACES) {
         const nb = getNb(x + f.n[0], y + f.n[1], z + f.n[2]);
@@ -173,7 +209,11 @@ const World = (() => {
           N.push(f.n[0], f.n[1], f.n[2]);
           const q = f.uv[i];
           U.push(q[0] ? t.u1 : t.u0, q[1] ? t.v1 : t.v0);
-          CC.push(f.shade, f.shade, f.shade);
+          const surfaceY = gen ? gen.heightAt(ox + x, oz + z) : H;
+          const depth = surfaceY - y;
+          const caveLight = depth > 3 ? Math.max(.18, 1 - Math.min(28, depth - 3) * .035) : 1;
+          const faceLight = f.shade * caveLight;
+          CC.push(faceLight, faceLight, faceLight);
         }
         I.push(vi, vi + 1, vi + 2, vi, vi + 2, vi + 3);
       }
@@ -187,6 +227,8 @@ const World = (() => {
       g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
       g.setIndex(ind);
       ch.mesh = new THREE.Mesh(g, matSolid);
+      ch.mesh.castShadow = true;
+      ch.mesh.receiveShadow = true;
       group.add(ch.mesh);
     }
     if (wp.length) {
@@ -197,6 +239,8 @@ const World = (() => {
       g.setAttribute('color', new THREE.Float32BufferAttribute(wc, 3));
       g.setIndex(wi);
       ch.waterMesh = new THREE.Mesh(g, matWater);
+      ch.waterMesh.castShadow = false;
+      ch.waterMesh.receiveShadow = true;
       ch.waterMesh.renderOrder = 1;
       group.add(ch.waterMesh);
     }
