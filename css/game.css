@@ -3,6 +3,7 @@
 html, body {
   width: 100%;
   height: 100%;
+  min-height: 100dvh;
   overflow: hidden;
   background: #0b0f14;
   color: #e8eef5;
@@ -17,18 +18,32 @@ canvas { display: block; }
 #cross {
   position: fixed;
   left: 50%; top: 50%;
+  width: 18px; height: 18px;
   transform: translate(-50%, -50%);
-  color: rgba(255, 255, 255, .9);
-  font-size: 24px;
-  font-weight: 300;
-  text-shadow: 0 0 4px rgba(0, 0, 0, .8);
+  font-size: 0;
   pointer-events: none;
-  z-index: 5;
+  z-index: 25;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.9));
 }
+#cross::before, #cross::after {
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%;
+  background: rgba(255,255,255,.96);
+  box-shadow: 0 0 0 1px rgba(0,0,0,.45);
+}
+#cross::before { width: 14px; height: 2px; transform: translate(-50%,-50%); }
+#cross::after { width: 2px; height: 14px; transform: translate(-50%,-50%); }
 
 #hud-info {
   position: fixed;
   top: 10px; left: 12px;
+  max-width: min(48vw, 430px);
+  padding: 5px 8px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 5px;
+  background: rgba(7,12,18,.52);
+  backdrop-filter: blur(3px);
   font-size: 12px;
   color: #cfe0f0;
   text-shadow: 0 1px 2px #000;
@@ -40,6 +55,11 @@ canvas { display: block; }
 #hud-time {
   position: fixed;
   top: 10px; right: 12px;
+  padding: 5px 9px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 5px;
+  background: rgba(7,12,18,.52);
+  backdrop-filter: blur(3px);
   font-size: 14px;
   color: #fff;
   text-shadow: 0 1px 3px #000;
@@ -50,6 +70,12 @@ canvas { display: block; }
 #hud-hint {
   position: fixed;
   bottom: 12px; right: 12px;
+  max-width: min(46vw, 520px);
+  padding: 6px 9px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 5px;
+  background: rgba(7,12,18,.48);
+  backdrop-filter: blur(3px);
   font-size: 11px;
   color: rgba(207, 224, 240, .75);
   text-shadow: 0 1px 2px #000;
@@ -59,11 +85,18 @@ canvas { display: block; }
 
 #hotbar {
   position: fixed;
-  bottom: 16px; left: 50%;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  left: 50%;
   transform: translateX(-50%);
   display: flex;
   gap: 5px;
-  z-index: 6;
+  padding: 5px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 8px;
+  background: rgba(7,12,18,.56);
+  box-shadow: 0 6px 24px rgba(0,0,0,.28);
+  z-index: 26;
+  max-width: calc(100vw - 16px);
 }
 
 .slot {
@@ -115,6 +148,9 @@ canvas { display: block; }
   justify-content: space-between;
   z-index: 6;
   pointer-events: none;
+  padding: 4px 7px;
+  border-radius: 6px;
+  background: rgba(7,12,18,.32);
 }
 
 #survival-hud.hidden { display: none; }
@@ -307,6 +343,8 @@ button:disabled {
 }
 
 @media (max-width: 640px) {
+  #hud-info { font-size: 10px; max-width: 55vw; }
+  #hud-time { font-size: 12px; }
   #hud-hint { display: none; }
   .slot { width: 42px; height: 42px; }
   .slot img { width: 32px; height: 32px; }
