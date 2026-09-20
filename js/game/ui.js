@@ -43,10 +43,9 @@ const UI = (() => {
   }
 
   function showOverlay(name) {
-    ['overlay-start', 'overlay-pause', 'loading', 'overlay-death'].forEach(id => $(id).classList.add('hidden'));
+    ['overlay-start', 'overlay-pause', 'overlay-death'].forEach(id => $(id).classList.add('hidden'));
     if (name === 'start') $('overlay-start').classList.remove('hidden');
     else if (name === 'pause') $('overlay-pause').classList.remove('hidden');
-    else if (name === 'loading') $('loading').classList.remove('hidden');
     else if (name === 'death') $('overlay-death').classList.remove('hidden');
   }
 
@@ -133,6 +132,13 @@ const UI = (() => {
 
   function isPickerOpen() { return pickerOpen; }
 
+  function setStartEnabled(enabled) {
+    ['btn-start-survival', 'btn-start-creative', 'start-btn'].forEach(id => {
+      const el = $(id);
+      if (el) el.disabled = !enabled;
+    });
+  }
+
   function flashVignette() {
     const v = $('vignette');
     if (!v) return;
@@ -144,6 +150,6 @@ const UI = (() => {
 
   return {
     renderHotbar, setSelected, showItemName, showOverlay, showToast, setHUD, setTime,
-    updateSurvival, showDeath, hideDeath, openPicker, closePicker, isPickerOpen, flashVignette
+    updateSurvival, showDeath, hideDeath, openPicker, closePicker, isPickerOpen, setStartEnabled, flashVignette
   };
 })();

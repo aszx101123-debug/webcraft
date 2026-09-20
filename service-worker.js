@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.1-ui-restored-20260920';
+const VERSION = 'webcraft-v1.1-ui-start-fix-20260920';
 const CORE = [
   './',
   './index.html',

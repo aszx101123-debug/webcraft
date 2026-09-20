@@ -162,6 +162,8 @@
   }
 
   UI.renderHotbar();
+  UI.showOverlay('start');
+  UI.setStartEnabled(false);
   Interact.init(camera, scene);
   applyFog();
   updateSky(0);
@@ -256,6 +258,7 @@
       }
     }
   });
+  document.addEventListener('pointerlockerror', () => UI.showToast('마우스 잠금을 시작하지 못했습니다. 게임 화면을 한 번 클릭해 주세요.'));
   document.addEventListener('contextmenu', e => e.preventDefault());
   document.addEventListener('wheel', e => {
     if (!state.locked) return;
@@ -285,8 +288,8 @@
   } else {
     startBtn.classList.add('hidden');
   }
-  startBtn.addEventListener('click', () => canvas.requestPointerLock());
-  btnSurvival.addEventListener('click', () => {
+  startBtn.addEventListener('click', () => { if (state.ready) canvas.requestPointerLock(); });
+  btnSurvival.addEventListener('click', () => { if (!state.ready) return;
     state.mode = GAME_MODE.SURVIVAL;
     Player.setMode(GAME_MODE.SURVIVAL);
     Inventory.init(GAME_MODE.SURVIVAL, null);
@@ -294,7 +297,7 @@
     UI.renderHotbar();
     canvas.requestPointerLock();
   });
-  btnCreative.addEventListener('click', () => {
+  btnCreative.addEventListener('click', () => { if (!state.ready) return;
     state.mode = GAME_MODE.CREATIVE;
     Player.setMode(GAME_MODE.CREATIVE);
     Inventory.init(GAME_MODE.CREATIVE, null);
