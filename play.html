@@ -14,7 +14,7 @@
 </head>
 <body>
 
-<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.2.5 · 버그 수정 + 광석/물 디테일</div>
+<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.2.6 · 수중 판정 + 인벤토리 + 3인칭 강화</div>
 <div id="boot-error" class="boot-error hidden" role="alert">
   <div class="boot-error-panel">
     <div class="boot-error-icon">!</div>
@@ -32,7 +32,7 @@
 <div id="hud-info"></div>
 <div id="hud-time"></div>
 <div id="mode-badge" aria-live="polite">크리에이티브</div>
-<div id="hud-hint">좌클릭 유지 캐기/공격 · 우클릭 놓기/먹기 · 휠/1~9 선택 · B 블록 상자 · E 인벤토리 · C 제작 · Q 버리기 · F5 3인칭 · F 비행(크리에이티브) · Esc 메뉴</div>
+<div id="hud-hint">좌클릭 유지 캐기/공격 · 우클릭 놓기/먹기 · 휠/1~9 선택 · B 블록 상자 · E 인벤토리/2×2 제작 · Q 버리기 · F5 시점 전환 · F 비행(크리에이티브) · Esc 메뉴</div>
 <div id="toast"></div>
 
 <div id="survival-hud" class="hidden">
@@ -134,12 +134,21 @@
     </div>
     <div class="inventory-layout">
       <div class="inventory-main">
-        <div class="inventory-section-title">소지품</div>
+        <div class="inventory-section-title">소지품 · 27칸</div>
         <div id="inventory-grid" class="inventory-grid"></div>
         <div class="inventory-section-title hotbar-title">핫바</div>
         <div id="inventory-hotbar-grid" class="inventory-grid hotbar-grid"></div>
       </div>
       <div class="equipment-panel">
+        <div class="inventory-craft-panel">
+          <div class="inventory-section-title">2×2 제작</div>
+          <div class="inventory-craft-board">
+            <div id="inventory-craft-grid" class="inventory-craft-grid"></div>
+            <span class="craft-arrow">→</span>
+            <button id="inventory-craft-output" class="craft-output" disabled aria-label="2×2 제작 결과"></button>
+          </div>
+          <p class="inventory-craft-tip">제작할 재료가 있는 인벤토리 칸에서 Shift+클릭하세요.</p>
+        </div>
         <div class="inventory-section-title">장비 슬롯</div>
         <div class="equipment-slots">
           <button class="equip-slot" data-equip="mainhand"><span>주손</span><b></b></button>
