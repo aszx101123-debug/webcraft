@@ -160,7 +160,7 @@ const Crafting = (() => {
     if (recipe.shapeless) {
       const want = [];
       recipe.ingredients.forEach(i => { for (let n = 0; n < i.count; n++) want.push(i.id); });
-      const got = grid.filter(Boolean);
+      const got = activeIndices().map(i => grid[i]).filter(Boolean);
       want.sort((a,b)=>a-b); got.sort((a,b)=>a-b);
       return want.length === got.length && want.every((v,i)=>v===got[i]);
     }
