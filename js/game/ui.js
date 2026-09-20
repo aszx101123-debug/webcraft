@@ -5,6 +5,7 @@ const UI = (() => {
   let pickerOpen = false;
   let itemNameTimer = null;
   let lastSurvivalSig = '';
+  let currentWorldId = null;
 
   function renderHotbar() {
     const bar = $('hotbar');
@@ -18,8 +19,14 @@ const UI = (() => {
       if (s) {
         let cnt = '';
         if (!Inventory.isCreative() && s.count !== Infinity) cnt = `<span class="cnt">${s.count}</span>`;
-        el.innerHTML = `<span class="num">${i + 1}</span><img src="${Textures.blockIcon(s.id)}" alt="">${cnt}`;
-        el.title = getItemName(s.id);
+        let durability = '';
+        const td = getToolDef(s.id);
+        if (td && s.durability) {
+          const ratio = Math.max(0, Math.min(1, s.durability / td.maxDurability));
+          durability = `<span class="dur-wrap"><span class="dur-fill" style="width:${Math.round(ratio * 100)}%"></span></span>`;
+        }
+        el.innerHTML = `<span class="num">${i + 1}</span><img src="${Textures.blockIcon(s.id)}" alt="">${cnt}${durability}`;
+        el.title = td ? `${getItemName(s.id)} · 내구도 ${s.durability}/${td.maxDurability}` : getItemName(s.id);
       } else {
         el.innerHTML = `<span class="num">${i + 1}</span>`;
         el.title = '빈 슬롯';
@@ -65,6 +72,86 @@ const UI = (() => {
 
   function setHUD(text) { $('hud-info').textContent = text; }
   function setTime(text) { $('hud-time').textContent = text; }
+
+  function renderWorlds(worlds, activeId) {
+    const list = $('world-list');
+    if (!list) return;
+    currentWorldId = activeId || null;
+    list.innerHTML = '';
+    if (!worlds.length) {
+      list.innerHTML = '<div class="world-detail">저장된 월드가 없습니다.</div>';
+      return;
+    }
+    worlds.forEach(w => {
+      const row = document.createElement('div');
+      row.className = 'world-row' + (w.id === activeId ? ' active' : '');
+      const meta = document.createElement('div');
+      meta.className = 'world-meta';
+      meta.innerHTML = `<div class="world-name">${escapeHTML(w.name)}${w.id === activeId ? ' · 현재' : ''}</div><div class="world-detail">시드 ${w.seed} · ${new Date(w.updatedAt || w.createdAt || Date.now()).toLocaleString()}</div>`;
+      row.appendChild(meta);
+      if (w.id !== activeId) {
+        const load = document.createElement('button');
+        load.className = 'btn small';
+        load.textContent = '불러오기';
+        load.addEventListener('click', () => location.href = 'play.html?world=' + encodeURIComponent(w.id));
+        row.appendChild(load);
+      }
+      const del = document.createElement('button');
+      del.className = 'btn small ghost';
+      del.textContent = '삭제';
+      del.disabled = worlds.length <= 1;
+      del.addEventListener('click', () => {
+        if (confirm(`"${w.name}" 월드를 삭제할까요?`)) {
+          if (SaveSystem.remove(w.id)) renderWorlds(SaveSystem.list(), SaveSystem.getActiveId());
+          else showToast('월드는 하나 이상 유지됩니다');
+        }
+      });
+      row.appendChild(del);
+      list.appendChild(row);
+    });
+  }
+
+  function escapeHTML(v) {
+    return String(v).replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[ch]));
+  }
+
+  function renderCrafting() {
+    const grid = $('recipe-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    Crafting.getRecipes().forEach(recipe => {
+      const ready = Crafting.canCraft(recipe);
+      const card = document.createElement('div');
+      card.className = 'recipe-card' + (ready ? ' ready' : '');
+      card.innerHTML = `<div class="recipe-icon"><img src="${Textures.blockIcon(recipe.outputId)}" alt=""></div>
+        <div><div class="recipe-name">${recipe.name}</div><div class="recipe-ing">${Crafting.summary(recipe)} · ${recipe.note || ''}</div></div>`;
+      const btn = document.createElement('button');
+      btn.className = 'btn small';
+      btn.textContent = `제작 ×${recipe.count}`;
+      btn.disabled = !ready;
+      btn.addEventListener('click', () => {
+        if (Crafting.craft(recipe.id)) {
+          renderCrafting();
+          renderHotbar();
+          showItemName(getItemName(recipe.outputId));
+          showToast(`${getItemName(recipe.outputId)} 제작 완료`);
+        }
+      });
+      card.appendChild(btn);
+      grid.appendChild(card);
+    });
+  }
+
+  function openCrafting() {
+    renderCrafting();
+    $('overlay-crafting').classList.remove('hidden');
+  }
+
+  function closeCrafting() {
+    $('overlay-crafting').classList.add('hidden');
+  }
+
+  function isCraftingOpen() { return !$('overlay-crafting').classList.contains('hidden'); }
 
   function setMiningProgress(progress) {
     const wrap = $('mine-progress');
@@ -178,7 +265,8 @@ const UI = (() => {
   }
 
   return {
-    renderHotbar, setSelected, showItemName, showOverlay, showToast, setHUD, setTime, setMiningProgress, setModeLabel,
+    renderHotbar, setSelected, showItemName, showOverlay, showToast, setHUD, setTime, setMiningProgress,
+    setModeLabel, renderWorlds, openCrafting, closeCrafting, isCraftingOpen,
     updateSurvival, showDeath, hideDeath, openPicker, closePicker, isPickerOpen, setStartEnabled, flashVignette
   };
 })();
