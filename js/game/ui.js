@@ -99,7 +99,7 @@ const UI = (() => {
       const del = document.createElement('button');
       del.className = 'btn small ghost';
       del.textContent = '삭제';
-      del.disabled = worlds.length <= 1;
+      del.disabled = worlds.length <= 1 || w.id === activeId;
       del.addEventListener('click', () => {
         if (confirm(`"${w.name}" 월드를 삭제할까요?`)) {
           if (SaveSystem.remove(w.id)) renderWorlds(SaveSystem.list(), SaveSystem.getActiveId());
