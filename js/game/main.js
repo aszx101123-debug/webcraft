@@ -231,11 +231,13 @@
       const hitMob = Mobs.tryAttack(camera.position, dir, 3.6);
       if (hitMob) {
         Player.addExhaustion(SURVIVAL.ATTACK_COST);
-      } else {
-        miningHeld = Interact.startBreak(state.mode === GAME_MODE.SURVIVAL);
-        if (!state.mode || miningHeld) {
-          UI.setMiningProgress(Interact.miningProgress());
-        }
+      } else if (state.mode === GAME_MODE.SURVIVAL) {
+        miningHeld = Interact.startBreak(true);
+        UI.setMiningProgress(Interact.miningProgress());
+      } else if (Interact.startBreak(false)) {
+        miningHeld = false;
+        UI.setMiningProgress(0);
+        blip(95, .12, 'triangle', .09);
       }
     } else if (e.button === 2) {
       const s = Inventory.selectedSlot();
@@ -398,6 +400,7 @@
         const mined = Interact.updateMining(dt, state.mode === GAME_MODE.SURVIVAL);
         UI.setMiningProgress(Interact.miningProgress());
         if (mined) {
+          miningHeld = false;
           blip(95, .12, 'triangle', .09);
           UI.showToast('블록을 캤습니다');
         }
