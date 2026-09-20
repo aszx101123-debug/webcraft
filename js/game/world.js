@@ -9,6 +9,7 @@ const World = (() => {
   let dirtySet = new Set();
   let pending = [];
   let pendingSet = new Set();
+  let fluidLevels = new Map();
   let matSolid = null, matWater = null;
 
   const key = (cx, cz) => cx + ',' + cz;
@@ -38,6 +39,7 @@ const World = (() => {
     dirtySet = new Set();
     pending = [];
     pendingSet = new Set();
+    fluidLevels = new Map();
     if (editsEntries) for (const [k, list] of editsEntries) edits.set(k, new Map(list));
     seed = seedNum;
     gen = Terrain.makeGen(seed);
@@ -78,6 +80,11 @@ const World = (() => {
     const lx = x & 15, lz = z & 15;
     const li = Terrain.idx(lx, y, lz);
     if (ch.data[li] === id) return false;
+    const kCell = x + ',' + y + ',' + z;
+    if (id === BLOCK.WATER) fluidLevels.set(kCell, 8);
+    else if (id === BLOCK.WATER_FLOW) {
+      if (!fluidLevels.has(kCell)) fluidLevels.set(kCell, 1);
+    } else fluidLevels.delete(kCell);
     ch.data[li] = id;
     if (record) {
       const k = key(cx, cz);
@@ -168,7 +175,10 @@ const World = (() => {
         for (let i = 0; i < 4; i++) {
           const c = f.c[i];
           let vy = y + c[1];
-          if (liquid && f.n[1] === 1) vy = y + .87;
+          if (liquid && f.n[1] === 1) {
+            const level = id === BLOCK.WATER ? 8 : (fluidLevels.get((ox + x) + ',' + y + ',' + (oz + z)) || 1);
+            vy = y + 0.15 + 0.72 * (level / 8);
+          }
           P.push(ox + x + c[0], vy, oz + z + c[2]);
           N.push(f.n[0], f.n[1], f.n[2]);
           const q = f.uv[i];
@@ -223,6 +233,11 @@ const World = (() => {
     }
   }
 
+  function getFluidLevel(x, y, z) {
+    if (World.getBlock(x, y, z) === BLOCK.WATER) return 8;
+    return fluidLevels.get(x + ',' + y + ',' + z) || 0;
+  }
+
   function getEdits() {
     const out = [];
     for (const [k, m] of edits) out.push([k, [...m.entries()]]);
@@ -237,6 +252,8 @@ const World = (() => {
     chunkCount: () => chunks.size,
     isReady: () => pending.length === 0 && dirtySet.size === 0,
     getSeed: () => seed,
-    getGroup: () => group
+    getGroup: () => group,
+    getFluidLevel
+
   };
 })();
