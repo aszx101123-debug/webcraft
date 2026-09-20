@@ -104,6 +104,30 @@ for (let cx = -6; cx <= 6; cx += 2) for (let cz = -6; cz <= 6; cz += 2) {
   }
 }
 ok([...oreCounts.values()].some(n => n > 0), '광석 생성 확인');
+const oreBandOk = (() => {
+  const limits = new Map([
+    [BLOCK.COAL_ORE, [[27,56]]], [BLOCK.IRON_ORE, [[10,34],[45,58]]],
+    [BLOCK.COPPER_ORE, [[18,43]]], [BLOCK.GOLD_ORE, [[7,20]]],
+    [BLOCK.LAPIS_ORE, [[8,18]]], [BLOCK.REDSTONE_ORE, [[3,12]]],
+    [BLOCK.DIAMOND_ORE, [[2,8]]], [BLOCK.EMERALD_ORE, [[40,54]]]
+  ]);
+  for (let cx = -3; cx <= 3; cx++) for (let cz = -3; cz <= 3; cz++) {
+    const d = gen.genChunk(cx, cz);
+    for (let i = 0; i < d.length; i++) {
+      const id = d[i];
+      if (!limits.has(id)) continue;
+      const y = i & 63;
+      if (!limits.get(id).some(([lo, hi]) => y >= lo && y <= hi)) return false;
+    }
+  }
+  return true;
+})();
+ok(oreBandOk, '광석이 지정된 높이 구간에서만 생성');
+const sampledOreTotal = [...oreCounts.values()].reduce((a, b) => a + b, 0);
+ok(sampledOreTotal < 8000, '광석 총량 상한 확인 (' + sampledOreTotal + ')');
+const biomeNames = new Set();
+for (let x = -300; x <= 300; x += 37) for (let z = -300; z <= 300; z += 41) biomeNames.add(gen.biomeAt(x, z));
+ok(biomeNames.size >= 3, '바이옴 다양성 확인 (' + [...biomeNames].join(', ') + ')');
 
 
 let spawnFound = false;
