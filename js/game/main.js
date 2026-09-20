@@ -283,7 +283,7 @@
           blip(280, .07, 'triangle', .05);
           setTimeout(() => blip(200, .08, 'triangle', .05), 100);
           Inventory.consumeSelected();
-
+        }
       } else if (isBlockId(s.id)) {
         if (Interact.tryPlace(s.id)) {
           Inventory.consumeSelected();
