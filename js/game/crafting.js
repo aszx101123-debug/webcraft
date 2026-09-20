@@ -117,8 +117,8 @@ const Crafting = (() => {
 
   function addToFirstEmpty(id) {
     if (!id) return -1;
-    const i = grid.findIndex(x => !x);
-    if (i < 0) return -1;
+    const i = activeIndices().find(index => !grid[index]);
+    if (i === undefined) return -1;
     grid[i] = id;
     return i;
   }
