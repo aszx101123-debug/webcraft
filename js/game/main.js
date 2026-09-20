@@ -510,7 +510,7 @@
   document.getElementById('btn-crafting').addEventListener('click', () => {
     state.suppressPause = true;
     document.exitPointerLock();
-    UI.openCrafting();
+    UI.openInventory();
   });
   document.getElementById('btn-worlds').addEventListener('click', openWorldMenu);
   document.getElementById('crafting-close').addEventListener('click', () => {
@@ -630,6 +630,8 @@
     }
 
     PlayerModel.update(Player, dt, state.thirdPersonView > 0);
+    const waterFx = document.getElementById('underwater-overlay');
+    if (waterFx) waterFx.classList.toggle('show', Player.headSubmerged);
     if (state.thirdPersonView > 0) {
       const cp = new THREE.Vector3();
       const target = new THREE.Vector3(Player.pos.x, Player.pos.y + 1.15, Player.pos.z);
