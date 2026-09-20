@@ -290,7 +290,6 @@
     state.mode = mode;
     Player.setMode(mode);
     UI.setModeLabel(mode);
-    Inventory.init(mode, state.started ? Inventory.serialize() : null, Inventory.getEquipment());
     Mobs.setMode(mode);
     state.started = true;
     state.paused = false;
@@ -508,10 +507,12 @@
   });
   btnSurvival.addEventListener('click', () => {
     if (!state.ready) return;
+    Inventory.init(GAME_MODE.SURVIVAL, null);
     beginGameplay(GAME_MODE.SURVIVAL);
   });
   btnCreative.addEventListener('click', () => {
     if (!state.ready) return;
+    Inventory.init(GAME_MODE.CREATIVE, null);
     beginGameplay(GAME_MODE.CREATIVE);
   });
 
