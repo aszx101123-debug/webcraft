@@ -66,6 +66,7 @@
     renderDist: saved ? saved.renderDist : CONFIG.RENDER_DIST,
     sound: saved ? saved.sound !== false : true,
     suppressPause: false,
+    paused: false,
     mode: saved && saved.version >= 2 && saved.mode ? saved.mode : GAME_MODE.CREATIVE
   };
 
@@ -285,6 +286,19 @@
   let miningHeld = false;
   const canvas = renderer.domElement;
 
+  function beginGameplay(mode) {
+    state.mode = mode;
+    Player.setMode(mode);
+    UI.setModeLabel(mode);
+    Mobs.setMode(mode);
+    state.started = true;
+    state.paused = false;
+    state.suppressPause = true;
+    UI.renderHotbar();
+    UI.showOverlay(null);
+    try { canvas.requestPointerLock(); } catch (e) { }
+  }
+
   document.addEventListener('keydown', e => {
     keys[e.code] = true;
     if (e.code === 'Space') e.preventDefault();
@@ -304,6 +318,12 @@
       state.thirdPersonView = (state.thirdPersonView + 1) % 3;
       const labels = ['1인칭 카메라', '3인칭 뒤', '3인칭 앞'];
       UI.showToast(labels[state.thirdPersonView] + ' ON');
+      return;
+    }
+    if (e.code === 'Escape' && state.started && !state.locked && !UI.isInventoryOpen() && !UI.isCraftingOpen()) {
+      state.paused = true;
+      UI.showOverlay('pause');
+      doSave(true);
       return;
     }
     if (!state.locked) return;
@@ -432,6 +452,7 @@
     state.locked = document.pointerLockElement === canvas;
     if (state.locked) {
       state.started = true;
+      state.paused = false;
       state.suppressPause = false;
       UI.showOverlay(null);
     } else if (state.started && !Player.dead) {
@@ -439,6 +460,7 @@
       Interact.cancelBreak();
       UI.setMiningProgress(0);
       if (state.suppressPause) { state.suppressPause = false; return; }
+      state.paused = true;
       UI.showOverlay('pause');
       doSave(true);
     }
@@ -481,32 +503,31 @@
   startBtn.addEventListener('click', () => {
     if (!state.ready) return;
     SaveSystem.setActiveId(worldId);
-    canvas.requestPointerLock();
+    beginGameplay(state.mode);
   });
-  btnSurvival.addEventListener('click', () => { if (!state.ready) return;
-    state.mode = GAME_MODE.SURVIVAL;
-    Player.setMode(GAME_MODE.SURVIVAL);
-    UI.setModeLabel(GAME_MODE.SURVIVAL);
+  btnSurvival.addEventListener('click', () => {
+    if (!state.ready) return;
     Inventory.init(GAME_MODE.SURVIVAL, null);
-    Mobs.setMode(GAME_MODE.SURVIVAL);
-    UI.renderHotbar();
-    canvas.requestPointerLock();
+    beginGameplay(GAME_MODE.SURVIVAL);
   });
-  btnCreative.addEventListener('click', () => { if (!state.ready) return;
-    state.mode = GAME_MODE.CREATIVE;
-    Player.setMode(GAME_MODE.CREATIVE);
-    UI.setModeLabel(GAME_MODE.CREATIVE);
+  btnCreative.addEventListener('click', () => {
+    if (!state.ready) return;
     Inventory.init(GAME_MODE.CREATIVE, null);
-    Mobs.setMode(GAME_MODE.CREATIVE);
-    UI.renderHotbar();
-    canvas.requestPointerLock();
+    beginGameplay(GAME_MODE.CREATIVE);
   });
 
   document.getElementById('inventory-close').addEventListener('click', () => {
     UI.closeInventory();
-    canvas.requestPointerLock();
+    state.paused = false;
+    state.suppressPause = true;
+    try { canvas.requestPointerLock(); } catch (e) { }
   });
-  document.getElementById('btn-resume').addEventListener('click', () => canvas.requestPointerLock());
+  document.getElementById('btn-resume').addEventListener('click', () => {
+    state.paused = false;
+    state.suppressPause = true;
+    UI.showOverlay(null);
+    try { canvas.requestPointerLock(); } catch (e) { }
+  });
   document.getElementById('btn-crafting').addEventListener('click', () => {
     state.suppressPause = true;
     document.exitPointerLock();
@@ -515,7 +536,9 @@
   document.getElementById('btn-worlds').addEventListener('click', openWorldMenu);
   document.getElementById('crafting-close').addEventListener('click', () => {
     UI.closeCrafting();
-    canvas.requestPointerLock();
+    state.paused = false;
+    state.suppressPause = true;
+    try { canvas.requestPointerLock(); } catch (e) { }
   });
   document.getElementById('btn-create-world').addEventListener('click', () => {
     const name = document.getElementById('world-name-input').value.trim();
@@ -595,7 +618,7 @@
         UI.setStartEnabled(true);
       }
     } else {
-      const active = state.started && state.locked && !Player.dead;
+      const active = state.started && !state.paused && !Player.dead && !UI.isInventoryOpen() && !UI.isCraftingOpen();
       if (active) {
         Player.update(dt, keys);
         Interact.update();
