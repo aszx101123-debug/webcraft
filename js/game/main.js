@@ -360,10 +360,10 @@
     const dt = Math.min(clock.getDelta(), .05);
 
     if (!state.ready) {
-      World.update(Player.pos.x, Player.pos.z, state.renderDist, 6, 10);
+      World.update(Player.pos.x, Player.pos.z, state.renderDist, 10, 16);
       if (World.isReady()) {
         state.ready = true;
-        UI.showOverlay('start');
+        UI.setStartEnabled(true);
       }
     } else {
       const active = state.started && state.locked && !Player.dead;
