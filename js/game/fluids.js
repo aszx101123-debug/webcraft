@@ -7,8 +7,9 @@ const Fluids = (() => {
   function key(x, y, z) { return x + ',' + y + ',' + z; }
 
   function clearFlow(x, y, z) {
-    if (World.getBlock(x, y, z) !== BLOCK.WATER_FLOW) return;
-    World.setBlock(x, y, z, BLOCK.AIR, false);
+    if (World.getBlock(x, y, z) === BLOCK.WATER_FLOW) {
+      World.setBlock(x, y, z, BLOCK.AIR, false);
+    }
     activeFlows.delete(key(x, y, z));
   }
 
