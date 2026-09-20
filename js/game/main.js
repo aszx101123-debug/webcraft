@@ -728,6 +728,7 @@
       if (World.isReady()) {
         state.ready = true;
         UI.showOverlay('start');
+        if (window.webcraftLoadingDone) window.webcraftLoadingDone();
       }
     } else {
       const active = state.started && state.locked && !Player.dead;
