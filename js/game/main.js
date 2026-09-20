@@ -59,7 +59,9 @@
     started: false,
     locked: false,
     ready: false,
-    thirdPerson: saved && saved.thirdPerson === true,
+    thirdPersonView: saved && typeof saved.thirdPersonView === 'number'
+      ? Math.max(0, Math.min(2, saved.thirdPersonView | 0))
+      : (saved && saved.thirdPerson ? 1 : 0),
     time: saved ? saved.time : .22,
     renderDist: saved ? saved.renderDist : CONFIG.RENDER_DIST,
     sound: saved ? saved.sound !== false : true,
@@ -212,7 +214,7 @@
 
   function doSave(silent) {
     const ok = SaveSystem.save(worldId, {
-      version: 4,
+      version: 5,
       savedAt: Date.now(),
       worldId,
       worldName: worldMeta.name,
