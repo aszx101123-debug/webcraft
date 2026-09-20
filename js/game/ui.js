@@ -246,6 +246,16 @@ const UI = (() => {
   function openInventory() {
     inventoryOpen = true;
     inventoryCursor = null;
+    document.querySelectorAll('.equip-slot:not(.disabled)').forEach(btn => {
+      if (btn.dataset.bound) return;
+      btn.dataset.bound = '1';
+      btn.addEventListener('mousedown', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        handleEquipment(btn.dataset.equip);
+      });
+      btn.addEventListener('contextmenu', e => e.preventDefault());
+    });
     renderInventory();
     $('overlay-inventory').classList.remove('hidden');
   }
@@ -260,7 +270,7 @@ const UI = (() => {
 
   function dropSelectedOne() {
     if (Inventory.isCreative()) return false;
-    return !!Inventory.dropFromSlot(Inventory.getSelected(), 1);
+    return Inventory.dropFromSlot(Inventory.getSelected(), 1);
   }
 
   function renderCraftingInventory() {
