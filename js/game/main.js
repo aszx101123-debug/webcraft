@@ -14,8 +14,16 @@
   }
   if (!worldId || !saved) {
     const seedParam = seedFromParam(params.get('seed'));
-    worldId = SaveSystem.createWorld(params.get('name') || '새로운 월드', seedParam ?? Math.floor(Math.random() * 2147483647), params.get('mode') || 'survival');
-    saved = SaveSystem.load(worldId);
+    worldId = SaveSystem.createWorld(
+      params.get('name') || '새로운 월드',
+      seedParam ?? Math.floor(Math.random() * 2147483647),
+      params.get('mode') || 'survival'
+    );
+    const meta = SaveSystem.getWorldMeta(worldId);
+    saved = meta && meta.data ? meta.data : {
+      seed: meta ? meta.seed : (seedParam ?? Math.floor(Math.random() * 2147483647)),
+      mode: meta ? meta.mode : (params.get('mode') || 'survival')
+    };
   }
 
   const seed = saved.seed;
