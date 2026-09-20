@@ -69,6 +69,7 @@ const Crafting = (() => {
     });
   }
 
+  function getRecipes() { return recipes.slice(); }
   function resetGrid() { grid = new Array(9).fill(null); }
   function getGrid() { return grid.slice(); }
 
