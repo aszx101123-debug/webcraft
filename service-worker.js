@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.2-ores-tools-crafting-multiworld-20260920';
+const VERSION = 'webcraft-v1.2-detail-caves-water-crafting-character-20260920';
 const CORE = [
   './',
   './index.html',
@@ -27,7 +27,9 @@ const CORE = [
   './js/game/save.js',
   './js/game/crafting.js',
   './js/game/ui.js',
-  './js/game/main.js'
+  './js/game/main.js',
+  './js/game/player-model.js',
+  './js/game/fluids.js'
 ];
 
 self.addEventListener('install', e => {
