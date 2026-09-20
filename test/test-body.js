@@ -163,6 +163,19 @@ Inventory.init(GAME_MODE.SURVIVAL, [{ id: ITEM.STONE_PICKAXE, count: 1, durabili
 ok(Inventory.selectedToolDurability() === 2, '도구 내구도 저장');
 ok(Inventory.damageSelectedTool(1) === false && Inventory.selectedToolDurability() === 1, '도구 내구도 감소');
 ok(Inventory.damageSelectedTool(1) === true && Inventory.selectedSlot() === null, '도구 파손 후 슬롯 비움');
+ok(Inventory.SIZE === 27 && Inventory.HOTBAR_SIZE === 9, '인벤토리 27칸 + 핫바 9칸');
+Inventory.init(GAME_MODE.SURVIVAL, null);
+ok(Inventory.add(ITEM.PORK, 70) === 70 && Inventory.getSlots()[0].count === 64 && Inventory.getSlots()[1].count === 6, '27칸 스택 확장');
+ok(Inventory.move(0, 3, 10) === true && Inventory.getSlots()[0].count === 54 && Inventory.getSlots()[3].count === 10, '아이템 스택 이동');
+const split = Inventory.takeFromSlot(3, 5);
+ok(split && split.count === 5 && Inventory.getSlots()[3].count === 5, '아이템 분할');
+Inventory.putEquipment('mainhand', split);
+ok(Inventory.getEquipment().mainhand && Inventory.getEquipment().mainhand.count === 5, '장비 주손 저장');
+const equipped = Inventory.takeEquipment('mainhand');
+ok(equipped && equipped.count === 5 && !Inventory.getEquipment().mainhand, '장비 주손 회수');
+Inventory.init(GAME_MODE.SURVIVAL, [{ id: ITEM.PORK, count: 3 }]);
+ok(Inventory.dropFromSlot(0, 1).count === 1 && Inventory.getSlots()[0].count === 2, '선택 아이템 1개 버리기');
+
 
 console.log('[Crafting data]');
 ok(Array.isArray(DEFAULT_HOTBAR) && DEFAULT_HOTBAR.includes(BLOCK.CRAFTING_TABLE), '제작대가 기본 블록 목록에 포함');
