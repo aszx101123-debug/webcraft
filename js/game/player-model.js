@@ -57,6 +57,7 @@ const PlayerModel = (() => {
     group.add(bootL, bootR);
 
     group.userData.parts = { armL, armR, legL, legR };
+    group.scale.setScalar(.78);
     group.visible = false;
     scene.add(group);
   }
