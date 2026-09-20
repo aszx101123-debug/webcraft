@@ -739,7 +739,7 @@ button:disabled {
 }
 
 
-.inventory-panel { min-width: 860px; }
+.inventory-panel { min-width: 960px; }
 .inventory-head {
   display: flex;
   align-items: flex-start;
@@ -759,6 +759,49 @@ button:disabled {
   border: 1px solid #243244;
   border-radius: 8px;
   background: #0d141d;
+}
+
+.inventory-craft-panel {
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #243244;
+}
+.inventory-craft-board {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 4px 0 6px;
+}
+.inventory-craft-grid {
+  width: 132px;
+  height: 132px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 5px;
+  padding: 5px;
+  border: 2px solid #3a4756;
+  border-radius: 7px;
+  background: #1b2530;
+}
+.inventory-craft-grid .craft-cell {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+.inventory-craft-grid .craft-cell img {
+  width: 38px;
+  height: 38px;
+}
+.inventory-craft-board .craft-output {
+  width: 68px;
+  height: 68px;
+}
+.inventory-craft-tip {
+  margin-top: 4px;
+  color: #6f8194;
+  font-size: 9px;
+  line-height: 1.4;
 }
 .inventory-section-title {
   font-size: 11px;
@@ -870,7 +913,7 @@ button:disabled {
   text-shadow: 0 1px 2px #000;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 980px) {
   .inventory-panel { min-width: 0; width: 96vw; }
   .inventory-layout { grid-template-columns: 1fr; }
   .equipment-slots { grid-template-columns: repeat(4, 1fr); }
