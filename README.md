@@ -3,6 +3,8 @@
 브라우저에서 바로 실행되는 마인크래프트 스타일 블록 샌드박스 게임.
 설치 없이, 가입 없이, 클릭 한 번으로 플레이합니다.
 
+**배포 주소:** [https://aszx101123-debug.github.io/webcraft/](https://aszx101123-debug.github.io/webcraft/)
+
 **홈페이지:** [index.html](https://aszx101123-debug.github.io/webcraft/index.html) → **게임:** [play.html](https://aszx101123-debug.github.io/webcraft/play.html) → **v0.1 아카이브:** [prototype.html](https://aszx101123-debug.github.io/webcraft/prototype.html)
 
 ## 실행 방법
