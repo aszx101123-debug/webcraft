@@ -21,6 +21,7 @@
     );
     const meta = SaveSystem.getWorldMeta(worldId);
     saved = meta && meta.data ? meta.data : {
+      version: 2,
       seed: meta ? meta.seed : (seedParam ?? Math.floor(Math.random() * 2147483647)),
       mode: meta ? meta.mode : (params.get('mode') || 'survival')
     };
