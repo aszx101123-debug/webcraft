@@ -116,3 +116,6 @@ function getItemName(id) {
   const d = getItemDef(id);
   return d ? d.name : '?';
 }
+
+const LEVEL_XP_BASE = 25;
+function xpForLevel(level) { return LEVEL_XP_BASE + Math.max(0, level - 1) * 10; }
