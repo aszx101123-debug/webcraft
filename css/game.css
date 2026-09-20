@@ -300,18 +300,11 @@ input { width: 130px; }
 
 .pick img { width: 40px; height: 40px; image-rendering: pixelated; }
 
-.spinner {
-  width: 46px; height: 46px;
-  border: 5px solid #243244;
-  border-top-color: #7ec850;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 16px;
+button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+  transform: none !important;
 }
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.loading-text { color: #cfe0f0; font-size: 14px; }
 
 @media (max-width: 640px) {
   #hud-hint { display: none; }
