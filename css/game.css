@@ -15,6 +15,24 @@ canvas { display: block; }
 
 .hidden { display: none !important; }
 
+.update-badge {
+  position: fixed;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 10px;
+  border: 1px solid rgba(126,200,80,.45);
+  border-radius: 999px;
+  background: rgba(18, 40, 20, .82);
+  color: #b9eaa5;
+  font-size: 10px;
+  line-height: 1.2;
+  text-shadow: 0 1px 2px #000;
+  box-shadow: 0 4px 12px rgba(0,0,0,.24);
+  z-index: 31;
+  pointer-events: none;
+}
+
 #cross {
   position: fixed;
   left: 50%; top: 50%;
