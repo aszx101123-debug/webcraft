@@ -67,10 +67,30 @@ canvas { display: block; }
   pointer-events: none;
 }
 
+#mode-badge {
+  position: fixed;
+  top: 42px; right: 12px;
+  min-width: 100px;
+  padding: 4px 9px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 5px;
+  background: rgba(7,12,18,.52);
+  backdrop-filter: blur(3px);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  color: #fff;
+  text-shadow: 0 1px 2px #000;
+  z-index: 5;
+  pointer-events: none;
+}
+#mode-badge.survival { border-color: rgba(255,120,120,.42); }
+#mode-badge.creative { border-color: rgba(126,200,80,.42); }
+
 #hud-hint {
   position: fixed;
-  bottom: 12px; right: 12px;
-  max-width: min(46vw, 520px);
+  bottom: 14px; left: 12px;
+  max-width: min(42vw, 500px);
   padding: 6px 9px;
   border: 1px solid rgba(255,255,255,.12);
   border-radius: 5px;
@@ -111,9 +131,18 @@ canvas { display: block; }
   transition: border-color .1s, transform .1s;
 }
 
+.slot.empty { background: rgba(12,18,26,.42); }
+.slot.empty::after {
+  content: "";
+  position: absolute;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.22);
+}
 .slot.sel {
   border-color: #fff;
   transform: translateY(-4px);
+  z-index: 1;
   box-shadow: 0 0 0 2px rgba(255, 255, 255, .25), 0 6px 14px rgba(0, 0, 0, .45);
 }
 
@@ -163,7 +192,13 @@ canvas { display: block; }
 
 #item-name {
   position: fixed;
-  bottom: 150px; left: 50%;
+  bottom: 154px; left: 50%;
+  max-width: min(80vw, 360px);
+  padding: 4px 10px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 5px;
+  background: rgba(7,12,18,.52);
+  backdrop-filter: blur(3px);
   transform: translateX(-50%);
   font-size: 14px;
   color: #fff;
@@ -241,7 +276,22 @@ canvas { display: block; }
 
 .logo { color: #7ec850; text-shadow: 0 2px 0 #3c5f28; }
 
-.sub { color: #8ea4b8; font-size: 12px; margin-bottom: 14px; }
+ .sub { color: #8ea4b8; font-size: 12px; margin-bottom: 14px; }
+
+.start-status {
+  margin: -4px 0 12px;
+  padding: 6px 10px;
+  border: 1px solid #2c3a4c;
+  border-radius: 5px;
+  background: #0d141d;
+  color: #9aafc2;
+  font-size: 11px;
+}
+.start-status.ready {
+  border-color: rgba(126,200,80,.5);
+  color: #b9eaa5;
+  background: rgba(58,104,43,.18);
+}
 
 .keys {
   display: grid;
@@ -345,6 +395,9 @@ button:disabled {
 @media (max-width: 640px) {
   #hud-info { font-size: 10px; max-width: 55vw; }
   #hud-time { font-size: 12px; }
+  #mode-badge { top: 38px; right: 8px; font-size: 10px; min-width: 88px; }
+  #item-name { bottom: 126px; font-size: 12px; }
+  .start-status { font-size: 10px; }
   #hud-hint { display: none; }
   .slot { width: 42px; height: 42px; }
   .slot img { width: 32px; height: 32px; }
@@ -353,4 +406,9 @@ button:disabled {
   #survival-hud { width: 330px; }
   #hearts img, #foods img { width: 15px; height: 15px; }
   #airs img { width: 12px; height: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto !important; }
+  .slot, button, #toast, #item-name, #vignette { transition: none !important; }
 }
