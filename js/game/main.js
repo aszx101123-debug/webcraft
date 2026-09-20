@@ -522,6 +522,21 @@
         Player.pos.z + Math.cos(Player.yaw) * cy * 4.5
       );
       camera.position.copy(cp);
+      // 벽 안쪽으로 카메라가 들어가지 않도록 간단한 복셀 충돌 보정.
+      const dx = cp.x - target.x, dy = cp.y - target.y, dz = cp.z - target.z;
+      const dist = Math.hypot(dx, dy, dz);
+      const steps = Math.max(1, Math.ceil(dist / .35));
+      for (let i = 1; i <= steps; i++) {
+        const t = i / steps;
+        const sx = target.x + dx * t;
+        const sy = target.y + dy * t;
+        const sz = target.z + dz * t;
+        if (isSolidBlock(World.getBlock(Math.floor(sx), Math.floor(sy), Math.floor(sz)))) {
+          const safeT = Math.max(0, (i - 1) / steps);
+          camera.position.set(target.x + dx * safeT, target.y + dy * safeT, target.z + dz * safeT);
+          break;
+        }
+      }
       camera.lookAt(target);
     } else {
       camera.position.set(Player.pos.x, Player.pos.y + Player.eyeY, Player.pos.z);
