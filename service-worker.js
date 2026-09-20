@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.1-ui-checklist-20260920';
+const VERSION = 'webcraft-v1.1-ui-detail-stage1-20260920';
 const CORE = [
   './',
   './index.html',
