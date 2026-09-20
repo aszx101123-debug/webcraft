@@ -119,7 +119,15 @@ const Terrain = (() => {
               const lx = x + dx, ly = y + dy, lz = z + dz;
               if (lx < 0 || lx >= C || lz < 0 || lz >= C || ly < ore.minY || ly > ore.maxY) continue;
               const i = idx(lx, ly, lz);
-              if (data[i] === BLOCK.STONE) data[i] = ore.id;
+              if (data[i] !== BLOCK.STONE) continue;
+              if (ore.id === BLOCK.EMERALD_ORE && heightAt(cx * C + lx, cz * C + lz) < 40) continue;
+              const exposed = [
+                [lx + 1, ly, lz], [lx - 1, ly, lz], [lx, ly + 1, lz],
+                [lx, ly - 1, lz], [lx, ly, lz + 1], [lx, ly, lz - 1]
+              ].some(([ax, ay, az]) => ax >= 0 && ax < C && ay >= 0 && ay < H && az >= 0 && az < C &&
+                (data[idx(ax, ay, az)] === BLOCK.AIR || data[idx(ax, ay, az)] === BLOCK.WATER));
+              if (exposed && ore.id !== BLOCK.COAL_ORE && ore.id !== BLOCK.IRON_ORE) continue;
+              data[i] = ore.id;
             }
             x = Math.max(1, Math.min(14, x + (oreRng() < .5 ? -1 : 1)));
             y = Math.max(ore.minY, Math.min(ore.maxY, y + (oreRng() < .5 ? -1 : oreRng() < .75 ? 0 : 1)));
