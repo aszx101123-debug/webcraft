@@ -244,6 +244,29 @@ const Inventory = (() => {
     });
   }
 
+  function takeEquipment(key) {
+    if (!EQUIPMENT_KEYS.includes(key) || !equipment[key]) return null;
+    const out = equipment[key];
+    equipment[key] = null;
+    return out;
+  }
+
+  function putEquipment(key, incoming) {
+    if (!EQUIPMENT_KEYS.includes(key) || !incoming) return incoming;
+    if (!equipment[key]) {
+      equipment[key] = cloneStack(incoming);
+      return null;
+    }
+    const current = equipment[key];
+    if (current.id === incoming.id && !getItemDef(current.id).toolType && current.count < MAX_STACK) {
+      const put = Math.min(MAX_STACK - current.count, incoming.count);
+      current.count += put;
+      incoming.count -= put;
+      return incoming.count > 0 ? incoming : null;
+    }
+    return incoming;
+  }
+
   function serializeEquipment() {
     const out = {};
     EQUIPMENT_KEYS.forEach(k => {
@@ -261,6 +284,6 @@ const Inventory = (() => {
     selectedSlot, selectedId, isCreative, getEquipment, setSlot, canAdd, add,
     removeItem, countItem, takeFromSlot, putIntoSlot, move, dropFromSlot,
     consumeSelected, damageSelectedTool, selectedTool, selectedToolDurability,
-    serialize, serializeEquipment
+    serialize, serializeEquipment, takeEquipment, putEquipment
   };
 })();
