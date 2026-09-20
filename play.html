@@ -19,7 +19,7 @@
 <div id="hud-info"></div>
 <div id="hud-time"></div>
 <div id="mode-badge" aria-live="polite">크리에이티브</div>
-<div id="hud-hint">좌클릭 유지 캐기/공격 · 우클릭 놓기/먹기 · 휠/1~9 선택 · B 블록 상자 · F 비행(크리에이티브) · Esc 메뉴</div>
+<div id="hud-hint">좌클릭 유지 캐기/공격 · 우클릭 놓기/먹기 · 휠/1~9 선택 · B 블록 상자 · C 제작 · F5 3인칭 · F 비행(크리에이티브) · Esc 메뉴</div>
 <div id="toast"></div>
 
 <div id="survival-hud" class="hidden">
@@ -51,7 +51,7 @@
       <div><b>WASD</b> 이동</div><div><b>Space</b> 점프/수영</div><div><b>Shift</b> 달리기</div>
       <div><b>좌클릭 유지</b> 캐기/공격</div><div><b>우클릭</b> 놓기/먹기</div><div><b>휠 / 1~9</b> 선택</div>
       <div><b>B</b> 블록 상자<span class="cr">*</span></div><div><b>C</b> 제작 메뉴</div><div><b>F</b> 비행<span class="cr">*</span></div>
-      <div><b>F3</b> 정보</div><div><b>Esc</b> 일시정지</div><div><b>월드</b> 여러 개 저장</div>
+      <div><b>F3</b> 정보</div><div><b>F5</b> 3인칭 카메라</div><div><b>Esc</b> 일시정지</div>
     </div>
     <div class="btn-col">
       <button id="btn-start-survival" class="btn-primary">서바이벌로 시작</button>
@@ -110,10 +110,27 @@
 
 <div id="overlay-crafting" class="overlay hidden">
   <div class="panel crafting-panel">
-    <h2>제작</h2>
-    <p class="sub">재료를 모아 블록과 도구를 제작합니다.</p>
-    <div id="recipe-grid"></div>
-    <button id="crafting-close" class="btn ghost">닫기</button>
+    <h2>제작대</h2>
+    <p class="sub">재료를 격자에 배치하고 결과 칸을 눌러 제작합니다. 레시피를 누르면 격자에 배치할 수 있습니다.</p>
+    <div class="craft-layout">
+      <div class="craft-left">
+        <div class="craft-board">
+          <div class="craft-grid" id="craft-grid"></div>
+          <div class="craft-arrow">→</div>
+          <button id="craft-output" class="craft-output" disabled aria-label="제작 결과"></button>
+        </div>
+        <div class="craft-inventory-title">재료</div>
+        <div id="craft-inventory" class="craft-inventory"></div>
+        <div class="craft-actions">
+          <button id="craft-clear" class="btn small">격자 비우기</button>
+          <button id="crafting-close" class="btn ghost">닫기</button>
+        </div>
+      </div>
+      <div class="craft-recipes">
+        <div class="craft-recipes-title">레시피 북</div>
+        <div id="recipe-grid"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -124,6 +141,8 @@
 <script src="js/game/textures.js"></script>
 <script src="js/game/world.js"></script>
 <script src="js/game/player.js"></script>
+<script src="js/game/player-model.js"></script>
+<script src="js/game/fluids.js"></script>
 <script src="js/game/interaction.js"></script>
 <script src="js/game/items.js"></script>
 <script src="js/game/drops.js"></script>
@@ -134,7 +153,7 @@
 <script src="js/game/main.js"></script>
 <script>
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-  addEventListener('load', () => navigator.serviceWorker.register('service-worker.js?v=20260920-v12-2').catch(() => {}));
+  addEventListener('load', () => navigator.serviceWorker.register('service-worker.js?v=20260920-v12-3').catch(() => {}));
 }
 </script>
 </body>

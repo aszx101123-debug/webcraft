@@ -24,7 +24,7 @@ const BLOCK = Object.freeze({
   AIR: 0, GRASS: 1, DIRT: 2, STONE: 3, COBBLE: 4, SAND: 5, LOG: 6, LEAVES: 7,
   PLANK: 8, GLASS: 9, BRICK: 10, GLOWSTONE: 11, WATER: 12, BEDROCK: 13,
   CRAFTING_TABLE: 14, COAL_ORE: 15, IRON_ORE: 16, GOLD_ORE: 17, COPPER_ORE: 18,
-  REDSTONE_ORE: 19, LAPIS_ORE: 20, DIAMOND_ORE: 21, EMERALD_ORE: 22
+  REDSTONE_ORE: 19, LAPIS_ORE: 20, DIAMOND_ORE: 21, EMERALD_ORE: 22, WATER_FLOW: 23
 });
 
 const BLOCKS = [
@@ -50,7 +50,8 @@ const BLOCKS = [
   { name: '레드스톤 광석', tiles: { all: [4, 3] }, miningTime: 1.8, tool: 'pickaxe', minTier: 3, oreDrop: true },
   { name: '청금석 광석', tiles: { all: [5, 3] }, miningTime: 1.75, tool: 'pickaxe', minTier: 3, oreDrop: true },
   { name: '다이아몬드 광석', tiles: { all: [6, 3] }, miningTime: 2.4, tool: 'pickaxe', minTier: 3, oreDrop: true },
-  { name: '에메랄드 광석', tiles: { all: [7, 3] }, miningTime: 2.2, tool: 'pickaxe', minTier: 3, oreDrop: true }
+  { name: '에메랄드 광석', tiles: { all: [7, 3] }, miningTime: 2.2, tool: 'pickaxe', minTier: 3, oreDrop: true },
+  { name: '흐르는 물', tiles: { all: [5, 1] }, liquid: true, flow: true, miningTime: .2 }
 ];
 
 const ITEM = Object.freeze({
@@ -127,7 +128,7 @@ const BLOCK_DROPS = {
 };
 
 function getBlockDrop(id, rnd, tool) {
-  if (id === BLOCK.AIR || id === BLOCK.WATER || id === BLOCK.BEDROCK) return 0;
+  if (id === BLOCK.AIR || id === BLOCK.WATER || id === BLOCK.WATER_FLOW || id === BLOCK.BEDROCK) return 0;
   const def = BLOCKS[id];
   if (!def) return 0;
   if (id === BLOCK.LEAVES) return rnd && rnd() < 0.04 ? ITEM.APPLE : 0;

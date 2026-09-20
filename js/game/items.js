@@ -61,6 +61,21 @@ const Inventory = (() => {
     else slots[i] = id ? { id, count: mode === GAME_MODE.CREATIVE ? Infinity : MAX_STACK } : null;
   }
 
+  function canAdd(id, count) {
+    if (!id || !count || count <= 0) return false;
+    const def = getItemDef(id);
+    if (!def) return false;
+    if (mode === GAME_MODE.CREATIVE) return true;
+    if (def.toolType) return slots.filter(s => !s).length >= count;
+    let remaining = count;
+    for (const s of slots) {
+      if (s && s.id === id && !getItemDef(s.id).toolType) remaining -= Math.max(0, MAX_STACK - s.count);
+      if (remaining <= 0) return true;
+    }
+    const empties = slots.filter(s => !s).length;
+    return remaining <= empties * MAX_STACK;
+  }
+
   function add(id, count) {
     if (!id || !count || count <= 0) return 0;
     const def = getItemDef(id);
@@ -156,7 +171,7 @@ const Inventory = (() => {
 
   return {
     SIZE, MAX_STACK, init, setMode, getSlots, getSelected, setSelected,
-    selectedSlot, selectedId, isCreative, setSlot, add, removeItem, countItem,
+    selectedSlot, selectedId, isCreative, setSlot, canAdd, add, removeItem, countItem,
     consumeSelected, damageSelectedTool, selectedTool, selectedToolDurability, serialize
   };
 })();

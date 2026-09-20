@@ -44,6 +44,8 @@
 
   Textures.init();
   World.init(scene, seed, saved ? saved.edits : null);
+  Fluids.init();
+  PlayerModel.init(scene);
   Mobs.init(scene);
   Drops.init(scene, (id, n) => {
     UI.showToast(`${getItemName(id)} +${n}`);
@@ -56,6 +58,7 @@
     started: false,
     locked: false,
     ready: false,
+    thirdPerson: saved && saved.thirdPerson === true,
     time: saved ? saved.time : .22,
     renderDist: saved ? saved.renderDist : CONFIG.RENDER_DIST,
     sound: saved ? saved.sound !== false : true,
@@ -151,6 +154,7 @@
       food: Player.food,
       spawn: { x: Player.spawnPoint.x, y: Player.spawnPoint.y, z: Player.spawnPoint.z },
       hotbar: Inventory.serialize(),
+      thirdPerson: state.thirdPerson,
       player: {
         x: Player.pos.x, y: Player.pos.y, z: Player.pos.z,
         yaw: Player.yaw, pitch: Player.pitch, flying: Player.flying
@@ -214,6 +218,11 @@
       return;
     }
     if (e.code === 'F3') { e.preventDefault(); const h = document.getElementById('hud-info'); h.style.display = h.style.display === 'none' ? '' : 'none'; }
+    if (e.code === 'F5') {
+      e.preventDefault();
+      state.thirdPerson = !state.thirdPerson;
+      UI.showToast(state.thirdPerson ? '3인칭 카메라 ON' : '1인칭 카메라 ON');
+    }
     if (!state.locked) return;
     if (e.code.startsWith('Digit')) {
       const n = +e.code[5];
@@ -483,12 +492,14 @@
         }
         if (!Interact.miningProgress()) miningHeld = false;
         updateSky(dt);
+        Fluids.update(Player.pos.x, Player.pos.y, Player.pos.z, dt);
         const sprinting = (keys['ShiftLeft'] || keys['ShiftRight']) && keys['KeyW'] && !Player.flying;
         Player.survivalTick(dt, sprinting);
         Mobs.update(dt, true);
         Drops.update(dt, Player.pos, state.mode === GAME_MODE.SURVIVAL && !Player.dead);
       } else {
         updateSky(dt);
+        Fluids.update(Player.pos.x, Player.pos.y, Player.pos.z, dt);
       }
       World.update(Player.pos.x, Player.pos.z, state.renderDist);
     }
@@ -500,8 +511,37 @@
       camera.updateProjectionMatrix();
     }
 
-    camera.position.set(Player.pos.x, Player.pos.y + Player.eyeY, Player.pos.z);
-    camera.rotation.set(Player.pitch, Player.yaw, 0);
+    PlayerModel.update(Player, dt, state.thirdPerson);
+    if (state.thirdPerson) {
+      const cp = new THREE.Vector3();
+      const target = new THREE.Vector3(Player.pos.x, Player.pos.y + 1.15, Player.pos.z);
+      const cy = Math.cos(Player.pitch), sy = Math.sin(Player.pitch);
+      cp.set(
+        Player.pos.x + Math.sin(Player.yaw) * cy * 4.5,
+        Player.pos.y + 1.65 + sy * 2.0,
+        Player.pos.z + Math.cos(Player.yaw) * cy * 4.5
+      );
+      camera.position.copy(cp);
+      // 벽 안쪽으로 카메라가 들어가지 않도록 간단한 복셀 충돌 보정.
+      const dx = cp.x - target.x, dy = cp.y - target.y, dz = cp.z - target.z;
+      const dist = Math.hypot(dx, dy, dz);
+      const steps = Math.max(1, Math.ceil(dist / .35));
+      for (let i = 1; i <= steps; i++) {
+        const t = i / steps;
+        const sx = target.x + dx * t;
+        const sy = target.y + dy * t;
+        const sz = target.z + dz * t;
+        if (isSolidBlock(World.getBlock(Math.floor(sx), Math.floor(sy), Math.floor(sz)))) {
+          const safeT = Math.max(0, (i - 1) / steps);
+          camera.position.set(target.x + dx * safeT, target.y + dy * safeT, target.z + dz * safeT);
+          break;
+        }
+      }
+      camera.lookAt(target);
+    } else {
+      camera.position.set(Player.pos.x, Player.pos.y + Player.eyeY, Player.pos.z);
+      camera.rotation.set(Player.pitch, Player.yaw, 0);
+    }
 
     frames++;
     fpsTime += dt;
