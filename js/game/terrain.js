@@ -46,6 +46,41 @@ const Terrain = (() => {
           if (id) data[idx(x, y, z)] = id;
         }
       }
+      // v1.2 deterministic ore veins. Ores replace stone only and stay below the surface.
+      const oreDefs = [
+        { id: BLOCK.COAL_ORE, minY: 8, maxY: 42, veins: 10, size: 8 },
+        { id: BLOCK.IRON_ORE, minY: 7, maxY: 34, veins: 8, size: 6 },
+        { id: BLOCK.COPPER_ORE, minY: 10, maxY: 36, veins: 7, size: 6 },
+        { id: BLOCK.GOLD_ORE, minY: 5, maxY: 26, veins: 5, size: 5 },
+        { id: BLOCK.LAPIS_ORE, minY: 6, maxY: 25, veins: 4, size: 4 },
+        { id: BLOCK.REDSTONE_ORE, minY: 4, maxY: 18, veins: 6, size: 6 },
+        { id: BLOCK.DIAMOND_ORE, minY: 3, maxY: 11, veins: 3, size: 3 },
+        { id: BLOCK.EMERALD_ORE, minY: 16, maxY: 42, veins: 2, size: 2 }
+      ];
+      const oreRng = Noise.mulberry32(Math.floor(Noise.hash2(cx + 91, cz - 47, seed + 1901) * 4294967296));
+      for (const ore of oreDefs) {
+        for (let vein = 0; vein < ore.veins; vein++) {
+          const ox = 1 + Math.floor(oreRng() * 14);
+          const oz = 1 + Math.floor(oreRng() * 14);
+          const oy = ore.minY + Math.floor(oreRng() * (ore.maxY - ore.minY + 1));
+          const steps = Math.max(2, ore.size - 2 + Math.floor(oreRng() * 4));
+          let x = ox, y = oy, z = oz;
+          for (let s = 0; s < steps; s++) {
+            const rr = oreRng() < .72 ? 1 : 2;
+            for (let dx = -rr; dx <= rr; dx++) for (let dy = -rr; dy <= rr; dy++) for (let dz = -rr; dz <= rr; dz++) {
+              if (dx * dx + dy * dy + dz * dz > rr * rr + 1) continue;
+              const lx = x + dx, ly = y + dy, lz = z + dz;
+              if (lx < 0 || lx >= C || lz < 0 || lz >= C || ly < ore.minY || ly > ore.maxY) continue;
+              const i = idx(lx, ly, lz);
+              if (data[i] === BLOCK.STONE) data[i] = ore.id;
+            }
+            x = Math.max(1, Math.min(14, x + (oreRng() < .5 ? -1 : 1)));
+            y = Math.max(ore.minY, Math.min(ore.maxY, y + (oreRng() < .5 ? -1 : oreRng() < .75 ? 0 : 1)));
+            z = Math.max(1, Math.min(14, z + (oreRng() < .5 ? -1 : 1)));
+          }
+        }
+      }
+
       const f = stretch(forestAt(cx * C + 8, cz * C + 8), 1.9);
       const count = Math.min(4, Math.floor(Math.max(0, f - .5) * 12));
       const rng = Noise.mulberry32(Math.floor(Noise.hash2(cx, cz, seed) * 4294967296));
