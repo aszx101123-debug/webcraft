@@ -1,0 +1,32 @@
+name: WebCraft checks
+
+on:
+  push:
+    branches: ["main", "gh-pages", "fix/**", "chore/**"]
+  pull_request:
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check JavaScript syntax
+        run: |
+          node --check js/game/config.js
+          node --check js/game/noise.js
+          node --check js/game/terrain.js
+          node --check js/game/textures.js
+          node --check js/game/world.js
+          node --check js/game/player.js
+          node --check js/game/player-model.js
+          node --check js/game/fluids.js
+          node --check js/game/interaction.js
+          node --check js/game/items.js
+          node --check js/game/drops.js
+          node --check js/game/mobs.js
+          node --check js/game/save.js
+          node --check js/game/crafting.js
+          node --check js/game/ui.js
+          node --check js/game/main.js
+      - name: Run logic tests
+        run: node test/run-tests.js
