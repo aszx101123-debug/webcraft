@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.2.6.3-texture-startup-20260921';
+const VERSION = 'webcraft-v1.2.7-arms-crafting-armor-biomes-20260921';
 const CORE = [
   './',
   './index.html',
