@@ -1,8 +1,8 @@
 'use strict';
 
 const PlayerModel = (() => {
-  let group = null;
-  let scene = null;
+  let group=null,firstPerson=null;
+  let scene=null,camera=null;
 
   function mat(color) {
     return new THREE.MeshLambertMaterial({ color });
@@ -14,8 +14,7 @@ const PlayerModel = (() => {
     return mesh;
   }
 
-  function init(scene_) {
-    scene = scene_;
+  function init(scene_,camera_) { scene=scene_; camera=camera_;
     group = new THREE.Group();
 
     // 오리지널 블록형 모험가: 정사각형 머리 + 짧은 헤어 + 청록 상의 + 짙은 바지.
@@ -58,17 +57,12 @@ const PlayerModel = (() => {
 
     group.userData.parts = { armL, armR, legL, legR };
     group.scale.setScalar(.78);
-    group.visible = false;
-    scene.add(group);
+    group.visible=false;scene.add(group);firstPerson=new THREE.Group();firstPerson.add(box(.22,.72,.25,shirt,-.43,-.55,-.72),box(.22,.72,.25,shirt,.43,-.55,-.72),box(.22,.28,.25,skin,-.43,-.95,-.72),box(.22,.28,.25,skin,.43,-.95,-.72));camera.add(firstPerson);
   }
 
   function update(player, dt, thirdPerson) {
     if (!group) return;
-    const parts = group.userData.parts;
-    group.visible = !!thirdPerson && !player.dead;
-    if (!group.visible) return;
-
-    group.position.set(player.pos.x, player.pos.y, player.pos.z);
+    const parts=group.userData.parts;firstPerson.visible=!thirdPerson&&!player.dead;group.visible=!!thirdPerson&&!player.dead;if(!thirdPerson||player.dead)return;group.position.set(player.pos.x,player.pos.y,player.pos.z);
     group.rotation.y = player.yaw + Math.PI;
 
     const speed = Math.hypot(player.vel.x, player.vel.z);
