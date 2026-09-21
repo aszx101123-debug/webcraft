@@ -86,7 +86,8 @@ const Textures = (() => {
       const wave = Math.sin((x + y * .7) * .8) > .55;
       return wave ? vary(76, 135, 210, 10) : vary(54, 109, 184, 12);
     });
-    fill(6, 1, () => { const v = rng() < .5 ? 52 : 88; return vary(v, v, v, 14); });\n    fill(7, 1, (x, y) => {
+    fill(6, 1, () => { const v = rng() < .5 ? 52 : 88; return vary(v, v, v, 14); });
+    fill(7, 1, (x, y) => {
       if ((x + y * 3) % 19 === 0) return vary(226, 236, 242, 6);
       return vary(242, 246, 248, 5);
     });
