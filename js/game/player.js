@@ -79,8 +79,7 @@ const Player = (() => {
   }
 
   function damage(amount, cause, sourcePos) {
-    if (mode === GAME_MODE.CREATIVE || dead || amount <= 0) return false;
-    hp = Math.max(0, hp - amount);
+    if(mode===GAME_MODE.CREATIVE||dead||amount<=0)return false;const armor=Inventory.getArmorDefense?Inventory.getArmorDefense():0;const reduced=Math.max(1,Math.ceil(amount*Math.max(.2,1-armor*.04)));hp=Math.max(0,hp-reduced);if(armor>0){const eq=Inventory.getEquipment();for(const k of ['head','chest','legs','feet']){const a=eq[k]&&getArmorDef(eq[k].id);if(a){eq[k].durability=Math.max(0,(eq[k].durability||a.maxDurability)-1);if(eq[k].durability<=0)Inventory.takeEquipment(k);break;}}}
     if (sourcePos) {
       const kx = pos.x - sourcePos.x, kz = pos.z - sourcePos.z;
       const l = Math.hypot(kx, kz) || 1;

@@ -1,6 +1,6 @@
 {
   "name": "webcraft",
-  "version": "1.2.6.3",
+  "version": "1.2.7",
   "private": true,
   "description": "브라우저 블록 샌드박스 게임 WebCraft",
   "scripts": {
