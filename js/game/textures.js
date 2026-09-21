@@ -1,7 +1,7 @@
 'use strict';
 
 const Textures = (() => {
-  const TS = 16, GRID = 8, SIZE = TS * GRID;
+  const TS=16, GRID=10, SIZE=TS*GRID;
   let canvas = null, ctx = null, texture = null;
   const iconCache = {};
 
@@ -160,6 +160,7 @@ const Textures = (() => {
     fill(6, 6, (x, y) => ((x < 4 && y < 4) || (y % 5 === 0)) ? vary(151, 104, 62, 8) : vary(176, 123, 76, 8));
     fill(7, 6, (x, y) => ((x + y) % 4 === 0) ? vary(102, 70, 46, 8) : vary(138, 94, 61, 8));
     fill(6, 7, (x, y) => ((x - y) % 5 === 0) ? vary(112, 112, 120, 8) : vary(150, 150, 158, 8));
+    const armorColors=[[150,105,75],[120,125,135],[190,195,205],[220,180,55],[95,220,245]];let ac=0;const armorTile=(r,g,b)=>(x,y)=>vary(r,g,b,10);for(let row=8;row<10;row++)for(let col=0;col<10;col++){const q=armorColors[Math.min(4,Math.floor(ac/4))];fill(col,row,armorTile(...q));ac++;}
 
     function hashCell(cx, cy) { return (cx * 7 + cy * 13) % 5 / 5; }
 
