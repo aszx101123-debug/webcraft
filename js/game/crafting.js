@@ -51,6 +51,7 @@ const Crafting = (() => {
     note: '판자 4개'
   });
 
+  const armorTiers=[{key:'leather',name:'가죽',material:ITEM.LEATHER,helmet:ITEM.LEATHER_HELMET,chest:ITEM.LEATHER_CHESTPLATE,legs:ITEM.LEATHER_LEGGINGS,boots:ITEM.LEATHER_BOOTS},{key:'stone',name:'돌',material:BLOCK.COBBLE,helmet:ITEM.STONE_HELMET,chest:ITEM.STONE_CHESTPLATE,legs:ITEM.STONE_LEGGINGS,boots:ITEM.STONE_BOOTS},{key:'iron',name:'철',material:ITEM.IRON_INGOT,helmet:ITEM.IRON_HELMET,chest:ITEM.IRON_CHESTPLATE,legs:ITEM.IRON_LEGGINGS,boots:ITEM.IRON_BOOTS},{key:'gold',name:'금',material:ITEM.GOLD_INGOT,helmet:ITEM.GOLD_HELMET,chest:ITEM.GOLD_CHESTPLATE,legs:ITEM.GOLD_LEGGINGS,boots:ITEM.GOLD_BOOTS},{key:'diamond',name:'다이아몬드',material:ITEM.DIAMOND,helmet:ITEM.DIAMOND_HELMET,chest:ITEM.DIAMOND_CHESTPLATE,legs:ITEM.DIAMOND_LEGGINGS,boots:ITEM.DIAMOND_BOOTS}];const armorShapes={helmet:[1,1,1,1,0,1,0,0,0],chest:[1,0,1,1,1,1,1,1,1],legs:[1,1,1,1,0,1,1,0,1],boots:[0,0,0,1,0,1,1,0,1]};for(const t of armorTiers){add(t.key+'-helmet',t.name+' 투구',t.helmet,1,{pattern:armorShapes.helmet,ingredients:[{id:t.material,count:5}]});add(t.key+'-chest',t.name+' 흉갑',t.chest,1,{pattern:armorShapes.chest,ingredients:[{id:t.material,count:8}]});add(t.key+'-legs',t.name+' 레깅스',t.legs,1,{pattern:armorShapes.legs,ingredients:[{id:t.material,count:7}]});add(t.key+'-boots',t.name+' 부츠',t.boots,1,{pattern:armorShapes.boots,ingredients:[{id:t.material,count:4}]});}
   const tiers = [
     { key: 'wood', name: '나무', material: BLOCK.PLANK, pick: ITEM.WOODEN_PICKAXE, cutter: ITEM.WOODEN_CUTTER, shovel: ITEM.WOODEN_SHOVEL, hoe: ITEM.WOODEN_HOE },
     { key: 'stone', name: '돌', material: BLOCK.COBBLE, pick: ITEM.STONE_PICKAXE, cutter: ITEM.STONE_CUTTER, shovel: ITEM.STONE_SHOVEL, hoe: ITEM.STONE_HOE },
@@ -182,10 +183,7 @@ const Crafting = (() => {
       Inventory.canAdd(recipe.outputId, recipe.count);
   }
 
-  function canCraftGrid() {
-    const recipe = getMatch();
-    return !!recipe && canCraft(recipe);
-  }
+  function canCraftGrid(){const r=getMatch();if(!r)return false;const m=new Map();activeIndices().forEach(i=>{const id=grid[i];if(id)m.set(id,(m.get(id)||0)+1)});return r.ingredients.every(x=>(m.get(x.id)||0)>=x.count)&&Inventory.canAdd(r.outputId,r.count);}
 
   function consumeIngredients(recipe) {
     for (const ing of recipe.ingredients) {
@@ -194,10 +192,7 @@ const Crafting = (() => {
     return true;
   }
 
-  function craftGrid() {
-    const recipe = getMatch();
-    if (!recipe || !canCraft(recipe)) return false;
-    if (!consumeIngredients(recipe)) return false;
+  function craftGrid(){const recipe=getMatch();if(!recipe||!canCraftGrid())return false;for(const ing of recipe.ingredients){let n=ing.count;for(const i of activeIndices()){if(!n)break;if(grid[i]===ing.id){grid[i]=null;n--;}}if(n)return false;}
     const made = Inventory.add(recipe.outputId, recipe.count);
     if (made < recipe.count) return false;
     resetGrid();
