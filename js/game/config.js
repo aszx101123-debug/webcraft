@@ -57,13 +57,13 @@ const BLOCKS = [
 ];
 
 const ITEM = Object.freeze({
-  PORK: 100, BEEF: 101, CHICKEN: 102, MUTTON: 103, ROTTEN: 104, APPLE: 105,
+  PORK:100,BEEF:101,CHICKEN:102,MUTTON:103,ROTTEN:104,APPLE:105,LEATHER:115,
   COAL: 106, IRON_INGOT: 107, GOLD_INGOT: 108, COPPER_INGOT: 109,
   REDSTONE: 110, LAPIS: 111, DIAMOND: 112, EMERALD: 113, STICK: 114,
   WOODEN_PICKAXE: 200, STONE_PICKAXE: 201, IRON_PICKAXE: 202, GOLD_PICKAXE: 203, DIAMOND_PICKAXE: 204,
   WOODEN_CUTTER: 205, STONE_CUTTER: 206, IRON_CUTTER: 207, GOLD_CUTTER: 208, DIAMOND_CUTTER: 209,
   WOODEN_SHOVEL: 210, STONE_SHOVEL: 211, IRON_SHOVEL: 212, GOLD_SHOVEL: 213, DIAMOND_SHOVEL: 214,
-  WOODEN_HOE: 215, STONE_HOE: 216, IRON_HOE: 217, GOLD_HOE: 218, DIAMOND_HOE: 219
+  WOODEN_HOE:215,STONE_HOE:216,IRON_HOE:217,GOLD_HOE:218,DIAMOND_HOE:219,LEATHER_HELMET:220,LEATHER_CHESTPLATE:221,LEATHER_LEGGINGS:222,LEATHER_BOOTS:223,STONE_HELMET:224,STONE_CHESTPLATE:225,STONE_LEGGINGS:226,STONE_BOOTS:227,IRON_HELMET:228,IRON_CHESTPLATE:229,IRON_LEGGINGS:230,IRON_BOOTS:231,GOLD_HELMET:232,GOLD_CHESTPLATE:233,GOLD_LEGGINGS:234,GOLD_BOOTS:235,DIAMOND_HELMET:236,DIAMOND_CHESTPLATE:237,DIAMOND_LEGGINGS:238,DIAMOND_BOOTS:239
 });
 
 const ITEMS = {
@@ -72,7 +72,7 @@ const ITEMS = {
   [ITEM.CHICKEN]:  { name: '닭고기',    food: 5, tiles: { all: [2, 2] } },
   [ITEM.MUTTON]:   { name: '양고기',    food: 6, tiles: { all: [3, 2] } },
   [ITEM.ROTTEN]:   { name: '썩은 고기', food: 3, tiles: { all: [4, 2] } },
-  [ITEM.APPLE]:    { name: '사과',      food: 4, tiles: { all: [5, 2] } },
+  [ITEM.APPLE]:{name:'사과',food:4,tiles:{all:[5,2]}},[ITEM.LEATHER]:{name:'가죽',tiles:{all:[6,2]}},
   [ITEM.COAL]:     { name: '석탄',      tiles: { all: [0, 4] } },
   [ITEM.IRON_INGOT]: { name: '철 주괴', tiles: { all: [1, 4] } },
   [ITEM.GOLD_INGOT]: { name: '금 주괴', tiles: { all: [2, 4] } },
@@ -101,7 +101,7 @@ const ITEMS = {
   [ITEM.STONE_HOE]: toolItem(ITEM.STONE_HOE, '돌 괭이', 'hoe', 2, 4, 132, [1, 6]),
   [ITEM.IRON_HOE]: toolItem(ITEM.IRON_HOE, '철 괭이', 'hoe', 3, 6, 250, [2, 6]),
   [ITEM.GOLD_HOE]: toolItem(ITEM.GOLD_HOE, '금 괭이', 'hoe', 4, 10, 33, [3, 6]),
-  [ITEM.DIAMOND_HOE]: toolItem(ITEM.DIAMOND_HOE, '다이아몬드 괭이', 'hoe', 5, 8, 1562, [4, 6])
+  [ITEM.DIAMOND_HOE]:toolItem(ITEM.DIAMOND_HOE,'다이아몬드 괭이','hoe',5,8,1562,[4,6]),[ITEM.LEATHER_HELMET]:armorItem(ITEM.LEATHER_HELMET,'가죽 투구','head',1,55,[0,8]),[ITEM.LEATHER_CHESTPLATE]:armorItem(ITEM.LEATHER_CHESTPLATE,'가죽 흉갑','chest',3,80,[1,8]),[ITEM.LEATHER_LEGGINGS]:armorItem(ITEM.LEATHER_LEGGINGS,'가죽 레깅스','legs',2,75,[2,8]),[ITEM.LEATHER_BOOTS]:armorItem(ITEM.LEATHER_BOOTS,'가죽 부츠','feet',1,65,[3,8]),[ITEM.STONE_HELMET]:armorItem(ITEM.STONE_HELMET,'돌 투구','head',1,100,[4,8]),[ITEM.STONE_CHESTPLATE]:armorItem(ITEM.STONE_CHESTPLATE,'돌 흉갑','chest',4,130,[5,8]),[ITEM.STONE_LEGGINGS]:armorItem(ITEM.STONE_LEGGINGS,'돌 레깅스','legs',3,120,[6,8]),[ITEM.STONE_BOOTS]:armorItem(ITEM.STONE_BOOTS,'돌 부츠','feet',1,110,[7,8]),[ITEM.IRON_HELMET]:armorItem(ITEM.IRON_HELMET,'철 투구','head',2,165,[8,8]),[ITEM.IRON_CHESTPLATE]:armorItem(ITEM.IRON_CHESTPLATE,'철 흉갑','chest',6,240,[9,8]),[ITEM.IRON_LEGGINGS]:armorItem(ITEM.IRON_LEGGINGS,'철 레깅스','legs',5,225,[0,9]),[ITEM.IRON_BOOTS]:armorItem(ITEM.IRON_BOOTS,'철 부츠','feet',2,195,[1,9]),[ITEM.GOLD_HELMET]:armorItem(ITEM.GOLD_HELMET,'금 투구','head',2,77,[2,9]),[ITEM.GOLD_CHESTPLATE]:armorItem(ITEM.GOLD_CHESTPLATE,'금 흉갑','chest',5,112,[3,9]),[ITEM.GOLD_LEGGINGS]:armorItem(ITEM.GOLD_LEGGINGS,'금 레깅스','legs',3,105,[4,9]),[ITEM.GOLD_BOOTS]:armorItem(ITEM.GOLD_BOOTS,'금 부츠','feet',1,91,[5,9]),[ITEM.DIAMOND_HELMET]:armorItem(ITEM.DIAMOND_HELMET,'다이아몬드 투구','head',3,363,[6,9]),[ITEM.DIAMOND_CHESTPLATE]:armorItem(ITEM.DIAMOND_CHESTPLATE,'다이아몬드 흉갑','chest',8,528,[7,9]),[ITEM.DIAMOND_LEGGINGS]:armorItem(ITEM.DIAMOND_LEGGINGS,'다이아몬드 레깅스','legs',6,495,[8,9]),[ITEM.DIAMOND_BOOTS]:armorItem(ITEM.DIAMOND_BOOTS,'다이아몬드 부츠','feet',3,429,[9,9])
 };
 
 const DEFAULT_HOTBAR = [
@@ -140,10 +140,11 @@ function getBlockDrop(id, rnd, tool) {
   return BLOCK_DROPS[id] || id;
 }
 
-function isToolId(id) { return id >= 200 && !!ITEMS[id] && !!ITEMS[id].toolType; }
-function getToolDef(id) { return isToolId(id) ? ITEMS[id] : null; }
+function isToolId(id){return id>=200&&id<220&&!!ITEMS[id]&&!!ITEMS[id].toolType;} function isArmorId(id){return id>=220&&id<=239&&!!ITEMS[id]&&!!ITEMS[id].armorType;}
+function getToolDef(id){return isToolId(id)?ITEMS[id]:null;} function getArmorDef(id){return isArmorId(id)?ITEMS[id]:null;}
 function isFoodId(id) { return id >= 100 && !!ITEMS[id] && typeof ITEMS[id].food === 'number'; }
 
+function armorItem(id,n,t,d,m,tile){return{name:n,armorType:t,defense:d,maxDurability:m,tiles:{all:tile}};}
 function toolItem(id, name, type, tier, speed, maxDurability, tile) {
   return { name, toolType: type, tier, speed, maxDurability, tiles: { all: tile } };
 }
@@ -160,7 +161,7 @@ const MOB_CAPS = { hostile: 12, passive: 10 };
 
 const MOB_DEFS = {
   pig:      { name: '돼지',    hostile: false, hp: 12, speed: 1.5, height: .9, width: .82,  drops: [{ id: ITEM.PORK, min: 1, max: 2 }] },
-  cow:      { name: '소',      hostile: false, hp: 12, speed: 1.4, height: 1.28, width: .9, drops: [{ id: ITEM.BEEF, min: 1, max: 3 }] },
+  cow:{name:'소',hostile:false,hp:12,speed:1.4,height:1.28,width:.9,drops:[{id:ITEM.BEEF,min:1,max:3},{id:ITEM.LEATHER,min:0,max:2,chance:.75}]},
   sheep:    { name: '양',      hostile: false, hp: 10, speed: 1.4, height: 1.22, width: .82, drops: [{ id: ITEM.MUTTON, min: 1, max: 2 }] },
   chicken:  { name: '닭',      hostile: false, hp: 4,  speed: 1.3, height: .65, width: .45, drops: [{ id: ITEM.CHICKEN, min: 1, max: 1 }] },
   zombie:   { name: '좀비',    hostile: true,  hp: 16, speed: 2.35, height: 1.9,  width: .62, dmg: 3, aggro: 24, drops: [{ id: ITEM.ROTTEN, min: 1, max: 1, chance: .45 }] },
