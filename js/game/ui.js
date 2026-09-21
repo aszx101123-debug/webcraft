@@ -173,7 +173,7 @@ const UI = (() => {
         if(src){const taken=Inventory.takeFromSlot(index,1);if(taken&&Crafting.addToFirstEmpty(taken.id)>=0){
           renderInventoryCrafting();
           showToast(getItemName(src.id) + '을 2×2 제작칸에 넣었습니다');
-        }
+        }}
         return;
       }
       if (e.button === 2) {
