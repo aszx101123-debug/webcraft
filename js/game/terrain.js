@@ -29,9 +29,7 @@ const Terrain = (() => {
       const h = heightAt(x, z);
       const temp = Noise.fbm2(x * .0018 + 900, z * .0018 - 900, seed + 101, 3);
       const moisture = Noise.fbm2(x * .0022 - 1200, z * .0022 + 300, seed + 202, 3);
-      if (h >= 45 && temp < .58) return 'snowy';
-      if (h < SEA + 2 && temp > .72 && moisture < .5) return 'desert';
-      if (moisture > .64) return 'forest';
+      if(h>=45&&temp<.58)return'snowy';if(h<SEA+2&&temp>.72&&moisture<.5)return'desert';if(temp>.68&&moisture>.68)return'jungle';if(moisture>.78&&h<SEA+5)return'swamp';if(temp<.38&&moisture>.48)return'taiga';if(moisture>.64)return'forest';
       if (h >= 42) return 'highland';
       return 'plains';
     }
@@ -44,8 +42,7 @@ const Terrain = (() => {
         const h = heightAt(wx, wz);
         heights[x * C + z] = h;
         const biome = biomeAt(wx, wz);
-        const sandy = h <= SEA + 1 || biome === 'desert';
-        const snowy = biome === 'snowy';
+        const sandy=h<=SEA+1||biome==='desert'||biome==='swamp';const snowy=biome==='snowy'||biome==='taiga';
         for (let y = 0; y < H; y++) {
           let id = BLOCK.AIR;
           if (y === 0) id = BLOCK.BEDROCK;
@@ -137,8 +134,7 @@ const Terrain = (() => {
       }
 
       const f = stretch(forestAt(cx * C + 8, cz * C + 8), 1.9);
-      let treeChance = f;
-      if (biomeAt(cx * C + 8, cz * C + 8) === 'desert' || biomeAt(cx * C + 8, cz * C + 8) === 'snowy') treeChance *= .35;
+      const centerBiome=biomeAt(cx*C+8,cz*C+8);let treeChance=f;if(centerBiome==='jungle')treeChance=Math.min(1,treeChance*1.9+.25);if(centerBiome==='taiga')treeChance=Math.min(1,treeChance*1.35+.1);if(centerBiome==='swamp')treeChance=Math.min(1,treeChance*1.15);if(centerBiome==='desert'||centerBiome==='snowy')treeChance*=.35;
       const count = Math.min(4, Math.floor(Math.max(0, treeChance - .5) * 12));
       const rng = Noise.mulberry32(Math.floor(Noise.hash2(cx, cz, seed) * 4294967296));
       for (let t = 0; t < count; t++) {
