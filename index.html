@@ -22,6 +22,13 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri/dist/galmuri.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="css/style.css">
+<style>
+.guestbook-box{max-width:760px;margin:0 auto;padding:22px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:rgba(0,0,0,.16)}
+.guestbook-form{display:grid;gap:10px}
+.guestbook-form input,.guestbook-form textarea{width:100%;box-sizing:border-box;border:1px solid rgba(255,255,255,.18);border-radius:10px;background:rgba(0,0,0,.25);color:inherit;padding:12px;font:inherit;resize:vertical}
+.guest-list{display:grid;gap:10px;margin-top:18px}.guest-item{padding:12px 14px;border-radius:10px;background:rgba(255,255,255,.06)}
+.guest-item strong{display:block;margin-bottom:5px}.guest-item p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}.guest-empty,.guestbook-note{opacity:.65}
+</style>
 </head>
 <body>
 
@@ -276,6 +283,24 @@
   </div>
 </section>
 
+<section id="guestbook" class="alt">
+  <div class="wrap reveal">
+    <div class="sec-head">
+      <h2>WebCraft 방명록</h2>
+      <p>플레이해 본 느낌이나 응원 메시지를 남겨주세요.</p>
+    </div>
+    <div class="guestbook-box">
+      <div class="guestbook-form">
+        <input id="guest-name" maxlength="20" placeholder="닉네임" autocomplete="off">
+        <textarea id="guest-message" maxlength="200" rows="3" placeholder="방명록을 작성해주세요." ></textarea>
+        <button class="btn btn-green" id="guest-submit">방명록 남기기</button>
+      </div>
+      <div id="guest-list" class="guest-list"><p class="guest-empty">아직 방명록이 없습니다.</p></div>
+      <p class="guestbook-note">현재는 이 브라우저에만 저장됩니다. 개인정보는 적지 마세요.</p>
+    </div>
+  </div>
+</section>
+
 <section id="share">
   <div class="wrap reveal">
     <div class="sec-head">
@@ -354,6 +379,17 @@ function copyLink() {
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   addEventListener('load', () => navigator.serviceWorker.register('service-worker.js?v=20260920-v1261').catch(() => {}));
 }
+</script>
+<script>
+(() => {
+  const KEY='webcraft_guestbook_v1';
+  const name=document.getElementById('guest-name'), msg=document.getElementById('guest-message');
+  const list=document.getElementById('guest-list'), btn=document.getElementById('guest-submit');
+  const load=()=>{let rows=[];try{rows=JSON.parse(localStorage.getItem(KEY)||'[]')}catch{};list.innerHTML=rows.length?rows.map(x=>'<article class="guest-item"><strong>'+escapeHtml(x.name)+'</strong><p>'+escapeHtml(x.message)+'</p></article>').join(''):'<p class="guest-empty">아직 방명록이 없습니다.</p>'};
+  const escapeHtml=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  btn.addEventListener('click',()=>{const n=name.value.trim(),m=msg.value.trim();if(!n||!m){alert('닉네임과 메시지를 입력해주세요.');return}let rows=[];try{rows=JSON.parse(localStorage.getItem(KEY)||'[]')}catch{};rows.unshift({name:n,message:m});localStorage.setItem(KEY,JSON.stringify(rows.slice(0,50)));name.value='';msg.value='';load()});
+  load();
+})();
 </script>
 </body>
 </html>
