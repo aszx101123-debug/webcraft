@@ -46,7 +46,7 @@
   Textures.init();
   World.init(scene, seed, saved ? saved.edits : null);
   Fluids.init();
-  PlayerModel.init(scene);
+  PlayerModel.init(scene,camera);
   Mobs.init(scene);
   Drops.init(scene, (id, n) => {
     UI.showToast(`${getItemName(id)} +${n}`);
