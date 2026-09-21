@@ -5,17 +5,14 @@ const Inventory = (() => {
   const SIZE = 36;
   const HOTBAR_SIZE = 9;
   const MAX_STACK = 64;
-  const EQUIPMENT_KEYS = ['mainhand', 'offhand', 'head', 'body'];
+  const EQUIPMENT_KEYS=['mainhand','offhand','head','chest','legs','feet'];
   let slots = new Array(SIZE).fill(null);
   let equipment = { mainhand: null, offhand: null, head: null, body: null };
   let sel = 0;
   let mode = GAME_MODE.CREATIVE;
 
-  function normalize(s) {
-    if (!s || !s.id) return null;
-    const def = getItemDef(s.id);
-    if (!def) return null;
-    if (def.toolType) {
+  function isGear(d){return !!(d&&(d.toolType||d.armorType));}
+  function normalize(s){if(!s||!s.id)return null;const def=getItemDef(s.id);if(!def)return null;if(isGear(def)){
       const max = def.maxDurability || 1;
       const durability = s.durability === undefined ? max : Math.max(0, Math.min(max, s.durability | 0));
       if (durability <= 0) return null;
@@ -53,7 +50,7 @@ const Inventory = (() => {
     slots = slots.map(s => {
       if (!s) return null;
       const def = getItemDef(s.id);
-      if (def && def.toolType) {
+      if (def && isGear(def)) {
         return { id: s.id, count: 1, durability: def.maxDurability || s.durability || 1 };
       }
       if (m === GAME_MODE.CREATIVE) return { id: s.id, count: Infinity };
@@ -63,7 +60,7 @@ const Inventory = (() => {
       const s = equipment[k];
       if (!s) return;
       const def = getItemDef(s.id);
-      if (def && def.toolType) equipment[k] = { id: s.id, count: 1, durability: def.maxDurability || s.durability || 1 };
+      if (def && isGear(def)) equipment[k] = { id: s.id, count: 1, durability: def.maxDurability || s.durability || 1 };
       else if (m !== GAME_MODE.CREATIVE && s.count === Infinity) equipment[k] = { id: s.id, count: MAX_STACK };
     });
   }
@@ -80,7 +77,7 @@ const Inventory = (() => {
   function setSlot(i, id) {
     if (i < 0 || i >= SIZE) return;
     const def = getItemDef(id);
-    if (def && def.toolType) slots[i] = { id, count: 1, durability: def.maxDurability || 1 };
+    if (def && isGear(def)) slots[i] = { id, count: 1, durability: def.maxDurability || 1 };
     else slots[i] = id ? { id, count: mode === GAME_MODE.CREATIVE ? Infinity : MAX_STACK } : null;
   }
 
@@ -92,7 +89,7 @@ const Inventory = (() => {
     if (def.toolType) return slots.filter(s => !s).length >= count;
     let remaining = count;
     for (const s of slots) {
-      if (s && s.id === id && !getItemDef(s.id).toolType) {
+      if (s && s.id === id && !isGear(getItemDef(s.id))) {
         remaining -= Math.max(0, MAX_STACK - s.count);
       }
       if (remaining <= 0) return true;
@@ -105,7 +102,7 @@ const Inventory = (() => {
     if (!id || !count || count <= 0) return 0;
     const def = getItemDef(id);
     if (!def) return 0;
-    if (def.toolType) {
+    if (isGear(def)) {
       let added = 0;
       for (let n = 0; n < count; n++) {
         const slot = slots.findIndex(s => !s);
@@ -119,7 +116,7 @@ const Inventory = (() => {
     let left = count;
     for (let i = 0; i < SIZE && left > 0; i++) {
       const s = slots[i];
-      if (s && s.id === id && !getItemDef(s.id).toolType && s.count < MAX_STACK) {
+      if (s && s.id === id && !isGear(getItemDef(s.id)) && s.count < MAX_STACK) {
         const t = Math.min(MAX_STACK - s.count, left);
         s.count += t;
         left -= t;
@@ -165,7 +162,7 @@ const Inventory = (() => {
     if (s.count === Infinity) return cloneStack(s);
     const n = amount == null ? s.count : Math.max(1, Math.min(s.count, amount | 0));
     const out = { id: s.id, count: n };
-    if (getItemDef(s.id).toolType) out.durability = s.durability;
+    if (isGear(getItemDef(s.id))) out.durability = s.durability;
     s.count -= n;
     if (s.count <= 0) slots[index] = null;
     return out;
@@ -180,7 +177,7 @@ const Inventory = (() => {
       slots[index] = cloneStack(incoming);
       return null;
     }
-    if (current.id !== incoming.id || def.toolType || getItemDef(current.id).toolType) return incoming;
+    if (current.id !== incoming.id || isGear(def)||isGear(getItemDef(current.id))) return incoming;
     if (current.count === Infinity) return incoming;
     const cap = MAX_STACK - current.count;
     if (cap <= 0) return incoming;
@@ -253,8 +250,7 @@ const Inventory = (() => {
   }
 
   function putEquipment(key, incoming) {
-    if (!EQUIPMENT_KEYS.includes(key) || !incoming) return incoming;
-    if (!equipment[key]) {
+    if(!EQUIPMENT_KEYS.includes(key)||!incoming)return incoming;const d=getItemDef(incoming.id);if(['head','chest','legs','feet'].includes(key)&&(!d||d.armorType!==key))return incoming;if(!['head','chest','legs','feet'].includes(key)&&d&&d.armorType)return incoming;if(!equipment[key]){
       equipment[key] = cloneStack(incoming);
       return null;
     }
@@ -280,7 +276,7 @@ const Inventory = (() => {
   }
 
   return {
-    SIZE, HOTBAR_SIZE, MAX_STACK, EQUIPMENT_KEYS,
+    SIZE,HOTBAR_SIZE,MAX_STACK,EQUIPMENT_KEYS,getArmorDefense(){return ['head','chest','legs','feet'].reduce((n,k)=>{const d=equipment[k]&&getArmorDef(equipment[k].id);return n+(d?d.defense:0);},0)},
     init, setMode, getSlots, getHotbarSlots, getSelected, setSelected,
     selectedSlot, selectedId, isCreative, getEquipment, setSlot, canAdd, add,
     removeItem, countItem, takeFromSlot, putIntoSlot, move, dropFromSlot,
