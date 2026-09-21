@@ -170,7 +170,7 @@ const UI = (() => {
       e.stopPropagation();
       if (e.button === 0 && e.shiftKey && inventoryOpen && Crafting.getGridSize() === 2) {
         const src = Inventory.getSlots()[index];
-        if (src && Crafting.addToFirstEmpty(src.id) >= 0) {
+        if(src){const taken=Inventory.takeFromSlot(index,1);if(taken&&Crafting.addToFirstEmpty(taken.id)>=0){
           renderInventoryCrafting();
           showToast(getItemName(src.id) + '을 2×2 제작칸에 넣었습니다');
         }
@@ -340,7 +340,7 @@ const UI = (() => {
       btn.title = s ? getItemName(s.id) : '빈 슬롯';
       btn.addEventListener('click', () => {
         if (!s) return;
-        if (Crafting.addToFirstEmpty(s.id) >= 0) renderCrafting();
+        const taken=Inventory.takeFromSlot(i,1);if(taken&&Crafting.addToFirstEmpty(taken.id)>=0)renderCrafting();
         else showToast('제작 격자가 가득 찼습니다');
       });
       el.appendChild(btn);
