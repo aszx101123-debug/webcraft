@@ -204,6 +204,8 @@ const Crafting = (() => {
     if (!recipe || !recipeFitsGrid(recipe)) return false;
     resetGrid(gridSize);
     const materialId = recipe.ingredients.find(i => i.id !== ITEM.STICK)?.id || 0;
+    if (!recipe.ingredients.every(i => Inventory.countItem(i.id) >= i.count)) return false;
+    for (const ing of recipe.ingredients) if (!Inventory.removeItem(ing.id, ing.count)) return false;
     if (recipe.shapeless) {
       let out = [];
       recipe.ingredients.forEach(i => { for (let n = 0; n < i.count; n++) out.push(i.id); });
