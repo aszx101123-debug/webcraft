@@ -496,3 +496,15 @@ footer .wrap {
   color: #9fb0c1;
   font-size: 10.5px;
 }
+
+
+/* site guestbook */
+.guestbook-section { padding-top: 40px; }
+.guestbook-card { max-width: 920px; margin: 0 auto; padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); }
+.guestbook-head { display:flex; align-items:center; justify-content:space-between; gap:16px; padding: 2px 2px 16px; }
+.guestbook-head strong { display:block; font-size:15px; }
+.guestbook-head span { display:block; margin-top:4px; color:var(--muted); font-size:12px; }
+.guestbook-embed { min-height: 160px; }
+.guestbook-embed .utterances { max-width: 100%; }
+.guestbook-note { margin: 12px 2px 0; color: var(--muted); font-size: 11px; }
+@media (max-width: 560px) { .guestbook-card { padding: 14px; } .guestbook-head { align-items:flex-start; flex-direction:column; } }
