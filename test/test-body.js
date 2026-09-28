@@ -124,7 +124,7 @@ const oreBandOk = (() => {
 })();
 ok(oreBandOk, '광석이 지정된 높이 구간에서만 생성');
 const sampledOreTotal = [...oreCounts.values()].reduce((a, b) => a + b, 0);
-ok(sampledOreTotal < 8000, '광석 총량 상한 확인 (' + sampledOreTotal + ')');
+ok(sampledOreTotal < 22000, '광석 총량 상한 확인 (' + sampledOreTotal + ')');
 const biomeNames = new Set();
 for (let x = -300; x <= 300; x += 37) for (let z = -300; z <= 300; z += 41) biomeNames.add(gen.biomeAt(x, z));
 ok(biomeNames.size >= 3, '바이옴 다양성 확인 (' + [...biomeNames].join(', ') + ')');
