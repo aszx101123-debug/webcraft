@@ -33,6 +33,7 @@
       <a href="#shots">스크린샷</a>
       <a href="#howto">플레이 방법</a>
       <a href="#updates">업데이트</a>
+      <a href="#guestbook">방명록</a>
       <a href="#history">히스토리</a>
       <a href="#roadmap">로드맵</a>
       <a href="#faq">FAQ</a>
@@ -305,6 +306,31 @@
   </div>
 </section>
 
+
+<section class="alt guestbook-section" id="guestbook">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <h2>WebCraft 방명록</h2>
+      <p>게임을 플레이한 뒤 한마디 남겨주세요.</p>
+    </div>
+    <div class="guestbook-grid reveal">
+      <form id="guestbook-form" class="guestbook-form">
+        <label>닉네임<input id="guestbook-name" maxlength="20" required placeholder="닉네임"></label>
+        <label>메시지<textarea id="guestbook-message" maxlength="160" required placeholder="WebCraft에서 재미있었던 점을 남겨주세요."></textarea></label>
+        <div class="guestbook-form-foot">
+          <span id="guestbook-count">0/160</span>
+          <button class="btn btn-green" type="submit">방명록 남기기</button>
+        </div>
+      </form>
+      <div class="guestbook-list-wrap">
+        <div class="guestbook-list-head"><b>최근 방명록</b><button id="guestbook-clear" class="btn btn-sm ghost" type="button">이 브라우저 기록 지우기</button></div>
+        <div id="guestbook-list" class="guestbook-list" aria-live="polite"></div>
+        <p class="guestbook-note">이 버전은 별도 서버 없이 브라우저 저장소에 방명록을 보관합니다. 같은 브라우저에서 다시 방문하면 기록이 유지됩니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section id="share">
   <div class="wrap reveal">
     <div class="sec-head">
@@ -352,6 +378,7 @@
 <script src="js/game/textures.js"></script>
 <script src="js/game/world.js"></script>
 <script src="js/hero.js"></script>
+<script src="js/guestbook.js"></script>
 <script>
 function shareMsg() {
   return '⛏ WebCraft — 브라우저에서 바로 즐기는 블록 샌드박스! 설치 없이 무료 플레이';
