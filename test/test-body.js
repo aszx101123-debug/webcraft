@@ -42,7 +42,7 @@ ok(diff, '좌표별 청크 상이');
 let valid = true, seaOk = true;
 for (let cx = -3; cx <= 3; cx++) for (let cz = -3; cz <= 3; cz++) {
   const d = gen.genChunk(cx, cz);
-  for (let i = 0; i < d.length; i++) if (d[i] > BLOCK.EMERALD_ORE) valid = false;
+  for (let i = 0; i < d.length; i++) if (d[i] > BLOCK.SNOW) valid = false;
   for (let x = 0; x < 16; x++) for (let z = 0; z < 16; z++)
     for (let y = CONFIG.SEA + 1; y < 64; y++)
       if (d[Terrain.idx(x, y, z)] === BLOCK.WATER) seaOk = false;
@@ -160,6 +160,8 @@ ok(isFoodId(ITEM.PORK) && !isFoodId(BLOCK.STONE) && !isFoodId(999), '음식 ID �
 ok(isBlockId(BLOCK.STONE) && !isBlockId(ITEM.PORK), '블록 ID 판별');
 ok(getItemName(ITEM.BEEF) === '소고기', '아이템 이름');
 ok(isToolId(ITEM.WOODEN_PICKAXE) && getToolDef(ITEM.DIAMOND_PICKAXE).tier === 5, '도구 등급 정의');
+ok(ITEM.LEATHER && getItemName(ITEM.LEATHER) === '가죽', '가죽 아이템 정의');
+ok(isArmorId && isArmorId(ITEM.DIAMOND_CHESTPLATE) && getArmorDef(ITEM.DIAMOND_CHESTPLATE).defense > 0, '방어구 정의');
 
 console.log('[Inventory]');
 Inventory.init(GAME_MODE.SURVIVAL, null);
