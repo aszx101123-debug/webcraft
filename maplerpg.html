@@ -1,104 +1,378 @@
 <!doctype html>
-<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mini Maple RPG</title>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mini Maple RPG — v0.2</title>
 <style>
-*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#171923;color:#fff;font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:center}
-.wrap{width:min(960px,100vw)}canvas{display:block;width:100%;height:auto;background:#8bd8ff;border:4px solid #080a10;image-rendering:pixelated}
-.help{padding:9px;text-align:center;background:#202331;font-size:14px}
-</style></head><body><div class="wrap"><canvas id="game" width="960" height="540"></canvas><div class="help">← → 이동 · Space 점프 · Z 공격 · X 스킬 · I 인벤토리 · Q 퀘스트 · D 던전 · S 저장 · L 불러오기</div></div>
-<script>const c=document.getElementById("game"),ctx=c.getContext("2d");
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#0d1018;color:#fff;font-family:Arial,sans-serif}
+body{display:flex;justify-content:center;align-items:center;padding:16px}
+.wrap{width:min(1000px,100%)}
+.gameBox{position:relative;border:3px solid #05070c;box-shadow:0 18px 50px rgba(0,0,0,.45)}
+canvas{display:block;width:100%;height:auto;background:#8bd8ff;image-rendering:pixelated}
+.help{padding:10px 12px;background:#171b27;text-align:center;font-size:14px;border-top:2px solid #2b3142;color:#e8ebf2}
+@media(max-width:700px){.help{font-size:11px;line-height:1.5}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="gameBox"><canvas id="game" width="1000" height="600"></canvas></div>
+<div class="help">← → 이동 · Space 점프 · Z 일반공격 · X 스킬 · I 인벤토리 · Q NPC/퀘스트 · D 던전 · P 일시정지 · S 저장 · L 불러오기 · R 부활</div>
+</div>
+<script>
+"use strict";
+const canvas=document.getElementById("game"),ctx=canvas.getContext("2d");
+const W=canvas.width,H=canvas.height;
 const keys={};
-addEventListener("keydown",e=>{keys[e.key]=true;if([" ","ArrowLeft","ArrowRight"].includes(e.key))e.preventDefault();handleKey(e.key)});
+const pressed={};
+addEventListener("keydown",e=>{
+  if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," ","z","x","i","q","d","p","s","l","r","1","2","3","4"].includes(e.key)) e.preventDefault();
+  if(!keys[e.key]) pressed[e.key]=true;
+  keys[e.key]=true;
+});
 addEventListener("keyup",e=>keys[e.key]=false);
-const jobs={전사:{hp:150,dmg:15,skill:"파워 슬래시",skillDmg:55},마법사:{hp:90,dmg:25,skill:"파이어볼",skillDmg:75},궁수:{hp:110,dmg:20,skill:"멀티샷",skillDmg:65},도적:{hp:120,dmg:22,skill:"대시 베기",skillDmg:60}};
-let state="job",job=null,world=0,inv=[],meso=0,exp=0,level=1,damage=10,skillCd=0,attackCd=0,msg="직업을 선택하세요: 1 전사 · 2 마법사 · 3 궁수 · 4 도적";
-let player={x:120,y:380,w:38,h:60,vy:0,hp:100,maxHp:100,onGround:false,dir:1};
-let slime={x:700,y:410,w:46,h:40,hp:60,maxHp:60,alive:true};
-let boss={x:720,y:340,w:90,h:100,hp:1000,maxHp:1000,alive:true};
-let coins=[],quest={active:false,count:0,goal:5,complete:false},inventoryOpen=false,dungeon=false;
-const maps=[{name:"초보자 마을",sky:"#9fe1ff",ground:"#67b55a"},{name:"슬라임 숲",sky:"#8fd8ff",ground:"#4eaa58"},{name:"어둠의 동굴",sky:"#25283d",ground:"#383b55"}];
-function handleKey(k){
-  if(state==="job"){
-    const choices=["전사","마법사","궁수","도적"],idx=["1","2","3","4"].indexOf(k);
-    if(idx>=0){job=choices[idx];player.maxHp=jobs[job].hp;player.hp=player.maxHp;damage=jobs[job].dmg;state="play";msg=job+" 선택 완료!";}
-    return;
+
+const JOBS={
+  전사:{hp:180,mp:50,atk:18,skill:"파워 슬래시",skillDmg:70,color:"#4f8cff"},
+  마법사:{hp:110,mp:120,atk:11,skill:"파이어볼",skillDmg:95,color:"#b36dff"},
+  궁수:{hp:135,mp:85,atk:15,skill:"멀티샷",skillDmg:82,color:"#62d48b"},
+  도적:{hp:145,mp:70,atk:16,skill:"대시 베기",skillDmg:88,color:"#ffd15c"}
+};
+const MAPS=[
+  {name:"초보자 마을",sky:"#9fe1ff",ground:"#6fbd5d",far:"#7dc8ea"},
+  {name:"슬라임 숲",sky:"#8edbff",ground:"#4baa58",far:"#6fbd72"},
+  {name:"고대 폐광",sky:"#30344c",ground:"#484c67",far:"#3d415a"}
+];
+
+let mode="job",job=null,map=0,paused=false,inventoryOpen=false,dungeon=false,toast="직업을 선택하세요";
+let level=1,exp=0,meso=0,skillCd=0,attackCd=0,lastTime=0,shake=0;
+let quest={active:false,count:0,goal:5,done:false};
+let inventory=["초보자의 물약","초보자의 물약"],equipment={weapon:"낡은 검",armor:"초보자 옷"};
+let particles=[],drops=[],monsters=[],projectiles=[];
+let player={
+  x:130,y:390,w:42,h:62,vy:0,dir:1,hp:180,maxHp:180,mp:50,maxMp:50,onGround:false,invuln:0
+};
+
+function rng(a,b){return Math.random()*(b-a)+a}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function setToast(t){toast=t}
+function currentStats(){return job?JOBS[job]:JOBS.전사}
+function maxExp(){return 100+level*35}
+function addExp(n){
+  exp+=n;
+  while(exp>=maxExp()){
+    exp-=maxExp(); level++;
+    player.maxHp+=20; player.hp=player.maxHp;
+    player.maxMp+=10; player.mp=player.maxMp;
+    setToast("레벨 업! Lv."+level);
+    burst(player.x+20,player.y+20,"#ffe66d",18);
   }
-  if(k==="i")inventoryOpen=!inventoryOpen;
-  if(k==="q")talk();
-  if(k==="d"&&!dungeon&&world===2){dungeon=true;boss.alive=true;boss.hp=boss.maxHp;boss.x=720;msg="어둠의 던전에 입장했다!";}
-  if(k==="s")save();
-  if(k==="l")load();
-  if(k==="z")basicAttack();
-  if(k==="x")skill();
+}
+function addDrop(x,y,type,value){
+  drops.push({x,y,type,value,vy:-5,life:900});
+}
+function spawnMonsters(){
+  monsters=[];
+  if(map===1){
+    for(let i=0;i<3;i++)monsters.push(new Monster("슬라임",rng(470,900),390,60,8,30,"#39d77b"));
+    monsters.push(new Monster("버섯",rng(580,870),375,90,11,45,"#d86c5d"));
+  }else if(map===2){
+    monsters.push(new Monster("동굴 박쥐",650,300,120,13,55,"#8b78c9"));
+    monsters.push(new Monster("동굴 박쥐",820,340,120,13,55,"#8b78c9"));
+    monsters.push(new Monster("광부 골렘",740,350,260,20,120,"#8f95a3"));
+  }
+}
+function Monster(type,x,y,hp,atk,exp,color){
+  this.type=type;this.x=x;this.y=y;this.w=type==="광부 골렘"?70:52;this.h=type==="광부 골렘"?74:48;
+  this.hp=hp;this.maxHp=hp;this.atk=atk;this.exp=exp;this.color=color;this.alive=true;this.hitCd=0;this.dir=-1;this.t=0;
+}
+function resetPlayer(){
+  const s=currentStats();
+  player={x:130,y:390,w:42,h:62,vy:0,dir:1,hp:s.hp,maxHp:s.hp,mp:s.mp,maxMp:s.mp,onGround:false,invuln:0};
+}
+function chooseJob(index){
+  const names=["전사","마법사","궁수","도적"];
+  job=names[index];
+  resetPlayer();
+  mode="play";map=0;dungeon=false;spawnMonsters();
+  setToast(job+" 선택 완료!");
 }
 function basicAttack(){
-  if(attackCd||state!=="play")return;
-  attackCd=15;const target=dungeon?boss:slime;
-  if(target.alive&&Math.abs(player.x-target.x)<95){target.hp-=damage;if(target.hp<=0)kill(target);}
+  if(mode!=="play"||attackCd||paused||dungeon&&boss.hp<=0)return;
+  attackCd=16;
+  let hit=false;
+  if(job==="궁수"){
+    projectiles.push({x:player.x+22,y:player.y+24,vx:player.dir*10,dmg:JOBS[job].atk+level*2,life:100,type:"arrow"});
+    hit=true;
+  }else{
+    for(const m of monsters){if(m.alive&&Math.abs((m.x+m.w/2)-(player.x+player.w/2))<92){damageMonster(m,JOBS[job].atk+level*2);hit=true;}}
+    if(dungeon&&boss.alive&&Math.abs((boss.x+boss.w/2)-(player.x+player.w/2))<110){damageBoss(JOBS[job].atk+level*2);hit=true;}
+  }
+  if(hit)burst(player.x+player.w/2+player.dir*35,player.y+25,"#fff",6);
 }
 function skill(){
-  if(skillCd||state!=="play")return;
-  skillCd=90;const target=dungeon?boss:slime;
-  if(target.alive&&Math.abs(player.x-target.x)<180){
-    target.hp-=jobs[job].skillDmg;
-    if(job==="도적")player.x=Math.min(900,player.x+80);
-    if(target.hp<=0)kill(target);
-    msg=jobs[job].skill+"!";
+  if(mode!=="play"||skillCd||paused)return;
+  const s=JOBS[job];
+  if(player.mp<20){setToast("MP가 부족합니다.");return}
+  player.mp-=20;skillCd=90;
+  if(job==="전사"||job==="도적"){
+    for(const m of monsters){if(m.alive&&Math.abs((m.x+m.w/2)-(player.x+player.w/2))<160)damageMonster(m,s.skillDmg+level*3);}
+    if(dungeon&&boss.alive&&Math.abs((boss.x+boss.w/2)-(player.x+player.w/2))<190)damageBoss(s.skillDmg+level*3);
+    if(job==="도적")player.x=clamp(player.x+player.dir*90,40,940);
+  }else if(job==="마법사"){
+    projectiles.push({x:player.x+22,y:player.y+18,vx:player.dir*8,dmg:s.skillDmg+level*3,life:150,type:"fire"});
+  }else if(job==="궁수"){
+    for(const d of [-1,0,1])projectiles.push({x:player.x+22,y:player.y+24,vx:player.dir*(9+d*1.2),dmg:s.skillDmg+level*3,life:120,type:"arrow"});
+  }
+  setToast(s.skill+"!");
+}
+function damageMonster(m,dmg){
+  if(!m.alive)return;
+  m.hp-=dmg;shake=5;
+  burst(m.x+m.w/2,m.y+15,"#ffd2d2",8);
+  if(m.hp<=0){
+    m.alive=false; addExp(m.exp); const v=Math.floor(rng(20,80)); addDrop(m.x,m.y-15,"meso",v);
+    if(Math.random()<.35)addDrop(m.x+15,m.y-10,"potion",1);
+    if(quest.active&&!quest.done&&m.type==="슬라임"){quest.count++;if(quest.count>=quest.goal){quest.done=true;setToast("퀘스트 완료! NPC에게 돌아가세요.");}}
+    setTimeout(()=>{if(mode==="play"&&!dungeon&&((map===1)||(map===2&&monsters.filter(x=>x.alive).length===0)))spawnMonsters();},1200);
   }
 }
-function kill(t){
-  t.alive=false;
-  if(t===slime){
-    coins.push({x:t.x,y:t.y-10,v:20+Math.floor(Math.random()*50)});
-    addExp(30);
-    if(quest.active&&!quest.complete){quest.count++;if(quest.count>=quest.goal){quest.complete=true;msg="퀘스트 완료! NPC에게 돌아가세요.";}}
-    setTimeout(()=>{slime.hp=slime.maxHp;slime.alive=true;slime.x=650+Math.random()*180},700);
-  }else{
-    meso+=1000;addExp(300);msg="보스 처치! 1000 메소 + 300 EXP";
-    setTimeout(()=>{dungeon=false;boss.alive=false},1000);
+const boss={x:760,y:310,w:105,h:120,hp:1400,maxHp:1400,alive:false,atk:28,t:0,hitCd:0};
+function enterDungeon(){
+  if(map!==2||dungeon)return;
+  dungeon=true;boss.alive=true;boss.hp=boss.maxHp;boss.x=760;boss.t=0;setToast("고대 폐광의 보스방에 입장!");
+}
+function damageBoss(dmg){
+  if(!boss.alive)return;
+  boss.hp-=dmg;shake=8;burst(boss.x+boss.w/2,boss.y+35,"#f0b6ff",10);
+  if(boss.hp<=0){
+    boss.hp=0;boss.alive=false;dungeon=false;meso+=1500;addExp(500);addDrop(boss.x,boss.y,"meso",1500);setToast("광산의 수호자 처치! 보상 1,500 메소");
   }
 }
-function addExp(n){exp+=n;while(exp>=level*100){exp-=level*100;level++;player.maxHp+=20;player.hp=player.maxHp;damage+=5;msg="LEVEL UP! Lv."+level;}}
-function talk(){
-  if(world!==0){msg="마을로 돌아가 NPC에게 퀘스트를 받으세요.";return;}
-  if(!quest.active){quest.active=true;quest.count=0;msg="퀘스트: 슬라임 5마리를 처치하세요!";return;}
-  if(quest.complete){quest.active=false;quest.complete=false;quest.count=0;meso+=300;addExp(100);msg="퀘스트 보상: 300 메소 + 100 EXP";return;}
-  msg="퀘스트 진행: "+quest.count+"/"+quest.goal;
+function usePotion(){
+  const i=inventory.indexOf("초보자의 물약");
+  if(i<0){setToast("사용할 물약이 없습니다.");return}
+  if(player.hp>=player.maxHp){setToast("HP가 가득합니다.");return}
+  inventory.splice(i,1);player.hp=clamp(player.hp+70,0,player.maxHp);setToast("HP 물약 사용!");
 }
-function save(){localStorage.setItem("miniMapleSave",JSON.stringify({job,level,exp,meso,damage,playerHp:player.hp,inv,world}));msg="게임을 저장했습니다.";}
-function load(){
-  const d=JSON.parse(localStorage.getItem("miniMapleSave")||"null");
-  if(!d){msg="저장된 게임이 없습니다.";return;}
-  job=d.job;level=d.level;exp=d.exp;meso=d.meso;damage=d.damage;inv=d.inv||[];world=d.world||0;
-  player.maxHp=jobs[job]?.hp||100;player.hp=d.playerHp||player.maxHp;state="play";msg="게임을 불러왔습니다.";
+function talkNpc(){
+  if(map!==0){setToast("NPC는 초보자 마을에 있습니다.");return}
+  if(!quest.active){quest={active:true,count:0,goal:5,done:false};setToast("퀘스트: 슬라임 5마리 처치");}
+  else if(quest.done){quest.active=false;quest.done=false;quest.count=0;meso+=300;addExp(120);inventory.push("초보자의 물약");setToast("퀘스트 보상: 300 메소 + 물약 + 120 EXP");}
+  else setToast("퀘스트 진행 "+quest.count+"/"+quest.goal);
 }
-function update(){
-  if(state!=="play")return;
-  if(skillCd)skillCd--;if(attackCd)attackCd--;
-  if(keys.ArrowRight){player.x+=4;player.dir=1}
-  if(keys.ArrowLeft){player.x-=4;player.dir=-1}
-  if(keys[" "]&&player.onGround){player.vy=-11;player.onGround=false}
-  player.vy+=.5;player.y+=player.vy;
+function saveGame(){
+  localStorage.setItem("miniMapleV02",JSON.stringify({job,map,level,exp,meso,inventory,equipment,quest}));
+  setToast("저장 완료");
+}
+function loadGame(){
+  const d=JSON.parse(localStorage.getItem("miniMapleV02")||"null");
+  if(!d){setToast("저장된 데이터가 없습니다.");return}
+  job=d.job;map=d.map||0;level=d.level||1;exp=d.exp||0;meso=d.meso||0;inventory=d.inventory||[];
+  equipment=d.equipment||equipment;quest=d.quest||quest;resetPlayer();mode="play";dungeon=false;spawnMonsters();
+  setToast("저장 데이터 불러오기 완료");
+}
+function hurt(n){
+  if(player.invuln>0||mode!=="play")return;
+  player.hp-=Math.max(1,n);
+  player.invuln=50;shake=8;burst(player.x+20,player.y+20,"#ff6b6b",10);
+  if(player.hp<=0){player.hp=0;mode="dead";setToast("쓰러졌습니다. R 키로 마을에서 부활");}
+}
+function respawn(){if(mode!=="dead")return;map=0;dungeon=false;resetPlayer();spawnMonsters();mode="play";setToast("마을에서 부활했습니다.");}
+function update(dt){
+  if(mode!=="play"||paused)return;
+  if(attackCd>0)attackCd--;if(skillCd>0)skillCd--;if(player.invuln>0)player.invuln--;if(shake>0)shake--;
+  if(keys.ArrowRight){player.x+=4.2;player.dir=1}
+  if(keys.ArrowLeft){player.x-=4.2;player.dir=-1}
+  if(keys[" "]&&player.onGround){player.vy=-11.5;player.onGround=false}
+  player.vy+=0.55;player.y+=player.vy;
   if(player.y>=390){player.y=390;player.vy=0;player.onGround=true}
-  if(player.x>920){if(world<2){world++;player.x=30;msg=maps[world].name+"으로 이동했습니다."}else player.x=920}
-  if(player.x<0){if(world>0){world--;player.x=880;msg=maps[world].name+"으로 이동했습니다."}else player.x=0}
-  if(world===0){slime.alive=false}else if(!dungeon)slime.alive=true;
-  for(let i=coins.length-1;i>=0;i--){const m=coins[i];if(Math.abs(player.x-m.x)<35){meso+=m.v;coins.splice(i,1);}}
+  player.x=clamp(player.x,20,938);
+  if(map===1&&!dungeon&&monsters.some(m=>m.alive)&&Math.abs(player.x-600)<20&&keys.ArrowRight){}
+  if(player.x>955){
+    if(map<2){map++;player.x=35;spawnMonsters();setToast(MAPS[map].name+"으로 이동");}
+    else {player.x=950;enterDungeon();}
+  }
+  if(player.x<15&&map>0){map--;player.x=930;spawnMonsters();setToast(MAPS[map].name+"으로 이동");}
+  for(const m of monsters){
+    if(!m.alive)continue;
+    if(m.hitCd>0)m.hitCd--;
+    m.t+=dt;
+    const dist=player.x-m.x;
+    if(Math.abs(dist)<260){m.dir=dist>0?1:-1;m.x+=m.dir*(m.type==="광부 골렘"?0.6:1.0);}
+    if(Math.abs(dist)<55&&m.hitCd===0){hurt(m.atk);m.hitCd=55;}
+    if(m.type==="동굴 박쥐")m.y=315+Math.sin(m.t/160)*34;
+  }
+  if(dungeon&&boss.alive){
+    boss.t+=dt;if(boss.hitCd>0)boss.hitCd--;
+    boss.x=clamp(boss.x+(player.x>boss.x?0.9:-0.9),620,880);
+    if(Math.abs(player.x-boss.x)<100&&boss.hitCd===0){hurt(boss.atk);boss.hitCd=45;}
+  }
+  for(let i=projectiles.length-1;i>=0;i--){
+    const p=projectiles[i];p.x+=p.vx;p.life--;
+    let removed=false;
+    for(const m of monsters){if(m.alive&&Math.abs(p.x-(m.x+m.w/2))<35&&Math.abs(p.y-(m.y+m.h/2))<45){damageMonster(m,p.dmg);removed=true;break;}}
+    if(!removed&&dungeon&&boss.alive&&Math.abs(p.x-(boss.x+boss.w/2))<60&&Math.abs(p.y-(boss.y+boss.h/2))<70){damageBoss(p.dmg);removed=true}
+    if(removed||p.life<=0||p.x<0||p.x>W)projectiles.splice(i,1);
+  }
+  for(let i=drops.length-1;i>=0;i--){
+    const d=drops[i];d.y+=d.vy;d.vy+=0.25;d.life--;
+    if(d.y>435){d.y=435;d.vy=0}
+    if(Math.abs(player.x-d.x)<42){
+      if(d.type==="meso"){meso+=d.value;setToast("메소 +"+d.value)}
+      else {inventory.push("초보자의 물약");setToast("물약 획득!")}
+      drops.splice(i,1);
+    }else if(d.life<=0)drops.splice(i,1);
+  }
+  if(player.mp<player.maxMp)player.mp=Math.min(player.maxMp,player.mp+0.12);
+  for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx;p.y+=p.vy;p.vy+=0.08;p.life--;if(p.life<=0)particles.splice(i,1);}
 }
-function drawBar(x,y,w,h,val,max,fill){ctx.fillStyle="#222";ctx.fillRect(x,y,w,h);ctx.fillStyle=fill;ctx.fillRect(x,y,w*Math.max(0,val/max),h);}
-function draw(){
-  const m=maps[world];ctx.fillStyle=m.sky;ctx.fillRect(0,0,960,540);ctx.fillStyle=m.ground;ctx.fillRect(0,450,960,90);
-  if(world===2){ctx.fillStyle="#55586f";for(let i=0;i<8;i++)ctx.fillRect(i*140,100+(i%2)*45,90,20)}
-  ctx.fillStyle="#111";ctx.font="22px Arial";ctx.fillText(dungeon?"어둠의 던전":m.name,390,30);
-  drawBar(20,20,180,14,player.hp,player.maxHp,"#e74c3c");drawBar(20,40,180,12,exp,level*100,"#36d16d");
-  ctx.fillStyle="#fff";ctx.font="16px Arial";ctx.fillText("Lv."+level+" "+(job||"")+"  HP "+player.hp+"/"+player.maxHp,20,75);ctx.fillText("Meso: "+meso,20,98);
-  ctx.fillStyle="#f5a25d";ctx.fillRect(player.x,player.y,player.w,player.h);ctx.fillStyle="#222";ctx.fillRect(player.x+10+(player.dir>0?15:0),player.y+15,5,5);
-  if(!dungeon&&slime.alive&&world>0){ctx.fillStyle="#39d77b";ctx.fillRect(slime.x,slime.y,slime.w,slime.h);drawBar(slime.x,slime.y-10,slime.w,5,slime.hp,slime.maxHp,"#e74c3c")}
-  if(dungeon&&boss.alive){ctx.fillStyle="#6d2b86";ctx.fillRect(boss.x,boss.y,boss.w,boss.h);drawBar(250,55,460,16,boss.hp,boss.maxHp,"#e74c3c");ctx.fillStyle="#fff";ctx.fillText("검은 슬라임 왕",405,48)}
-  coins.forEach(m=>{ctx.fillStyle="#ffd43b";ctx.beginPath();ctx.arc(m.x,m.y,9,0,Math.PI*2);ctx.fill()});
-  if(quest.active){ctx.fillStyle="#fff";ctx.fillText("퀘스트: 슬라임 "+quest.count+"/"+quest.goal,680,30)}
-  ctx.fillStyle="#fff";ctx.font="16px Arial";ctx.fillText(msg,250,510);
-  if(inventoryOpen){ctx.fillStyle="rgba(0,0,0,.9)";ctx.fillRect(230,100,500,330);ctx.fillStyle="#fff";ctx.font="25px Arial";ctx.fillText("인벤토리",260,140);ctx.font="18px Arial";inv.forEach((it,i)=>ctx.fillText((i+1)+". "+it,270,180+i*28));ctx.fillText("메소 "+meso,550,140)}
-  if(state==="job"){ctx.fillStyle="rgba(0,0,0,.82)";ctx.fillRect(170,100,620,330);ctx.fillStyle="#fff";ctx.font="34px Arial";ctx.fillText("Mini Maple RPG",350,160);ctx.font="22px Arial";ctx.fillText("직업을 선택하세요",380,205);ctx.fillText("1 전사   2 마법사",325,255);ctx.fillText("3 궁수   4 도적",325,300);ctx.font="16px Arial";ctx.fillText("선택 후 ← → 이동, Space 점프, Z 공격, X 스킬",275,345)}
+function burst(x,y,color,n){
+  for(let i=0;i<n;i++)particles.push({x,y,vx:rng(-3,3),vy:rng(-4,1),life:rng(20,45),color});
 }
-function loop(){update();draw();requestAnimationFrame(loop)}loop();</script></body></html>
+function rect(x,y,w,h,color){ctx.fillStyle=color;ctx.fillRect(x,y,w,h)}
+function text(t,x,y,size=18,color="#fff",align="left"){ctx.font=size+"px Arial";ctx.fillStyle=color;ctx.textAlign=align;ctx.fillText(t,x,y);ctx.textAlign="left"}
+function bar(x,y,w,h,val,max,color){
+  rect(x,y,w,h,"#171a22");rect(x+2,y+2,(w-4)*clamp(val/max,0,1),h-4,color);
+}
+function drawBackground(){
+  const m=MAPS[map];rect(0,0,W,H,m.sky);
+  rect(0,300,W,150,m.far);
+  if(map===0){
+    for(let x=40;x<W;x+=120){rect(x,250,28,90,"#69503b");rect(x-22,220,72,55,"#55a85b");}
+    rect(120,365,170,85,"#b46f48");rect(140,340,130,50,"#d89a6c");
+  }else if(map===1){
+    for(let x=40;x<W;x+=105){rect(x,270,22,180,"#6e543e");rect(x-28,230,78,65,"#3e9f50");}
+    for(let x=20;x<W;x+=160){rect(x,410,100,40,"#355c34");}
+  }else{
+    rect(0,120,W,210,"#24283b");
+    for(let x=0;x<W;x+=130){rect(x,180+(x%260)/4,90,18,"#5e627a");rect(x+30,230+(x%170)/3,42,12,"#6b7088");}
+    for(let x=0;x<W;x+=150)rect(x,450,80,35,"#202331");
+  }
+  rect(0,450,W,150,map===2?"#383c54":MAPS[map].ground);
+}
+function drawPlayer(){
+  if(player.invuln>0&&Math.floor(player.invuln/5)%2===0)return;
+  const s=JOBS[job];
+  // head
+  rect(player.x+8,player.y,26,25,"#f2be92");
+  rect(player.x+9,player.y,24,8,"#5b3828");
+  // body
+  rect(player.x+5,player.y+24,32,28,s.color);
+  // arms
+  rect(player.x-3,player.y+29,8,25,s.color);rect(player.x+37,player.y+29,8,25,s.color);
+  // legs
+  rect(player.x+7,player.y+50,11,12,"#26324f");rect(player.x+24,player.y+50,11,12,"#26324f");
+  // face
+  rect(player.x+14,player.y+11,4,4,"#222");rect(player.x+25,player.y+11,4,4,"#222");
+  // held weapon
+  ctx.save();ctx.translate(player.x+22,player.y+39);ctx.scale(player.dir,1);
+  if(job==="전사"){rect(8,-24,5,34,"#d7dbe4");rect(4,8,15,4,"#7a4b2b")}
+  if(job==="마법사"){ctx.fillStyle="#9fe6ff";ctx.beginPath();ctx.arc(12,-10,7,0,Math.PI*2);ctx.fill();rect(10,-2,4,22,"#6b472e")}
+  if(job==="궁수"){ctx.strokeStyle="#f2dfc0";ctx.lineWidth=2;ctx.beginPath();ctx.arc(8,-7,14,-1.1,1.1);ctx.stroke();rect(8,-8,20,2,"#ead9ad")}
+  if(job==="도적"){rect(8,-22,4,27,"#c7d0da");}
+  ctx.restore();
+}
+function drawMonster(m){
+  if(!m.alive)return;
+  if(m.type==="슬라임"){ctx.fillStyle=m.color;ctx.beginPath();ctx.arc(m.x+m.w/2,m.y+28,26,Math.PI,0);ctx.lineTo(m.x+m.w,m.y+40);ctx.lineTo(m.x,m.y+40);ctx.closePath();ctx.fill();rect(m.x+15,m.y+24,4,5,"#222");rect(m.x+31,m.y+24,4,5,"#222");}
+  else if(m.type==="버섯"){rect(m.x+12,m.y+18,30,30,"#f0d7a3");rect(m.x,m.y,54,28,"#d9624d");rect(m.x+9,m.y+5,8,8,"#fff");rect(m.x+31,m.y+4,8,8,"#fff")}
+  else if(m.type==="동굴 박쥐"){rect(m.x+14,m.y+12,24,26,m.color);rect(m.x-2,m.y+10,18,10,m.color);rect(m.x+36,m.y+10,18,10,m.color)}
+  else{rect(m.x,m.y,70,74,m.color);rect(m.x+10,m.y+12,18,18,"#333");rect(m.x+42,m.y+12,18,18,"#333");}
+  bar(m.x,m.y-12,m.w,6,m.hp,m.maxHp,"#ef5555");
+}
+function drawBoss(){
+  if(!dungeon||!boss.alive)return;
+  rect(boss.x,boss.y,boss.w,boss.h,"#6d2b86");
+  rect(boss.x+16,boss.y+16,24,28,"#f0c08f");rect(boss.x+65,boss.y+16,24,28,"#f0c08f");
+  rect(boss.x+20,boss.y+58,65,45,"#41204e");
+  rect(boss.x+30,boss.y+28,8,8,"#222");rect(boss.x+70,boss.y+28,8,8,"#222");
+  bar(250,50,500,18,boss.hp,boss.maxHp,"#e94b6d");
+  text("광산의 수호자",500,42,18,"#fff","center");
+}
+function drawHUD(){
+  rect(16,16,300,104,"rgba(0,0,0,.58)");
+  text("Lv."+level+" "+job,30,40,20);
+  bar(30,50,180,14,player.hp,player.maxHp,"#e94350");bar(30,72,180,12,player.mp,player.maxMp,"#45a6ff");
+  text("HP "+player.hp+"/"+player.maxHp,220,62,13);text("MP "+Math.floor(player.mp)+"/"+player.maxMp,220,83,13);
+  text("EXP "+exp+"/"+maxExp(),30,104,14);text("메소 "+meso,150,104,14,"#ffd75e");
+  rect(690,16,294,60,"rgba(0,0,0,.58)");
+  text(dungeon?"BOSS ROOM":MAPS[map].name,707,40,20,"#fff");
+  text("스킬 "+(skillCd?"재사용 "+Math.ceil(skillCd/30)+"s":"사용 가능"),707,62,14,skillCd?"#ffcc66":"#8df59b");
+  if(quest.active){rect(650,92,334,58,"rgba(0,0,0,.58)");text("퀘스트",667,114,15,"#ffd75e");text("슬라임 "+quest.count+"/"+quest.goal,667,137,15)}
+  rect(350,520,300,46,"rgba(0,0,0,.55)");text(toast,500,549,15,"#fff","center");
+}
+function drawInventory(){
+  if(!inventoryOpen)return;
+  rect(185,92,630,410,"rgba(10,12,18,.96)");
+  text("인벤토리",215,132,28);
+  text("장비",215,168,17,"#ffd75e");text("무기: "+equipment.weapon,235,195,16);text("방어구: "+equipment.armor,235,221,16);
+  text("소지 아이템",470,168,17,"#8fd8ff");
+  for(let i=0;i<18;i++){
+    const x=465+(i%6)*52,y=188+Math.floor(i/6)*62;
+    rect(x,y,44,44,"#252a39");rect(x+2,y+2,40,40,"#343a4e");
+    if(inventory[i]){text(inventory[i].includes("물약")?"♥":"•",x+22,y+28,24,inventory[i].includes("물약")?"#ff6c7b":"#ffd75e","center");}
+    text(String(i+1),x+4,y+40,10,"#c9ceda");
+  }
+  text("I: 닫기 / 물약은 인벤토리에서 자동 사용",215,475,13,"#bfc5d4");
+}
+function drawOverlay(){
+  if(paused&&mode==="play"){rect(0,0,W,H,"rgba(0,0,0,.58)");text("일시정지",500,260,52,"#fff","center");text("P를 눌러 계속하기",500,305,19,"#d7dce7","center")}
+  if(mode==="job"){
+    rect(0,0,W,H,"rgba(8,10,16,.82)");
+    text("MINI MAPLE RPG",500,125,44,"#fff","center");
+    text("v0.2 — 모험의 시작",500,158,18,"#9fdbff","center");
+    const arr=[["1","전사","높은 HP / 근접"],["2","마법사","높은 MP / 원거리"],["3","궁수","빠른 원거리"],["4","도적","대시 / 근접"]];
+    arr.forEach((a,i)=>{const x=190+i*160;rect(x,225,140,135,"#1b2030");rect(x+10,235,120,34,JOBS[a[1]].color);text(a[0],x+22,258,22,"#111");text(a[1],x+70,258,18,"#111","center");text(a[2],x+70,302,13,"#d9deea","center");});
+    text("1~4 중 하나를 눌러 시작",500,415,21,"#ffe082","center");
+  }
+  if(mode==="dead"){
+    rect(0,0,W,H,"rgba(0,0,0,.72)");
+    text("쓰러졌습니다",500,240,48,"#ff9a9a","center");
+    text("R 키를 눌러 초보자 마을에서 부활",500,285,19,"#fff","center");
+  }
+}
+function drawParticles(){
+  for(const p of particles){ctx.globalAlpha=clamp(p.life/40,0,1);rect(p.x,p.y,4,4,p.color)}
+  ctx.globalAlpha=1;
+}
+function render(){
+  ctx.save();
+  if(shake)ctx.translate(rng(-shake,shake),rng(-shake,shake));
+  drawBackground();
+  for(const m of monsters)drawMonster(m);
+  drawBoss();
+  for(const d of drops){ctx.fillStyle=d.type==="meso"?"#ffd75e":"#ff6c7b";ctx.beginPath();ctx.arc(d.x,d.y,8,0,Math.PI*2);ctx.fill();}
+  for(const p of projectiles){ctx.fillStyle=p.type==="fire"?"#ff9f43":"#e9e0c1";ctx.beginPath();ctx.arc(p.x,p.y,6,0,Math.PI*2);ctx.fill();}
+  drawPlayer();drawParticles();ctx.restore();
+  drawHUD();drawInventory();drawOverlay();
+}
+function handlePressed(){
+  if(pressed["1"]&&mode==="job")chooseJob(0);
+  if(pressed["2"]&&mode==="job")chooseJob(1);
+  if(pressed["3"]&&mode==="job")chooseJob(2);
+  if(pressed["4"]&&mode==="job")chooseJob(3);
+  if(pressed.z)basicAttack();
+  if(pressed.x)skill();
+  if(pressed.i&&mode==="play")inventoryOpen=!inventoryOpen;
+  if(pressed.q&&mode==="play")talkNpc();
+  if(pressed.d&&mode==="play"&&!dungeon)enterDungeon();
+  if(pressed.p&&mode==="play")paused=!paused;
+  if(pressed.s&&mode==="play")saveGame();
+  if(pressed.l&&mode==="play")loadGame();
+  if(pressed.r)respawn();
+  // Inventory hot use: 1~9 when inventory is open, otherwise no action after job selection
+  if(inventoryOpen&&mode==="play"){
+    for(let n=1;n<=9;n++)if(pressed[String(n)]){if(n===1)usePotion();}
+  }
+  for(const k in pressed)delete pressed[k];
+}
+function loop(ts){
+  const dt=Math.min(32,ts-lastTime||16);lastTime=ts;
+  handlePressed();update(dt);render();requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
