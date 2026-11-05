@@ -41,3 +41,13 @@
  #touch-actions button{min-height:38px}
  .touch-device #survival-hud{bottom:45px}
 }
+
+/* Shared smelting window: mouse and touch both use the same controls. */
+.furnace-panel{width:min(92vw,540px);display:flex;flex-direction:column;gap:12px}
+.furnace-panel h2{margin:0}
+.furnace-recipes{display:grid;gap:8px;width:100%}
+.furnace-recipe{display:flex;align-items:center;gap:12px;min-height:68px;padding:10px;border:1px solid rgba(168,183,198,.28);border-radius:8px;background:rgba(28,39,50,.92)}
+.furnace-recipe img{width:40px;height:40px;image-rendering:pixelated;flex-shrink:0}
+.furnace-recipe span{flex:1;font-size:13px;line-height:1.4}
+.furnace-recipe .btn{min-width:60px}
+.touch-device .furnace-panel{max-height:90dvh;overflow-y:auto;touch-action:pan-y}
