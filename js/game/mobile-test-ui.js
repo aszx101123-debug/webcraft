@@ -339,10 +339,11 @@ const UI = (() => {
   }
 
   function closeInventory() {
-    if (!returnCraftingMaterials()) { showToast('재료를 돌려줄 공간이 부족합니다'); return; }
-    inventoryCursorReturn();
+    if (!returnCraftingMaterials()) { showToast('재료를 돌려줄 공간이 부족합니다'); return false; }
+    if (!inventoryCursorReturn()) return false;
     inventoryOpen = false;
     $('overlay-inventory').classList.add('hidden');
+    return true;
   }
 
   function isInventoryOpen() { return inventoryOpen; }
@@ -460,8 +461,9 @@ const UI = (() => {
   }
 
   function closeCrafting() {
-    if (!returnCraftingMaterials()) { showToast('재료를 돌려줄 공간이 부족합니다'); return; }
+    if (!returnCraftingMaterials()) { showToast('재료를 돌려줄 공간이 부족합니다'); return false; }
     $('overlay-crafting').classList.add('hidden');
+    return true;
   }
 
   function isCraftingOpen() { return !$('overlay-crafting').classList.contains('hidden'); }
