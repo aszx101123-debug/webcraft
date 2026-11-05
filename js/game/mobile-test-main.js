@@ -436,6 +436,15 @@
   }
 
   document.addEventListener('keydown', e => {
+    // The creative search input must not trigger movement, camera, or game shortcuts.
+    if (UI.isPickerOpen()) {
+      if (e.code === 'Escape') {
+        e.preventDefault();
+        UI.closePicker();
+        resumeInput();
+      }
+      return;
+    }
     keys[e.code] = true;
     if (e.code === 'Space') e.preventDefault();
     if (e.code === 'Escape' && UI.isInventoryOpen()) {
