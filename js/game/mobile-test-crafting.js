@@ -51,6 +51,13 @@ const Crafting = (() => {
     note: '판자 4개'
   });
 
+  // A basic light source for exploring caves.
+  add('torches', '횃불 만들기', BLOCK.TORCH, 4, {
+    shapeless: true,
+    ingredients: [{ id: ITEM.COAL, count: 1 }, { id: ITEM.STICK, count: 1 }],
+    note: '석탄 1개 + 막대기 1개 → 횃불 4개'
+  });
+
   // The furnace is crafted on a 3x3 crafting table from eight cobblestone blocks.
   add('furnace', '화로 만들기', BLOCK.FURNACE, 1, {
     pattern: [[1,1,1, 1,0,1, 1,1,1]],
