@@ -33,6 +33,8 @@ check('glass breaks without drops, leaves have controlled drops',()=>{
   assert.equal(getBlockDrop(BLOCK.BIRCH_LEAVES,()=>0,null),ITEM.APPLE);
   assert.equal(getBlockDrop(BLOCK.SPRUCE_LEAVES,()=>0,null),ITEM.STICK);
   assert.equal(getBlockDrop(BLOCK.GRAVEL,()=>0,null),BLOCK.GRAVEL);
+  assert.equal(getBlockDrop(BLOCK.SPRUCE_LEAVES,()=>1,{toolType:'hoe',tier:1}),BLOCK.SPRUCE_LEAVES);
+  assert.equal(getBlockDrop(BLOCK.BIRCH_LEAVES,()=>1,{toolType:'hoe',tier:1}),BLOCK.BIRCH_LEAVES);
 });
 Inventory.init(GAME_MODE.SURVIVAL);
 function craft(id,materials,expected,qty){
