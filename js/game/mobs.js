@@ -8,6 +8,7 @@ const Mobs = (() => {
   let mode = GAME_MODE.CREATIVE;
   let spawnTimer = 3;
   let lastPlayerAttackAt = -Infinity;
+  let lastAttackResult = null;
   let onEvent = null;
 
   function init(scene_) {
@@ -24,6 +25,7 @@ const Mobs = (() => {
     arrows = [];
     spawnTimer = 3;
     lastPlayerAttackAt = -Infinity;
+    lastAttackResult = null;
   }
 
   function setEnv(night, brightness) { env.night = night; env.brightness = brightness; }
@@ -193,6 +195,7 @@ const Mobs = (() => {
       moving: false, onGround: false,
       wanderT: Math.random() * 2, attackT: 0, shootT: 1 + Math.random() * 2,
       strafeT: 2, strafeDir: 1, hurtT: 0, flashed: false,
+      hurtGrace: 0, healthVisibleT: 0,
       burnT: 0, fleeT: 0, animT: 0, jumpT: 0, pathT: 0,
       dead: false, deadT: 0
     };
@@ -243,7 +246,9 @@ const Mobs = (() => {
   }
 
   function hurtMob(m, dmg, knockFrom) {
-    if (m.dead) return;
+    if (m.dead || m.hurtGrace > 0) return false;
+    m.hurtGrace = .33;
+    m.healthVisibleT = 1.8;
     m.hp -= dmg;
     m.hurtT = .18;
     flash(m, true);
@@ -261,6 +266,7 @@ const Mobs = (() => {
       m.deadT = .35;
       if (onEvent) onEvent('die', m);
     }
+    return true;
   }
 
   function dropLoot(m) {
@@ -301,18 +307,32 @@ const Mobs = (() => {
       if (t !== null && t < reach && t < bestT) { bestT = t; best = m; }
     }
     if (best) {
-      // Holding a mouse button or double-tapping must not deal unlimited instant damage.
+      // Java-style recharge: impatient clicks are weaker, not full-strength strikes.
       const now = performance.now();
-      if (now - lastPlayerAttackAt < 450) return best;
-      lastPlayerAttackAt = now;
-      const tool = Inventory.selectedTool();
-      const attackDamage = tool && Number.isFinite(tool.attackDamage)
-        ? tool.attackDamage : SURVIVAL.FIST_DMG;
-      hurtMob(best, attackDamage, Player.pos);
-      if (tool) {
+      const elapsed = (now - lastPlayerAttackAt) / 1000;
+      const selected=Inventory.selectedSlot();
+      const tool=Inventory.selectedTool();
+      const stats=getAttackStats(selected?.id || 0);
+      const charge=attackCharge(elapsed,stats.speed);
+      // A small animation gate and entity hurt grace prevent impossible click spam.
+      if(elapsed < .16){
+        lastAttackResult={target:best,landed:false,reason:'recharge',charge,damage:0};
+        return best;
+      }
+      if(!hasLineOfSight(eye,{x:best.pos.x,y:best.pos.y+best.def.height*.64,z:best.pos.z})){
+        lastAttackResult={target:best,landed:false,reason:'blocked',charge,damage:0};
+        return null;
+      }
+      lastPlayerAttackAt=now;
+      const critical=charge>.9&&!Player.onGround&&!Player.inWater&&Player.vel?.y<-.1;
+      const damage=chargedAttackDamage(stats.damage,charge,critical);
+      const landed=hurtMob(best,damage,Player.pos);
+      if(landed&&tool){
         Inventory.damageSelectedTool(1);
         UI.renderHotbar();
       }
+      lastAttackResult={target:best,landed,reason:landed?'hit':'hurt-grace',
+        charge,damage:landed?damage:0,critical:landed&&critical};
       return best;
     }
     return null;
@@ -419,6 +439,8 @@ const Mobs = (() => {
 
       m.attackT -= dt;
       m.hurtT -= dt;
+      m.hurtGrace = Math.max(0,m.hurtGrace-dt);
+      m.healthVisibleT = Math.max(0,m.healthVisibleT-dt);
       m.jumpT -= dt;
       m.pathT -= dt;
       if (m.hurtT <= 0 && m.flashed) flash(m, false);
@@ -557,6 +579,13 @@ const Mobs = (() => {
     arrows.splice(i, 1);
   }
 
+  function getAttackCharge() {
+    const selected=Inventory.selectedSlot();
+    const stats=getAttackStats(selected?.id||0);
+    return attackCharge((performance.now()-lastPlayerAttackAt)/1000,stats.speed);
+  }
+  function getLastAttackResult(){return lastAttackResult;}
+
   function counts() {
     return {
       total: mobs.length,
@@ -567,7 +596,8 @@ const Mobs = (() => {
   }
 
   return {
-    init, reset, spawn, update, tryAttack, setEnv, setMode, counts,
+    init, reset, spawn, update, tryAttack, getAttackCharge, getLastAttackResult,
+    setEnv, setMode, counts,
     set onEvent(fn) { onEvent = fn; }
   };
 })();
