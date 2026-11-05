@@ -41,21 +41,21 @@ const Crafting = (() => {
     note: '통나무 1개 → 판자 4개'
   });
   add('sticks', '막대기 만들기', ITEM.STICK, 4, {
-    shapeless: true,
+    pattern: [[1,0,0, 1,0,0, 0,0,0]],
     ingredients: [{ id: BLOCK.PLANK, count: 2 }],
-    note: '판자 2개 → 막대기 4개'
+    note: '판자 2개를 세로로 배치'
   });
   add('crafting-table', '제작대 만들기', BLOCK.CRAFTING_TABLE, 1, {
-    shapeless: true,
+    pattern: [[1,1,0, 1,1,0, 0,0,0]],
     ingredients: [{ id: BLOCK.PLANK, count: 4 }],
-    note: '판자 4개'
+    note: '판자 4개를 2×2 정사각형으로'
   });
 
   // A basic light source for exploring caves.
   add('torches', '횃불 만들기', BLOCK.TORCH, 4, {
-    shapeless: true,
+    pattern: [[1,0,0, 2,0,0, 0,0,0]],
     ingredients: [{ id: ITEM.COAL, count: 1 }, { id: ITEM.STICK, count: 1 }],
-    note: '석탄 1개 + 막대기 1개 → 횃불 4개'
+    note: '석탄 위, 막대기 아래 → 횃불 4개'
   });
 
   // The furnace is crafted on a 3x3 crafting table from eight cobblestone blocks.
@@ -206,9 +206,12 @@ const Crafting = (() => {
     return true;
   }
 
-  function craftGrid(){const recipe=getMatch();if(!recipe||!canCraftGrid())return false;for(const ing of recipe.ingredients){let n=ing.count;for(const i of activeIndices()){if(!n)break;if(grid[i]===ing.id){grid[i]=null;n--;}}if(n)return false;}
+  function craftGrid() {
+    const recipe = getMatch();
+    if (!recipe || !canCraftGrid()) return false;
+    // Source cells are an escrow: commit output first, consume cells only on success.
     const made = Inventory.add(recipe.outputId, recipe.count);
-    if (made < recipe.count) return false;
+    if (made !== recipe.count) return false;
     resetGrid();
     return true;
   }
@@ -216,10 +219,19 @@ const Crafting = (() => {
   function autofill(recipeId) {
     const recipe = recipes.find(r => r.id === recipeId);
     if (!recipe || !recipeFitsGrid(recipe)) return false;
-    resetGrid(gridSize);
-    const materialId = recipe.ingredients.find(i => i.id !== ITEM.STICK)?.id || 0;
+    // Never clear a player's existing crafting materials when autofill is unaffordable.
+    if (activeIndices().some(i => grid[i])) return false;
     if (!recipe.ingredients.every(i => Inventory.countItem(i.id) >= i.count)) return false;
-    for (const ing of recipe.ingredients) if (!Inventory.removeItem(ing.id, ing.count)) return false;
+    const materialId = recipe.ingredients.find(i => i.id !== ITEM.STICK)?.id || 0;
+    const removed = [];
+    for (const ing of recipe.ingredients) {
+      if (!Inventory.removeItem(ing.id, ing.count)) {
+        for (const refund of removed) Inventory.add(refund.id, refund.count);
+        return false;
+      }
+      removed.push(ing);
+    }
+    resetGrid(gridSize);
     if (recipe.shapeless) {
       let out = [];
       recipe.ingredients.forEach(i => { for (let n = 0; n < i.count; n++) out.push(i.id); });
