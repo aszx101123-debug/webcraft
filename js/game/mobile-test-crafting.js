@@ -105,6 +105,21 @@ const Crafting = (() => {
     });
   }
 
+  const swords = [
+    ['wood', '나무', BLOCK.PLANK, ITEM.WOODEN_SWORD],
+    ['stone', '돌', BLOCK.COBBLE, ITEM.STONE_SWORD],
+    ['iron', '철', ITEM.IRON_INGOT, ITEM.IRON_SWORD],
+    ['gold', '금', ITEM.GOLD_INGOT, ITEM.GOLD_SWORD],
+    ['diamond', '다이아몬드', ITEM.DIAMOND, ITEM.DIAMOND_SWORD]
+  ];
+  for (const [key, name, material, output] of swords) {
+    add(key + '-sword', name + ' 검', output, 1, {
+      pattern: [[1,0,0, 1,0,0, 2,0,0]],
+      ingredients: [{ id: material, count: 2 }, { id: ITEM.STICK, count: 1 }],
+      note: '제작대 3×3 · 재료 두 개 위에 막대기'
+    });
+  }
+
   function getRecipes() { return recipes.slice(); }
   function resetGrid(size = gridSize) {
     gridSize = size === 2 ? 2 : 3;
