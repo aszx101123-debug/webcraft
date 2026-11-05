@@ -52,34 +52,64 @@ const Player = (() => {
     if (m === GAME_MODE.SURVIVAL) flying = false;
   }
 
-  function isSolidAt(x, y, z) {
-    const bx = Math.floor(x), by = Math.floor(y), bz = Math.floor(z);
-    if (by >= CONFIG.HEIGHT) return false;
-    if (by < 0) return true;
-    // Avoid falling into still-unloaded chunks while terrain streams in.
-    if (!World.getChunk(bx >> 4, bz >> 4)) return true;
-    return isSolidBlock(World.getBlock(bx, by, bz));
+  function collisionBoxesAt(bx,by,bz) {
+    if(by>=CONFIG.HEIGHT)return [];
+    if(by<0)return [[0,0,0,1,1,1]];
+    // Do not walk through terrain while the destination chunk is loading.
+    if(!World.getChunk(bx>>4,bz>>4))return [[0,0,0,1,1,1]];
+    const id=World.getBlock(bx,by,bz);
+    return isSolidBlock(id)
+      ? getBlockBoxes(id,BlockFurniture.stateAt(bx,by,bz)) : [];
   }
 
-  function moveAxis(axis, dist) {
-    if (!dist) return false;
-    pos[axis] += dist;
-    const x0 = Math.floor(pos.x - HW), x1 = Math.floor(pos.x + HW);
-    const y0 = Math.floor(pos.y), y1 = Math.floor(pos.y + PH - 1e-4);
-    const z0 = Math.floor(pos.z - HW), z1 = Math.floor(pos.z + HW);
-    let hit = false;
-    for (let bx = x0; bx <= x1; bx++) for (let by = y0; by <= y1; by++) for (let bz = z0; bz <= z1; bz++) {
-      if (!isSolidAt(bx, by, bz)) continue;
-      hit = true;
-      if (axis === 'y') {
-        if (dist < 0) pos.y = Math.max(pos.y, by + 1), onGround = true;
-        else pos.y = Math.min(pos.y, by - PH - 1e-3);
-      } else if (axis === 'x') {
-        pos.x = dist > 0 ? Math.min(pos.x, bx - HW - 1e-3) : Math.max(pos.x, bx + 1 + HW + 1e-3);
-      } else {
-        pos.z = dist > 0 ? Math.min(pos.z, bz - HW - 1e-3) : Math.max(pos.z, bz + 1 + HW + 1e-3);
-      }
-    }
+  function worldCollisionAt(x,y,z) {
+    for(let bx=Math.floor(x-HW);bx<=Math.floor(x+HW);bx++)
+      for(let by=Math.floor(y);by<=Math.floor(y+PH-1e-4);by++)
+        for(let bz=Math.floor(z-HW);bz<=Math.floor(z+HW);bz++){
+          for(const b of collisionBoxesAt(bx,by,bz)){
+            if(x+HW>bx+b[0]+1e-5&&x-HW<bx+b[3]-1e-5 &&
+               y+PH>by+b[1]+1e-5&&y<by+b[4]-1e-5 &&
+               z+HW>bz+b[2]+1e-5&&z-HW<bz+b[5]-1e-5)
+              return true;
+          }
+        }
+    return false;
+  }
+
+  function moveAxis(axis,dist) {
+    if(!dist)return false;
+    pos[axis]+=dist;
+    const x0=Math.floor(pos.x-HW),x1=Math.floor(pos.x+HW);
+    const y0=Math.floor(pos.y),y1=Math.floor(pos.y+PH-1e-4);
+    const z0=Math.floor(pos.z-HW),z1=Math.floor(pos.z+HW);
+    let hit=false;
+    for(let bx=x0;bx<=x1;bx++)
+      for(let by=y0;by<=y1;by++)
+        for(let bz=z0;bz<=z1;bz++)for(const box of collisionBoxesAt(bx,by,bz)){
+          const minX=bx+box[0],maxX=bx+box[3];
+          const minY=by+box[1],maxY=by+box[4];
+          const minZ=bz+box[2],maxZ=bz+box[5];
+          if(!(pos.x+HW>minX+1e-5&&pos.x-HW<maxX-1e-5&&
+               pos.y+PH>minY+1e-5&&pos.y<maxY-1e-5&&
+               pos.z+HW>minZ+1e-5&&pos.z-HW<maxZ-1e-5))continue;
+          if(axis!=='y'&&onGround){
+            const rise=maxY-pos.y;
+            if(rise>.001&&rise<=.53 &&
+               !worldCollisionAt(pos.x,pos.y+rise+.002,pos.z)){
+              pos.y+=rise+.002;
+              continue;
+            }
+          }
+          hit=true;
+          if(axis==='y'){
+            if(dist<0){pos.y=Math.max(pos.y,maxY);onGround=true;}
+            else pos.y=Math.min(pos.y,minY-PH-.001);
+          } else if(axis==='x') {
+            pos.x=dist>0?Math.min(pos.x,minX-HW-.001):Math.max(pos.x,maxX+HW+.001);
+          } else {
+            pos.z=dist>0?Math.min(pos.z,minZ-HW-.001):Math.max(pos.z,maxZ+HW+.001);
+          }
+        }
     return hit;
   }
 
