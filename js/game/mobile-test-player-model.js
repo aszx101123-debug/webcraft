@@ -142,7 +142,7 @@ const PlayerModel = (() => {
     const head = joint(0, 2.03, 0);
     head.add(cube(.62, .62, .62, skin));
     head.add(cube(.66, .18, .66, hair, 0, .33, 0));
-    const fringe = cube(.66, .22, .12, hair, 0, .15, -.31);
+    const fringe = cube(.66, .22, .12, hair, 0, .15, .31);
     head.add(fringe);
     const longL = cube(.14, .52, .60, hair, -.39, -.24, 0);
     const longR = cube(.14, .52, .60, hair, .39, -.24, 0);
