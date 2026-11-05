@@ -51,6 +51,7 @@
 
   Textures.init();
   World.init(scene, seed, saved ? saved.edits : null);
+  BlockFurniture.init(saved?.blockObjects);
   BlockPhysics.init();
   Fluids.init();
   PlayerModel.init(scene,camera);
@@ -267,7 +268,8 @@
         x: Player.pos.x, y: Player.pos.y, z: Player.pos.z,
         yaw: Player.yaw, pitch: Player.pitch, flying: Player.flying
       },
-      edits: World.getEdits()
+      edits: World.getEdits(),
+      blockObjects: BlockFurniture.serialize()
     });
     if (!silent) UI.showToast(ok ? '월드가 저장되었습니다' : '저장 실패: 저장 공간 부족');
     return ok;
@@ -423,6 +425,7 @@
   }
 
   function beginGameplay(mode) {
+    BlockFurniture.closeChest(false);
     state.mode = mode;
     Player.setMode(mode);
     UI.setModeLabel(mode);
@@ -435,7 +438,21 @@
     resumeInput();
   }
 
+  BlockFurniture.setOnClose(() => {
+    state.suppressPause=true;
+    doSave(true);
+    resumeInput();
+  });
+  document.getElementById('chest-close')?.addEventListener('click', () => BlockFurniture.closeChest());
+
   document.addEventListener('keydown', e => {
+    if (BlockFurniture.isChestOpen()) {
+      if (e.code==='Escape') {
+        e.preventDefault();
+        BlockFurniture.closeChest();
+      }
+      return;
+    }
     // The creative search input must not trigger movement, camera, or game shortcuts.
     if (UI.isPickerOpen()) {
       if (e.code === 'Escape') {
@@ -549,6 +566,19 @@
       }
     } else if (e.button === 2) {
       const target = Interact.getTarget();
+      if (target && (target.id===BLOCK.WOOD_DOOR || target.id===BLOCK.WOOD_DOOR_TOP)) {
+        const opened=BlockFurniture.toggleDoor(target.x,target.y,target.z);
+        UI.showToast(opened?'문을 열었습니다':'문을 닫았습니다');
+        blip(opened?310:225,.07,'square',.04);
+        return;
+      }
+      if (target && target.id===BLOCK.CHEST) {
+        disableTouchInput();
+        state.suppressPause=true;
+        document.exitPointerLock?.();
+        if(!BlockFurniture.openChest(target.x,target.y,target.z))resumeInput();
+        return;
+      }
       if (target && (target.id === BLOCK.CRAFTING_TABLE || target.id === BLOCK.FURNACE)) {
         disableTouchInput();
         state.suppressPause = true;
@@ -635,6 +665,7 @@
   }
 
   function openWorldMenu() {
+    BlockFurniture.closeChest(false);
     if (UI.isInventoryOpen() && !UI.closeInventory()) return;
     if (UI.isCraftingOpen() && !UI.closeCrafting()) return;
     disableTouchInput();
@@ -844,7 +875,7 @@
         UI.setStartEnabled(true);
       }
     } else {
-      const active = state.started && !state.paused && !Player.dead && !UI.isInventoryOpen() && !UI.isCraftingOpen() && !UI.isFurnaceOpen();
+      const active = state.started && !state.paused && !Player.dead && !UI.isInventoryOpen() && !UI.isCraftingOpen() && !UI.isFurnaceOpen() && !BlockFurniture.isChestOpen();
       if (active) {
         Player.update(dt, keys);
         Interact.update();
