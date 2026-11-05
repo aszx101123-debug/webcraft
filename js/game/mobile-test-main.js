@@ -839,6 +839,12 @@
       if (active) {
         Player.update(dt, keys);
         Interact.update();
+        const aimed=Interact.getTarget();
+        const targetLabel=document.getElementById('target-block-name');
+        if(targetLabel){
+          targetLabel.textContent=aimed?getItemName(aimed.id):'';
+          targetLabel.classList.toggle('show',!!aimed);
+        }
         const mined = Interact.updateMining(dt, state.mode === GAME_MODE.SURVIVAL);
         const miningProgress = Interact.miningProgress();
         UI.setMiningProgress(miningProgress);
