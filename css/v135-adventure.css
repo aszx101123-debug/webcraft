@@ -53,3 +53,26 @@
  #journal-discovery{font-size:12px;width:max-content;max-width:78vw;padding:9px 12px}
 }
 @media(prefers-reduced-motion:reduce){#journal-discovery{transition:none}}
+
+/* Accessible home bookmark and save confirmation */
+.journal-home-bar{
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+  padding:10px 12px;margin:0 0 15px;border:1px solid #567b76;
+  background:#19343c;border-radius:10px;
+}
+#journal-home{font-size:12px;color:#d0e3de;line-height:1.7}
+#journal-set-home{padding:8px 11px;font-size:11px;background:#285b4b;border:1px solid #83b99d}
+#save-indicator{
+  position:fixed;right:15px;top:73px;z-index:35;
+  color:#e9f8e9;font:750 11px system-ui,sans-serif;
+  padding:8px 12px;border:1px solid #78b591;background:#173e32e8;
+  border-radius:7px;box-shadow:0 7px 16px #0006;
+  opacity:0;transform:translateY(-8px);transition:opacity .24s,transform .24s;pointer-events:none;
+}
+#save-indicator.show{opacity:1;transform:translateY(0)}
+#save-indicator.save-failed{border-color:#e7a887;background:#613a33;color:#ffdfcb}
+@media(max-width:690px){
+  .journal-home-bar{align-items:stretch}
+  #journal-set-home{width:100%}
+  #save-indicator{top:57px;right:8px;font-size:10px}
+}
