@@ -15,52 +15,14 @@ const PlayerModel = (() => {
   const ATTACK_DURATION = .34;
 
   // Original cosmetic palettes change the avatar only, not game statistics.
-  const palettes = {
-    skin: [
-      { label: '밝은 베이지', value: 0xe9bd92 }, { label: '복숭아', value: 0xd5a57f },
-      { label: '구릿빛', value: 0xb77955 }, { label: '짙은 갈색', value: 0x80513c }
-    ],
-    hair: [
-      { label: '검정', value: 0x26242a }, { label: '갈색', value: 0x4b3428 },
-      { label: '밤색', value: 0x7b4b30 }, { label: '금발', value: 0xbda16d },
-      { label: '은색', value: 0xc9c9cc }
-    ],
-    shirt: [
-      { label: '청록', value: 0x2f8c90 }, { label: '파랑', value: 0x426ab4 },
-      { label: '빨강', value: 0xb35053 }, { label: '초록', value: 0x518e53 },
-      { label: '보라', value: 0x8456a2 }, { label: '주황', value: 0xc78b3c }
-    ],
-    pants: [
-      { label: '남색', value: 0x33435f }, { label: '회색', value: 0x6b7888 },
-      { label: '갈색', value: 0x70503b }, { label: '검정', value: 0x272c38 }
-    ],
-    boots: [
-      { label: '검정', value: 0x24262c }, { label: '갈색', value: 0x5b4335 },
-      { label: '회색', value: 0x666b70 }
-    ],
-    hairStyle: [
-      { label: '짧은 머리', value: 'short' },
-      { label: '앞머리', value: 'fringe' },
-      { label: '긴 머리', value: 'long' }
-    ]
-  };
-  const defaults = { skin: 1, hair: 1, shirt: 0, pants: 0, boots: 0, hairStyle: 'short' };
-  let appearance = { ...defaults };
-  let bodyMaterials = null, hairBits = null;
+  const palettes = WebCraftSkins.palettes;
+  const defaults = WebCraftSkins.defaults;
+  let appearance = {...defaults};
+  let bodyMaterials = null, hairBits = null, detailBits = null;
   let heldMain = null, heldOff = null, heldMainId = 0, heldOffId = 0;
   let worldRight = null, worldLeft = null;
 
-  function normalizeAppearance(next) {
-    const normalized = { ...defaults };
-    if (!next || typeof next !== 'object' || Array.isArray(next)) return normalized;
-    for (const field of ['skin', 'hair', 'shirt', 'pants', 'boots']) {
-      if (Number.isInteger(next[field]) && next[field] >= 0 && next[field] < palettes[field].length)
-        normalized[field] = next[field];
-    }
-    if (palettes.hairStyle.some(item => item.value === next.hairStyle))
-      normalized.hairStyle = next.hairStyle;
-    return normalized;
-  }
+  function normalizeAppearance(next) { return WebCraftSkins.normalize(next); }
   function getAppearance() { return { ...appearance }; }
   function getPalettes() { return palettes; }
   function colorCss(field) {
@@ -75,9 +37,21 @@ const PlayerModel = (() => {
       bodyMaterials.cuff.color.multiplyScalar(.75);
     }
     if (hairBits) {
-      hairBits.fringe.visible = appearance.hairStyle !== 'short';
+      hairBits.fringe.visible = appearance.hairStyle === 'fringe';
       hairBits.longL.visible = appearance.hairStyle === 'long';
       hairBits.longR.visible = appearance.hairStyle === 'long';
+      hairBits.parted.visible = appearance.hairStyle === 'parted';
+    }
+    if (detailBits) {
+      const {stripe,badge,hoodie,glasses,scarf,headband,eyes,armStripes} = detailBits;
+      stripe.forEach(node=>node.visible = appearance.shirtStyle==='stripe');
+      badge.visible = appearance.shirtStyle==='badge';
+      hoodie.forEach(node=>node.visible = appearance.shirtStyle==='hoodie');
+      glasses.forEach(node=>node.visible = appearance.accessory==='glasses');
+      scarf.forEach(node=>node.visible = appearance.accessory==='scarf');
+      headband.visible = appearance.accessory==='headband';
+      armStripes.forEach(node=>node.visible = appearance.shirtStyle==='stripe');
+      eyes.color.setHex({dark:0x20252b,brown:0x68442d,blue:0x2876b9}[appearance.eyes]);
     }
     return getAppearance();
   }
@@ -150,17 +124,67 @@ const PlayerModel = (() => {
     const longL = cube(.14, .52, .60, hair, -.39, -.24, 0);
     const longR = cube(.14, .52, .60, hair, .39, -.24, 0);
     head.add(longL, longR);
-    hairBits = { fringe, longL, longR };
-    head.add(cube(.075, .075, .03, 0x20252b, .15, .02, .315));
-    head.add(cube(.075, .075, .03, 0x20252b, -.15, .02, .315));
+    const parted = cube(.24,.22,.14,hair,-.20,.16,.32);
+    head.add(parted);
+    hairBits = { fringe, longL, longR, parted };
+    const eyes = material(0x20252b);
+    head.add(cube(.075, .075, .03, eyes, .15, .02, .315));
+    head.add(cube(.075, .075, .03, eyes, -.15, .02, .315));
+    head.add(cube(.019, .019, .012, 0xe7eae1, .135, .035, .335));
+    head.add(cube(.019, .019, .012, 0xe7eae1, -.165, .035, .335));
     head.add(cube(.11, .06, .035, 0x8f4a43, 0, -.14, .315));
     worldModel.add(head);
+
+    // Pixel geometry layers: shirt patterns, baggy hoodie, scarf and eyewear.
+    // Cosmetic-only mesh accents are kept separate from the base colored materials.
+    const stripe = [
+      cube(.72,.065,.014,0xc9d7bf,0,1.39,.221),
+      cube(.72,.04,.014,0x415568,0,1.17,.221)
+    ];
+    worldModel.add(...stripe);
+    const badge = cube(.17,.19,.02,0xe0bd67,.21,1.38,.231);
+    const badgeCenter = cube(.095,.10,.026,0x294c65,0,0,.018);
+    badge.add(badgeCenter);worldModel.add(badge);
+    const hoodie = [
+      cube(.35,.19,.018,cuff,0,1.11,.237),
+      cube(.033,.23,.03,0xe0e1d4,-.09,1.42,.247),
+      cube(.033,.23,.03,0xe0e1d4,.09,1.42,.247),
+      cube(.62,.12,.10,cuff,0,1.71,-.10)
+    ];
+    worldModel.add(...hoodie);
+    const glasses = [
+      cube(.22,.035,.035,0xc6d7e2,-.17,.075,.354),
+      cube(.22,.035,.035,0xc6d7e2,.17,.075,.354),
+      cube(.04,.17,.03,0xc6d7e2,-.29,.01,.356),
+      cube(.04,.17,.03,0xc6d7e2,-.05,.01,.356),
+      cube(.04,.17,.03,0xc6d7e2,.05,.01,.356),
+      cube(.04,.17,.03,0xc6d7e2,.29,.01,.356)
+    ];
+    // Glasses and headband follow the head when it rotates.
+    head.add(...glasses);
+    const scarf = [
+      cube(.70,.13,.46,0xd7a05a,0,1.72,.01),
+      cube(.13,.37,.07,0xb66b45,.27,1.48,.29)
+    ]; worldModel.add(...scarf);
+    const headband = cube(.67,.075,.67,0xcfab54,0,.21,0);
+    head.add(headband);
+    const armStripes = [];
 
     const armL = worldArm(-1, shirt, cuff, skin);
     const armR = worldArm(1, shirt, cuff, skin);
     const legL = worldLeg(-1, pants, boots);
     const legR = worldLeg(1, pants, boots);
     worldModel.add(armL, armR, legL, legR);
+    const armStripeL = cube(.25,.062,.30,0xbfcfbd,0,-.25,0);
+    const armStripeR = cube(.25,.062,.30,0xbfcfbd,0,-.25,0);
+    armL.add(armStripeL);armR.add(armStripeR);
+    armStripes.push(armStripeL,armStripeR);
+    // Stitched trousers and laces make the skin read as pixel clothing from a distance.
+    legL.add(cube(.17,.12,.013,0x45536c,0,-.21,.164));
+    legR.add(cube(.17,.12,.013,0x45536c,0,-.21,.164));
+    legL.add(cube(.10,.025,.012,0xc9d2d1,0,-.72,.203));
+    legR.add(cube(.10,.025,.012,0xc9d2d1,0,-.72,.203));
+    detailBits = {stripe,badge,hoodie,glasses,scarf,headband,eyes,armStripes};
     worldLeft = armL;
     worldRight = armR;
     limbs = { armL, armR, legL, legR, head };
@@ -272,70 +296,7 @@ const PlayerModel = (() => {
   // Character preview uses a lightweight 2D canvas to avoid a second WebGL
   // context on low-memory mobile devices.
   function drawPreview(canvas, rear = false) {
-    if (!canvas || typeof canvas.getContext !== 'function') return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    const w = canvas.width, h = canvas.height;
-    ctx.clearRect(0, 0, w, h);
-    const rect = (x, y, width, height, fill) => {
-      ctx.fillStyle = fill;
-      ctx.fillRect(Math.round(x), Math.round(y), Math.round(width), Math.round(height));
-    };
-    ctx.fillStyle = '#0c1620';
-    ctx.fillRect(0, 0, w, h);
-    for (let y = 0; y < h; y += 14) for (let x = 0; x < w; x += 14) {
-      if ((x + y) % 28 === 0) rect(x, y, 14, 14, '#111f2a');
-    }
-    const skin = colorCss('skin'), hair = colorCss('hair'),
-      shirt = colorCss('shirt'), pants = colorCss('pants'), boots = colorCss('boots');
-    const mainX = Math.round(w / 2);
-    const feetY = h - 12, legY = feetY - 66, chestY = legY - 67;
-    // Boots and separate legs.
-    rect(mainX - 25, legY, 23, 52, pants);
-    rect(mainX + 2, legY, 23, 52, pants);
-    rect(mainX - 28, feetY - 18, 26, 18, boots);
-    rect(mainX + 2, feetY - 18, 26, 18, boots);
-    // Torso, arms and cuffs.
-    rect(mainX - 28, chestY, 56, 67, shirt);
-    rect(mainX - 46, chestY + 2, 16, 31, shirt);
-    rect(mainX + 30, chestY + 2, 16, 31, shirt);
-    rect(mainX - 46, chestY + 33, 16, 9, shirt);
-    rect(mainX + 30, chestY + 33, 16, 9, shirt);
-    rect(mainX - 46, chestY + 42, 16, 30, skin);
-    rect(mainX + 30, chestY + 42, 16, 30, skin);
-    rect(mainX - 25, chestY + 7, 5, 52, 'rgba(0,0,0,.15)');
-    // Head and hairstyle.
-    const headY = chestY - 59;
-    rect(mainX - 26, headY, 52, 53, skin);
-    rect(mainX - 27, headY - 8, 54, 14, hair);
-    if (appearance.hairStyle !== 'short') rect(mainX - 27, headY + 4, 54, 13, hair);
-    if (appearance.hairStyle === 'long') {
-      rect(mainX - 34, headY + 8, 8, 49, hair);
-      rect(mainX + 26, headY + 8, 8, 49, hair);
-    }
-    if (!rear) {
-      if (appearance.hairStyle === 'fringe') rect(mainX - 5, headY + 4, 12, 17, hair);
-      rect(mainX - 16, headY + 25, 7, 7, '#20252b');
-      rect(mainX + 9, headY + 25, 7, 7, '#20252b');
-      rect(mainX - 3, headY + 39, 8, 3, '#8f4a43');
-      rect(mainX - 16, chestY + 18, 32, 7, 'rgba(255,255,255,.18)');
-    }
-    const gear = Inventory.getEquipment();
-    const armorColor = stack => {
-      if (!stack || stack.id < 220 || stack.id > 239) return null;
-      const tier = Math.floor((stack.id - 220) / 4);
-      return ['#9a704b','#92979c','#c9d4d9','#e5b54c','#6bdbe8'][tier] || null;
-    };
-    if (armorColor(gear.chest)) rect(mainX - 27, chestY + 2, 54, 38, armorColor(gear.chest));
-    if (armorColor(gear.legs)) {
-      rect(mainX - 25, legY, 23, 30, armorColor(gear.legs));
-      rect(mainX + 2, legY, 23, 30, armorColor(gear.legs));
-    }
-    if (armorColor(gear.feet)) {
-      rect(mainX - 28, feetY - 20, 26, 20, armorColor(gear.feet));
-      rect(mainX + 2, feetY - 20, 26, 20, armorColor(gear.feet));
-    }
-    if (armorColor(gear.head)) rect(mainX - 27, headY - 5, 54, 21, armorColor(gear.head));
+    return WebCraftSkins.draw(canvas,appearance,rear,Inventory.getEquipment());
   }
 
   function swing() {

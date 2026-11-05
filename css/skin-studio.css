@@ -1,0 +1,57 @@
+/* WebCraft homepage skin studio · shared with the in-game wardrobe */
+#skin-studio{padding:62px 0 72px;background:linear-gradient(160deg,#131d2a,#0b141e 70%);border-top:1px solid #33495b;border-bottom:1px solid #33495b}
+#skin-studio .skin-studio-head{text-align:center;margin:0 auto 25px;max-width:770px}
+#skin-studio .skin-studio-kicker{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.14em;color:#99d686;margin-bottom:9px}
+#skin-studio h2{font-size:clamp(26px,4vw,38px);line-height:1.2;margin:0 0 12px;color:#f2f6f5}
+#skin-studio .skin-studio-head p{color:#9eb5c7;font-size:14px;line-height:1.75}
+#skin-studio .skin-studio-shell{display:grid;grid-template-columns:minmax(230px,340px) minmax(0,1fr);gap:18px;align-items:stretch}
+#skin-studio .skin-preview-card,#skin-studio .skin-controls-card{border:1px solid #385165;border-radius:14px;background:#151f2bf0;box-shadow:0 12px 32px #0003}
+#skin-studio .skin-preview-card{padding:20px 18px;display:flex;flex-direction:column;align-items:center;gap:12px}
+#skin-studio .skin-card-label{font-size:12px;letter-spacing:.1em;color:#a1bbcb;font-weight:800;align-self:stretch}
+#skin-studio .skin-preview-frame{width:min(256px,100%);border:3px solid #58717c;border-radius:6px;background:#13232e;overflow:hidden;box-shadow:inset 2px 2px 0 #0b121b,0 12px 26px #0007}
+#skin-studio canvas{display:block;width:100%;height:auto;image-rendering:pixelated;aspect-ratio:80/112}
+#skin-studio .skin-preview-actions{display:flex;justify-content:center;flex-wrap:wrap;gap:7px}
+#skin-studio .skin-minor-button{font:700 11px inherit;font-family:inherit;font-size:12px;color:#dce9ed;border:1px solid #5a7485;background:#223340;padding:9px 12px;min-height:36px;cursor:pointer;border-radius:6px;transition:background .1s}
+#skin-studio .skin-minor-button:hover{background:#35536a}
+#skin-studio .skin-studio-footnote{font-size:11px;line-height:1.5;color:#8da6ba;text-align:center;margin:0}
+#skin-studio .skin-controls-card{padding:20px 22px;min-width:0}
+#skin-studio .skin-controls-top{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
+#skin-studio .skin-controls-top h3{font-size:17px;margin:0;color:#eef5f7}
+#skin-studio .skin-presets{display:flex;flex-wrap:wrap;gap:7px;margin:5px 0 19px}
+#skin-studio .skin-preset{font-family:inherit;background:#23374b;color:#c8dbe9;border:1px solid #466278;border-radius:6px;padding:8px 11px;min-height:34px;font-size:11px;font-weight:700;cursor:pointer}
+#skin-studio .skin-preset:hover{background:#33506a}
+#skin-studio .skin-preset[aria-pressed="true"]{border-color:#a2db8b;color:#f0ffe5;background:#38563e}
+#skin-studio .skin-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px}
+#skin-studio .skin-option-row{min-width:0;padding:11px;background:#101a25;border:1px solid #2c4051;border-radius:8px}
+#skin-studio .skin-option-label{display:block;font-size:11px;font-weight:800;color:#b5c8d8;margin-bottom:9px}
+#skin-studio .skin-option-choices{display:flex;gap:7px;flex-wrap:wrap}
+#skin-studio .skin-option-chip{display:flex;align-items:center;justify-content:center;width:32px;height:32px;min-width:32px;padding:3px;border:2px solid #4e6777;background:#223340;border-radius:6px;cursor:pointer;box-shadow:inset 0 0 0 1px #0009}
+#skin-studio .skin-option-chip span{display:block;width:100%;height:100%;border-radius:3px;background:var(--skin-chip-color)}
+#skin-studio .skin-option-chip:hover{transform:translateY(-1px)}
+#skin-studio .skin-option-chip[aria-pressed="true"]{border-color:#f4f9e8;outline:2px solid #83c36a;outline-offset:2px}
+#skin-studio .skin-option-chip.skin-option-text{width:auto;min-width:49px;min-height:31px;padding:5px 7px;font:700 11px inherit;font-family:inherit;font-size:11px;background:#263b49;color:#e2eef6}
+#skin-studio .skin-option-chip.skin-option-text[aria-pressed="true"]{background:#355a40}
+#skin-studio .skin-action-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:18px;border-top:1px solid #354b5a;padding-top:16px}
+#skin-studio .skin-action-bar .btn{min-width:130px;text-align:center}
+#skin-studio #skin-save-status{color:#a9d29c;font-size:11px;line-height:1.5;flex:1 1 170px}
+#skin-studio #skin-save-status.skin-save-error{color:#ffb6a4}
+#skin-studio :focus-visible{outline:2px solid #e5db84;outline-offset:3px}
+@media(max-width:900px){
+ #skin-studio .skin-studio-shell{grid-template-columns:1fr}
+ #skin-studio .skin-preview-card{display:grid;grid-template-columns:minmax(120px,215px) minmax(0,1fr);gap:10px 20px;align-items:center}
+ #skin-studio .skin-card-label{grid-column:1/-1}
+ #skin-studio .skin-preview-frame{grid-row:2/5;width:100%}
+ #skin-studio .skin-preview-actions,#skin-studio .skin-studio-footnote{justify-content:flex-start;text-align:left}
+}
+@media(max-width:620px){
+ #skin-studio{padding:39px 0}
+ #skin-studio .skin-studio-shell{gap:11px}
+ #skin-studio .skin-preview-card{display:flex}
+ #skin-studio .skin-preview-frame{max-width:230px}
+ #skin-studio .skin-preview-actions,#skin-studio .skin-studio-footnote{justify-content:center;text-align:center}
+ #skin-studio .skin-controls-card{padding:16px 12px}
+ #skin-studio .skin-fields{grid-template-columns:1fr;gap:8px}
+ #skin-studio .skin-option-row{padding:10px}
+ #skin-studio .skin-option-chip{min-width:30px;width:30px;height:30px}
+ #skin-studio .skin-action-bar .btn{flex:1 1 130px}
+}

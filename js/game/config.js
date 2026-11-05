@@ -1,7 +1,7 @@
 'use strict';
 
 const CONFIG = {
-  VERSION: '1.3.0',
+  VERSION: '1.3.1',
   CHUNK: 16,
   HEIGHT: 64,
   SEA: 23,

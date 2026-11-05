@@ -38,6 +38,11 @@ const game = new Function('localStorage', [
 )(localStorage);
 const { BLOCK, ITEM, Inventory, Crafting, SaveSystem, Terrain, GAME_MODE } = game;
 
+check('shared skin studio scripts parse', () => {
+  assert.doesNotThrow(() => new Function(src('js/skin-studio.js')));
+  assert.doesNotThrow(() => new Function(src('js/skin-studio-page.js')));
+});
+
 check('ingredient removal is atomic', () => {
   Inventory.init(GAME_MODE.SURVIVAL);
   Inventory.add(BLOCK.PLANK, 2);
@@ -173,18 +178,23 @@ check('flowing water does not rebuild unchanged and clears after source removal'
   assert.equal([...blocks.values()].filter(id => id === BLOCK.WATER_FLOW).length, 0);
 });
 
-check('PC/mobile pages include v1.3.0 avatar editor, held items and world backup controls', () => {
+check('PC/mobile pages include v1.3.1 shared skin editor and world backup', () => {
   for (const page of ['play.html', 'mobile-test.html']) {
     const html = src(page);
-    assert.ok(html.includes('mobile-test-main.js?v=v130'));
+    assert.ok(html.includes('mobile-test-main.js?v=v131'));
     assert.ok(html.includes('v129-polish.css?v=v129'));
     assert.ok(html.includes('btn-export-world'));
     assert.ok(html.includes('btn-import-world'));
     assert.ok(html.includes('id="character-preview"'));
     assert.ok(html.includes('id="character-options"'));
-    assert.ok(html.includes('css/v130-character.css?v=v130'));
+    assert.ok(html.includes('css/v130-character.css?v=v131'));
+    assert.ok(html.includes('js/skin-studio.js?v=v131'));
+    assert.ok(html.indexOf('js/skin-studio.js?v=v131') < html.indexOf('js/game/mobile-test-player-model.js?v=v131'));
+
   }
-  assert.ok(src('index.html').includes('v1.3.0'));
+  assert.ok(src('index.html').includes('v1.3.1'));
+  assert.ok(src('index.html').includes('id="skin-studio"'));
+  assert.ok(src('index.html').includes('js/skin-studio-page.js?v=v131'));
 });
 
 console.log('All ' + passed + ' WebCraft regression checks passed.');
