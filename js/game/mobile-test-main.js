@@ -386,6 +386,11 @@
       if (UI.closeCrafting()) resumeInput();
       return;
     }
+    if (e.code === 'Escape' && UI.isFurnaceOpen()) {
+      UI.closeFurnace();
+      resumeInput();
+      return;
+    }
     if (e.code === 'F3') { e.preventDefault(); const h = document.getElementById('hud-info'); h.style.display = h.style.display === 'none' ? '' : 'none'; }
     if (e.code === 'F5') {
       e.preventDefault();
