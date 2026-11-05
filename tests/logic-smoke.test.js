@@ -17,6 +17,7 @@ function check(name, fn) {
 const compiledModules = [
   'config', 'items', 'mobile-test-crafting', 'mobile-test-ui',
   'mobile-test-main', 'save', 'noise', 'terrain', 'fluids', 'world',
+  'block-physics',
   'player', 'mobs', 'interaction', 'mobile-test-textures', 'mobile-test-player-model'
 ];
 check('all game JavaScript files parse', () => {
@@ -77,6 +78,22 @@ check('furnace is craftable from eight cobblestone', () => {
   assert.equal(Crafting.autofill('furnace'), true);
   assert.equal(Crafting.craftGrid(), true);
   assert.equal(Inventory.countItem(BLOCK.FURNACE), 1);
+});
+
+check('armor patterns and mixed-material furniture crafting work',()=>{
+  Inventory.add(ITEM.LEATHER,5);
+  Crafting.resetGrid(3);
+  assert.equal(Crafting.autofill('leather-helmet'),true);
+  assert.equal(Crafting.getMatch()?.id,'leather-helmet');
+  assert.equal(Crafting.craftGrid(),true);
+  assert.ok(Inventory.countItem(ITEM.LEATHER_HELMET)>=1);
+  Inventory.add(BLOCK.PLANK,6);
+  Inventory.add(ITEM.LEATHER,3);
+  Crafting.resetGrid(3);
+  assert.equal(Crafting.autofill('bookshelf'),true);
+  assert.equal(Crafting.getMatch()?.id,'bookshelf');
+  assert.equal(Crafting.craftGrid(),true);
+  assert.ok(Inventory.countItem(BLOCK.BOOKSHELF)>=1);
 });
 
 check('five sword tiers have matching 3x3 recipes', () => {
@@ -178,10 +195,10 @@ check('flowing water does not rebuild unchanged and clears after source removal'
   assert.equal([...blocks.values()].filter(id => id === BLOCK.WATER_FLOW).length, 0);
 });
 
-check('PC/mobile pages include v1.3.1 shared skin editor and world backup', () => {
+check('PC/mobile pages include v1.3.2 block update and shared skin editor', () => {
   for (const page of ['play.html', 'mobile-test.html']) {
     const html = src(page);
-    assert.ok(html.includes('mobile-test-main.js?v=v131'));
+    assert.ok(html.includes('mobile-test-main.js?v=v132'));
     assert.ok(html.includes('v129-polish.css?v=v129'));
     assert.ok(html.includes('btn-export-world'));
     assert.ok(html.includes('btn-import-world'));
@@ -189,10 +206,13 @@ check('PC/mobile pages include v1.3.1 shared skin editor and world backup', () =
     assert.ok(html.includes('id="character-options"'));
     assert.ok(html.includes('css/v130-character.css?v=v131'));
     assert.ok(html.includes('js/skin-studio.js?v=v131'));
+    assert.ok(html.includes('js/game/block-physics.js?v=v132'));
+    assert.ok(html.includes('css/v132-blocks.css?v=v132'));
+    assert.ok(html.includes('id="picker-search"'));
     assert.ok(html.indexOf('js/skin-studio.js?v=v131') < html.indexOf('js/game/mobile-test-player-model.js?v=v131'));
 
   }
-  assert.ok(src('index.html').includes('v1.3.1'));
+  assert.ok(src('index.html').includes('v1.3.2'));
   assert.ok(src('index.html').includes('id="skin-studio"'));
   assert.ok(src('index.html').includes('js/skin-studio-page.js?v=v131'));
 });
