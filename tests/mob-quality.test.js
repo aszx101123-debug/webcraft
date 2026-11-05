@@ -148,4 +148,26 @@ test('farther mob detail layers are culled without deleting entities',()=>{
   assert.equal(far.parts.detailGroup.visible,false);
   assert.ok(Mobs.counts().total>=7);
 });
+test('animals genuinely pause instead of walking constantly',()=>{
+  const pig=samples.pig;
+  pig.wanderT=3;
+  pig.wanderMoving=false;
+  pig.fleeT=0;
+  pig.dir.set(1,0,0);
+  pig.moving=true;
+  Mobs.update(.016,true);
+  assert.equal(pig.moving,false);
+});
+test('animal eye blink closes briefly and reopens naturally',()=>{
+  const pig=samples.pig;
+  assert.ok(pig.parts.eyes.length>=2);
+  pig.blinkT=-1;
+  pig.blinkDuration=0;
+  Mobs.update(.016,true);
+  assert.ok(pig.parts.eyes.every(o=>o.visible===false));
+  pig.blinkT=6;
+  pig.blinkDuration=.005;
+  Mobs.update(.016,true);
+  assert.ok(pig.parts.eyes.every(o=>o.visible===true));
+});
 console.log('All '+checks+' mob model/health tests passed.');
