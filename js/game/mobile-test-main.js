@@ -671,6 +671,52 @@
     createWorldAndOpen(name, rawSeed);
   });
   document.getElementById('btn-save').addEventListener('click', () => doSave(false));
+  // Backup files are private local JSON downloads, not uploaded to any server.
+  document.getElementById('btn-export-world')?.addEventListener('click', () => {
+    if (!doSave(true)) { UI.showToast('월드 저장에 실패해 백업할 수 없습니다'); return; }
+    const snapshot = SaveSystem.exportWorld(worldId);
+    if (!snapshot) { UI.showToast('백업 데이터를 찾지 못했습니다'); return; }
+    try {
+      const blob = new Blob([JSON.stringify(snapshot)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'WebCraft-' + String(worldMeta.name || 'world').replace(/[\\/:*?"<>|]/g, '_') + '.json';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+      UI.showToast('월드 백업 파일 내려받기 시작');
+    } catch (error) {
+      UI.showToast('월드 백업 파일을 만들 수 없습니다');
+    }
+  });
+  const worldImportInput = document.getElementById('world-import-file');
+  document.getElementById('btn-import-world')?.addEventListener('click', () => worldImportInput?.click());
+  worldImportInput?.addEventListener('change', async () => {
+    const file = worldImportInput.files?.[0];
+    if (!file) return;
+    try {
+      if (file.size > 8 * 1024 * 1024) {
+        UI.showToast('8MB 이하의 WebCraft 백업 파일만 가져올 수 있습니다');
+        return;
+      }
+      const parsed = JSON.parse(await file.text());
+      const imported = SaveSystem.importWorld(parsed);
+      if (!imported) {
+        UI.showToast('올바른 WebCraft 월드 백업 파일이 아닙니다');
+        return;
+      }
+      doSave(true);
+      UI.showToast('새 월드로 가져왔습니다');
+      location.href = 'play.html?world=' + encodeURIComponent(imported.id);
+    } catch (error) {
+      UI.showToast('파일을 읽을 수 없습니다. 백업 파일을 확인해 주세요');
+    } finally {
+      worldImportInput.value = '';
+    }
+  });
+
   document.getElementById('btn-home').addEventListener('click', () => { doSave(true); location.href = 'index.html'; });
   document.getElementById('btn-respawn').addEventListener('click', () => {
     miningHeld = false;
