@@ -3,8 +3,8 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const src=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 const core=new Function(src('js/game/config.js')+'\n'+src('js/game/items.js')+'\n'+src('js/game/mobile-test-crafting.js')+
-'\nreturn {CONFIG,BLOCK,BLOCKS,ITEMS,ITEM,Inventory,Crafting,GAME_MODE,getItemDef,isBlockId,isPlaceable,isSolidBlock,getBlockBoxes,getBlockVisualBoxes};')();
-const {CONFIG,BLOCK,BLOCKS,ITEMS,ITEM,Inventory,Crafting,GAME_MODE,getItemDef,isBlockId,isPlaceable,isSolidBlock,getBlockBoxes,getBlockVisualBoxes}=core;
+'\nreturn {CONFIG,BLOCK,BLOCKS,ITEMS,ITEM,Inventory,Crafting,GAME_MODE,getItemDef,isBlockId,isPlaceable,isSolidBlock,getBlockBoxes,getBlockVisualBoxes,getItemName};')();
+const {CONFIG,BLOCK,BLOCKS,ITEMS,ITEM,Inventory,Crafting,GAME_MODE,getItemDef,isBlockId,isPlaceable,isSolidBlock,getBlockBoxes,getBlockVisualBoxes,getItemName}=core;
 let count=0;
 const check=(label,fn)=>{fn();count++;console.log('PASS',label);};
 check('original 40 block IDs unchanged with 4 visible building blocks',()=>{
@@ -64,9 +64,9 @@ const drops=[];
 const Drops={spawn:(id,count)=>drops.push({id,count})};
 const UI={renderHotbar(){},showToast(){}};
 const runtime=new Function('THREE','CONFIG','BLOCK','BLOCKS','Terrain','Textures','Player',
- 'Inventory','UI','Drops','ITEMS','getItemDef','isBlockId','isPlaceable','isSolidBlock','getBlockBoxes','getBlockVisualBoxes','document',
+ 'Inventory','UI','Drops','ITEMS','getItemDef','isBlockId','isPlaceable','isSolidBlock','getBlockBoxes','getBlockVisualBoxes','getItemName','document',
  src('js/game/world.js')+'\n'+src('js/game/block-furniture.js')+'\nreturn {World,BlockFurniture}')(THREE,CONFIG,BLOCK,BLOCKS,Terrain,Textures,Player,
- Inventory,UI,Drops,ITEMS,getItemDef,isBlockId,isPlaceable,isSolidBlock,getBlockBoxes,getBlockVisualBoxes,document);
+ Inventory,UI,Drops,ITEMS,getItemDef,isBlockId,isPlaceable,isSolidBlock,getBlockBoxes,getBlockVisualBoxes,getItemName,document);
 const {World,BlockFurniture}=runtime;const scene=new Group();
 World.init(scene,173,null);World.update(2,2,0,1,1);BlockFurniture.init(null);
 check('door installs as two linked blocks and can be toggled',()=>{
