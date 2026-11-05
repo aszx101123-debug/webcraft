@@ -94,7 +94,9 @@ const Interact = (() => {
     if (!target) return false;
     if (BLOCKS[target.id].unbreakable) return false;
     const tool = survival ? Inventory.selectedTool() : null;
-    const dropId = survival ? getBlockDrop(target.id, Math.random, tool) : 0;
+    const dropId = survival ? (target.id===BLOCK.WOOD_DOOR_TOP
+      ? BLOCK.WOOD_DOOR : getBlockDrop(target.id,Math.random,tool)) : 0;
+    if (target.id===BLOCK.CHEST)BlockFurniture.releaseContents(target.x,target.y,target.z);
     const ok = World.setBlock(target.x, target.y, target.z, BLOCK.AIR);
     if (ok && survival) {
       if (dropId) Drops.spawn(dropId, 1, target.x + .5, target.y + .5, target.z + .5);
@@ -144,24 +146,40 @@ const Interact = (() => {
     return mining && miningDuration > 0 ? Math.max(0, Math.min(1, miningElapsed / miningDuration)) : 0;
   }
 
-  function overlapsPlayer(px, py, pz) {
-    const p = Player.pos;
-    const HW = .3 + 1e-3, PH = 1.8;
-    return px + 1 > p.x - HW && px < p.x + HW &&
-           py + 1 > p.y && py < p.y + PH &&
-           pz + 1 > p.z - HW && pz < p.z + HW;
+  function overlapsPlayer(px,py,pz,id,meta) {
+    if(!isSolidBlock(id))return false;
+    const p=Player.pos,HW=.301,PH=1.8;
+    return getBlockBoxes(id,meta).some(box=>
+      px+box[3]>p.x-HW&&px+box[0]<p.x+HW&&
+      py+box[4]>p.y&&py+box[1]<p.y+PH&&
+      pz+box[5]>p.z-HW&&pz+box[2]<p.z+HW);
   }
 
   function tryPlace(blockId) {
-    if (!target || !target.face || !isPlaceable(blockId)) return false;
-    const px = target.x + target.face[0];
-    const py = target.y + target.face[1];
-    const pz = target.z + target.face[2];
-    const cur = World.getBlock(px, py, pz);
-    if (blockId === BLOCK.TORCH && (target.face[1] !== 1 || cur !== BLOCK.AIR || !isSolidBlock(World.getBlock(px, py - 1, pz)))) return false;
-    if (cur !== BLOCK.AIR && cur !== BLOCK.WATER) return false;
-    if (isSolidBlock(blockId) && overlapsPlayer(px, py, pz)) return false;
-    return World.setBlock(px, py, pz, blockId);
+    if(!target||!target.face||!isPlaceable(blockId))return false;
+    const px=target.x+target.face[0],py=target.y+target.face[1],
+      pz=target.z+target.face[2];
+    const cur=World.getBlock(px,py,pz);
+    const special=!!BLOCKS[blockId].shape;
+    if(blockId===BLOCK.TORCH &&
+       (target.face[1]!==1||cur!==BLOCK.AIR||
+        !isSolidBlock(World.getBlock(px,py-1,pz))))return false;
+    if(cur!==BLOCK.AIR && cur!==BLOCK.WATER)return false;
+    if(special&&cur!==BLOCK.AIR)return false;
+    const direction=new THREE.Vector3();
+    camera.getWorldDirection(direction);
+    const facing=Math.abs(direction.x)>Math.abs(direction.z)
+      ? (direction.x>0?'east':'west') : (direction.z>0?'south':'north');
+    const half=blockId===BLOCK.STONE_SLAB&&target.face[1]===-1?'top':'bottom';
+    const meta=blockId===BLOCK.STONE_SLAB?{half}:{facing,open:false};
+    if(overlapsPlayer(px,py,pz,blockId,meta))return false;
+    if(blockId===BLOCK.WOOD_DOOR){
+      if(py>=CONFIG.HEIGHT-1||World.getBlock(px,py+1,pz)!==BLOCK.AIR||
+         overlapsPlayer(px,py+1,pz,BLOCK.WOOD_DOOR_TOP,meta))return false;
+    }
+    return special
+      ? BlockFurniture.place(px,py,pz,blockId,facing,half)
+      : World.setBlock(px,py,pz,blockId);
   }
 
   function pickBlock() {
