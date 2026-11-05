@@ -149,6 +149,19 @@
         <div id="inventory-hotbar-grid" class="inventory-grid hotbar-grid"></div>
       </div>
       <div class="equipment-panel">
+        <section class="character-editor" aria-label="캐릭터 미리보기와 꾸미기">
+          <div class="inventory-section-title character-editor-title">내 캐릭터 · 꾸미기</div>
+          <div class="character-preview-stage">
+            <canvas id="character-preview" width="164" height="224" role="img" aria-label="현재 캐릭터 모습"></canvas>
+            <img id="character-held-icon" class="character-held-icon hidden" alt="손에 든 아이템">
+          </div>
+          <div class="character-preview-actions">
+            <button type="button" id="character-rotate" class="btn small">뒤에서 보기</button>
+            <button type="button" id="character-reset" class="btn small ghost">기본 스타일</button>
+          </div>
+          <div id="character-options" class="character-options" aria-label="캐릭터 색상과 머리 스타일"></div>
+          <p class="character-editor-help">변경한 모습은 1인칭·3인칭에 바로 적용되고 월드에 저장돼요.</p>
+        </section>
         <div class="inventory-craft-panel">
           <div class="inventory-section-title">2×2 제작</div>
           <div class="inventory-craft-board">
