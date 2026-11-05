@@ -38,6 +38,9 @@
   const camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, .1, 500);
   camera.rotation.order = 'YXZ';
 
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.18;
   const hemi = new THREE.HemisphereLight(0xdfeaff, 0x54492e, .8);
   scene.add(hemi);
   const sun = new THREE.DirectionalLight(0xfff3d0, .65);
@@ -204,8 +207,8 @@
     if (dusk > 0) skyNow.lerp(skyDusk, dusk);
     scene.background = skyNow;
     scene.fog.color.copy(skyNow);
-    sun.intensity = .15 + .6 * f;
-    hemi.intensity = .3 + .5 * f;
+    sun.intensity = .22 + .82 * f;
+    hemi.intensity = .38 + .55 * f;
     Mobs.setEnv(f < .28, f);
     const hours = (state.time * 24 + 6) % 24;
     const hh = String(Math.floor(hours)).padStart(2, '0');
