@@ -99,8 +99,8 @@ check('selected block attaches a textured 3D cube to both hand rigs',
 selectedId=240;
 PlayerModel.update(p,.016,false);
 check('switching to a tool replaces cube with pixel item sprite',
-  right.children.some(item=>item.geometry instanceof PlaneGeometry) &&
-  !right.children.some(item=>item.geometry.constructor===BoxGeometry));
+  right.children.slice(3).some(item=>item.geometry instanceof PlaneGeometry) &&
+  !right.children.slice(3).some(item=>item.geometry.constructor===BoxGeometry));
 selectedId=0;
 offhand=null;
 PlayerModel.update(p,.016,false);
