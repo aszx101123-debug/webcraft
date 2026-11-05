@@ -19,10 +19,8 @@ const Mobs = (() => {
 
   function reset() {
     if (!group) return;
-    mobs.forEach(m => group.remove(m.mesh));
-    arrows.forEach(a => group.remove(a.mesh));
-    mobs = [];
-    arrows = [];
+    while(mobs.length)removeMob(mobs.length-1);
+    while(arrows.length)removeArrow(arrows.length-1);
     spawnTimer = 3;
     lastPlayerAttackAt = -Infinity;
     lastAttackResult = null;
@@ -69,7 +67,7 @@ const Mobs = (() => {
 
   function buildMob(type) {
     const g = new THREE.Group();
-    const parts = { legs: [], arms: [], extraLegs: [], head: null, healthBar: null };
+    const parts = { legs: [], arms: [], extraLegs: [], head: null, healthBar: null, detailGroup: null };
     const limb = (w, h, d, color, x, y, z) => {
       const l = box(w, h, d, color, x, y, z);
       parts.legs.push(l);
@@ -203,8 +201,11 @@ const Mobs = (() => {
       g.add(box(.14, .1, .08, 0xb72e31, -.08, .25, .94));
     }
     // Pixel-overlaid details and animated shoulder/hip joints for each species.
+    const detailGroup=new THREE.Group();
+    g.add(detailGroup);
+    parts.detailGroup=detailGroup;
     const detail=(w,h,d,col,x,y,z)=>{
-      const p=box(w,h,d,col,x,y,z);g.add(p);return p;
+      const p=box(w,h,d,col,x,y,z);detailGroup.add(p);return p;
     };
     const patch=(x,y,z,w,h,color)=>{
       const p=detail(w,h,.018,color,x,y,z);return p;
@@ -358,8 +359,14 @@ const Mobs = (() => {
 
   function removeMob(i) {
     group.remove(mobs[i].mesh);
-    mobs[i].mesh.traverse(o => { if (o.geometry) o.geometry.dispose(); });
-    mobs.splice(i, 1);
+    mobs[i].mesh.traverse(o=>{
+      if(o.geometry)o.geometry.dispose();
+      if(o.material){
+        for(const material of (Array.isArray(o.material)?o.material:[o.material]))
+          if(material?.dispose)material.dispose();
+      }
+    });
+    mobs.splice(i,1);
   }
 
   function collideBox(m, axis, dist) {
@@ -590,6 +597,7 @@ const Mobs = (() => {
       const dist = Math.sqrt(dx * dx + dz * dz + (pp.y - m.pos.y) ** 2);
 
       if (dist > 64) { removeMob(i); continue; }
+      if(m.parts.detailGroup)m.parts.detailGroup.visible=dist<28;
 
       m.attackT -= dt;
       m.hurtT -= dt;
