@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.3.0-character-editor-20261105';
+const VERSION = 'webcraft-v1.3.1-homepage-skin-studio-20261105';
 const CORE = [
   "./",
   "./index.html",
@@ -16,14 +16,17 @@ const CORE = [
   "./css/game.css",
   "./css/mobile-test.css?v=v129",
   "./css/v129-polish.css?v=v129",
-  "./css/v130-character.css?v=v130",
-  "./js/game/config.js?v=v130",
+  "./css/v130-character.css?v=v131",
+  "./css/style.css",
+  "./css/skin-studio.css?v=v131",
+  "./js/game/config.js?v=v131",
   "./js/game/noise.js",
   "./js/game/terrain.js?v=v129",
   "./js/game/mobile-test-textures.js?v=v129",
   "./js/game/world.js?v=torch1",
   "./js/game/player.js?v=v129",
-  "./js/game/mobile-test-player-model.js?v=v130",
+  "./js/skin-studio.js?v=v131",
+  "./js/game/mobile-test-player-model.js?v=v131",
   "./js/game/fluids.js?v=v129",
   "./js/game/interaction.js?v=torch1",
   "./js/game/items.js?v=v129",
@@ -31,8 +34,14 @@ const CORE = [
   "./js/game/mobs.js?v=v129",
   "./js/game/save.js?v=v129",
   "./js/game/mobile-test-crafting.js?v=v129",
-  "./js/game/mobile-test-ui.js?v=v130",
-  "./js/game/mobile-test-main.js?v=v130"
+  "./js/game/mobile-test-ui.js?v=v131",
+  "./js/game/mobile-test-main.js?v=v131",
+  "./js/game/config.js",
+  "./js/game/terrain.js",
+  "./js/game/textures.js",
+  "./js/game/world.js",
+  "./js/hero.js",
+  "./js/skin-studio-page.js?v=v131"
 ];
 
 self.addEventListener('install', e => {
