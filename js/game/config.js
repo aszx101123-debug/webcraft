@@ -168,6 +168,8 @@ function getBlockDrop(id, rnd, tool) {
   if (id === BLOCK.AIR || id === BLOCK.WATER || id === BLOCK.WATER_FLOW || id === BLOCK.BEDROCK) return 0;
   const def = BLOCKS[id];
   if (!def) return 0;
+  // Hoes let survival players collect leaf blocks for mossy-stone crafting.
+  if ([BLOCK.LEAVES,BLOCK.BIRCH_LEAVES,BLOCK.SPRUCE_LEAVES].includes(id) && tool?.toolType==='hoe') return id;
   if (id === BLOCK.LEAVES || id === BLOCK.BIRCH_LEAVES) return rnd && rnd() < 0.04 ? ITEM.APPLE : 0;
   if (id === BLOCK.SPRUCE_LEAVES) return rnd && rnd() < 0.08 ? ITEM.STICK : 0;
   if (id === BLOCK.GLASS) return 0;
