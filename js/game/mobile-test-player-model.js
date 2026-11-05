@@ -158,6 +158,8 @@ const PlayerModel = (() => {
     const legL = worldLeg(-1, pants, boots);
     const legR = worldLeg(1, pants, boots);
     worldModel.add(armL, armR, legL, legR);
+    worldLeft = armL;
+    worldRight = armR;
     limbs = { armL, armR, legL, legR, head };
 
     worldModel.scale.setScalar(.78);
@@ -170,7 +172,167 @@ const PlayerModel = (() => {
     firstPerson.add(viewRight, viewLeft);
     firstPerson.visible = false;
     camera.add(firstPerson);
+    heldMainId = heldOffId = -1;
     setAppearance(appearance);
+    updateHeldItems();
+  }
+
+  // A held block is a real cube with the existing terrain atlas on all faces.
+  // Tools, swords and other items use their original pixel-art inventory sprite.
+  function heldMesh(id, firstPersonView) {
+    if (!Number.isInteger(id) || id <= 0) return null;
+    if (id < 100 && BLOCKS[id]) {
+      const size = firstPersonView ? .37 : .25;
+      const geometry = new THREE.BoxGeometry(size, size, size);
+      const uv = geometry.attributes.uv;
+      const faces = ['side','side','top','bottom','side','side'];
+      for (let face = 0; face < 6; face++) {
+        const area = Textures.tileFor(id, faces[face]);
+        for (let vertex = 0; vertex < 4; vertex++) {
+          const index = face * 4 + vertex;
+          const u = uv.getX(index), v = uv.getY(index);
+          uv.setXY(index, area.u0 + u * (area.u1 - area.u0), area.v0 + v * (area.v1 - area.v0));
+        }
+      }
+      uv.needsUpdate = true;
+      const item = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({
+        map: Textures.getTexture(), transparent: true,
+        alphaTest: .12, depthWrite: false, depthTest: false
+      }));
+      item.rotation.set(.30, .58, -.30);
+      item.userData.heldSharedTexture = true;
+      return item;
+    }
+    if (!getItemDef(id)) return null;
+    const iconTexture = new THREE.TextureLoader().load(Textures.blockIcon(id));
+    iconTexture.magFilter = THREE.NearestFilter;
+    iconTexture.minFilter = THREE.NearestFilter;
+    const item = new THREE.Mesh(
+      new THREE.PlaneGeometry(firstPersonView ? .52 : .34, firstPersonView ? .52 : .34),
+      new THREE.MeshBasicMaterial({
+        map: iconTexture, transparent: true, alphaTest: .10,
+        side: THREE.DoubleSide, depthWrite: false, depthTest: false
+      })
+    );
+    item.rotation.set(-.18, -.13, -.42);
+    item.userData.heldSharedTexture = false;
+    return item;
+  }
+
+  function discardHeld(record, parents) {
+    if (!record) return;
+    for (const [key, parent] of Object.entries(parents)) {
+      const object = record[key];
+      if (!object) continue;
+      parent.remove(object);
+      object.geometry?.dispose();
+      if (!object.userData.heldSharedTexture) object.material?.map?.dispose();
+      object.material?.dispose();
+    }
+  }
+
+  function equippedItemId(key) {
+    const stack = Inventory.getEquipment()?.[key];
+    return stack && Number.isInteger(stack.id) ? stack.id : 0;
+  }
+  function updateHeldItems() {
+    const selectedId = typeof Inventory.selectedId === 'function' ? Inventory.selectedId() : 0;
+    if (selectedId !== heldMainId) {
+      discardHeld(heldMain, { view: viewRight, world: worldRight });
+      heldMain = { view: heldMesh(selectedId, true), world: heldMesh(selectedId, false) };
+      if (heldMain.view) {
+        heldMain.view.position.set(.03, .91, -.12);
+        viewRight.add(heldMain.view);
+      }
+      if (heldMain.world) {
+        heldMain.world.position.set(.035, -.91, .14);
+        worldRight.add(heldMain.world);
+      }
+      heldMainId = selectedId;
+    }
+    const offhandId = equippedItemId('offhand');
+    if (offhandId !== heldOffId) {
+      discardHeld(heldOff, { view: viewLeft, world: worldLeft });
+      heldOff = { view: heldMesh(offhandId, true), world: heldMesh(offhandId, false) };
+      if (heldOff.view) {
+        heldOff.view.position.set(-.03, .91, -.12);
+        viewLeft.add(heldOff.view);
+      }
+      if (heldOff.world) {
+        heldOff.world.position.set(-.035, -.91, .14);
+        worldLeft.add(heldOff.world);
+      }
+      heldOffId = offhandId;
+    }
+  }
+
+  // Character preview uses a lightweight 2D canvas to avoid a second WebGL
+  // context on low-memory mobile devices.
+  function drawPreview(canvas, rear = false) {
+    if (!canvas || typeof canvas.getContext !== 'function') return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    const rect = (x, y, width, height, fill) => {
+      ctx.fillStyle = fill;
+      ctx.fillRect(Math.round(x), Math.round(y), Math.round(width), Math.round(height));
+    };
+    ctx.fillStyle = '#0c1620';
+    ctx.fillRect(0, 0, w, h);
+    for (let y = 0; y < h; y += 14) for (let x = 0; x < w; x += 14) {
+      if ((x + y) % 28 === 0) rect(x, y, 14, 14, '#111f2a');
+    }
+    const skin = colorCss('skin'), hair = colorCss('hair'),
+      shirt = colorCss('shirt'), pants = colorCss('pants'), boots = colorCss('boots');
+    const mainX = Math.round(w / 2);
+    const feetY = h - 12, legY = feetY - 66, chestY = legY - 67;
+    // Boots and separate legs.
+    rect(mainX - 25, legY, 23, 52, pants);
+    rect(mainX + 2, legY, 23, 52, pants);
+    rect(mainX - 28, feetY - 18, 26, 18, boots);
+    rect(mainX + 2, feetY - 18, 26, 18, boots);
+    // Torso, arms and cuffs.
+    rect(mainX - 28, chestY, 56, 67, shirt);
+    rect(mainX - 46, chestY + 2, 16, 31, shirt);
+    rect(mainX + 30, chestY + 2, 16, 31, shirt);
+    rect(mainX - 46, chestY + 33, 16, 9, shirt);
+    rect(mainX + 30, chestY + 33, 16, 9, shirt);
+    rect(mainX - 46, chestY + 42, 16, 30, skin);
+    rect(mainX + 30, chestY + 42, 16, 30, skin);
+    rect(mainX - 25, chestY + 7, 5, 52, 'rgba(0,0,0,.15)');
+    // Head and hairstyle.
+    const headY = chestY - 59;
+    rect(mainX - 26, headY, 52, 53, skin);
+    rect(mainX - 27, headY - 8, 54, 14, hair);
+    if (appearance.hairStyle !== 'short') rect(mainX - 27, headY + 4, 54, 13, hair);
+    if (appearance.hairStyle === 'long') {
+      rect(mainX - 34, headY + 8, 8, 49, hair);
+      rect(mainX + 26, headY + 8, 8, 49, hair);
+    }
+    if (!rear) {
+      if (appearance.hairStyle === 'fringe') rect(mainX - 5, headY + 4, 12, 17, hair);
+      rect(mainX - 16, headY + 25, 7, 7, '#20252b');
+      rect(mainX + 9, headY + 25, 7, 7, '#20252b');
+      rect(mainX - 3, headY + 39, 8, 3, '#8f4a43');
+      rect(mainX - 16, chestY + 18, 32, 7, 'rgba(255,255,255,.18)');
+    }
+    const gear = Inventory.getEquipment();
+    const armorColor = stack => {
+      if (!stack || stack.id < 220 || stack.id > 239) return null;
+      const tier = Math.floor((stack.id - 220) / 4);
+      return ['#9a704b','#92979c','#c9d4d9','#e5b54c','#6bdbe8'][tier] || null;
+    };
+    if (armorColor(gear.chest)) rect(mainX - 27, chestY + 2, 54, 38, armorColor(gear.chest));
+    if (armorColor(gear.legs)) {
+      rect(mainX - 25, legY, 23, 30, armorColor(gear.legs));
+      rect(mainX + 2, legY, 23, 30, armorColor(gear.legs));
+    }
+    if (armorColor(gear.feet)) {
+      rect(mainX - 28, feetY - 20, 26, 20, armorColor(gear.feet));
+      rect(mainX + 2, feetY - 20, 26, 20, armorColor(gear.feet));
+    }
+    if (armorColor(gear.head)) rect(mainX - 27, headY - 5, 54, 21, armorColor(gear.head));
   }
 
   function swing() {
@@ -199,6 +361,7 @@ const PlayerModel = (() => {
       ? Math.pow(Math.sin(Math.PI * progress), 2)
       : 0;
 
+    updateHeldItems();
     const hasOffhand = !!Inventory.getEquipment().offhand;
     viewLeft.visible = hasOffhand;
     viewRight.position.set(.66, -.84 + bounce - attack * .045, -1.03 - attack * .105);
@@ -224,5 +387,5 @@ const PlayerModel = (() => {
     limbs.head.rotation.x = Math.max(-.24, Math.min(.24, player.pitch * .20));
   }
 
-  return { init, update, swing, getAppearance, setAppearance, getPalettes };
+  return { init, update, swing, getAppearance, setAppearance, getPalettes, drawPreview };
 })();
