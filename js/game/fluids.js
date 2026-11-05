@@ -42,67 +42,80 @@ const Fluids = (() => {
   function update(px, py, pz, dt) {
     elapsed += dt;
     if (elapsed < UPDATE_SEC) return;
-    elapsed = 0;
+    elapsed %= UPDATE_SEC;
 
-    const cx = Math.floor(px);
-    const cz = Math.floor(pz);
+    const cx = Math.floor(px), cz = Math.floor(pz);
     const radius = 18;
     const minY = Math.max(1, Math.floor(py) - 18);
     const maxY = Math.min(CONFIG.HEIGHT - 2, Math.floor(py) + 18);
-
     clearOutside(cx, cz, radius + 4);
 
-    for (const k of [...activeFlows]) {
-      const p = k.split(',').map(Number);
-      if (p[0] >= cx - radius && p[0] <= cx + radius &&
-          p[2] >= cz - radius && p[2] <= cz + radius &&
-          p[1] >= minY && p[1] <= maxY) {
-        clearFlow(p[0], p[1], p[2]);
-      }
-    }
-
+    const desired = new Map();
+    const seen = new Map();
     const queue = [];
-    const seen = new Set();
     const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
 
+    function inLoadedArea(x, y, z) {
+      return x >= cx - radius && x <= cx + radius &&
+        z >= cz - radius && z <= cz + radius &&
+        y >= minY && y <= maxY &&
+        !!World.getChunk(x >> 4, z >> 4);
+    }
+
+    function offer(x, y, z, level, horizontal) {
+      if (!inLoadedArea(x, y, z) || queue.length >= 520) return false;
+      const id = World.getBlock(x, y, z);
+      if (id !== BLOCK.AIR && id !== BLOCK.WATER_FLOW) return false;
+      const k = key(x, y, z);
+      if ((seen.get(k) || 0) >= level) return false;
+      seen.set(k, level);
+      desired.set(k, { x, y, z, level });
+      queue.push({ x, y, z, level, horizontal });
+      return true;
+    }
+
     for (const raw of World.getWaterSources()) {
-      const p = raw.split(',').map(Number);
-      const x = p[0], y = p[1], z = p[2];
-      if (x < cx - radius || x > cx + radius || z < cz - radius || z > cz + radius) continue;
-      if (y < minY || y > maxY) continue;
-      if (World.getBlock(x, y, z) !== BLOCK.WATER) continue;
+      const [x, y, z] = raw.split(',').map(Number);
+      if (!inLoadedArea(x, y, z) || World.getBlock(x, y, z) !== BLOCK.WATER) continue;
+      const k = key(x, y, z);
+      if (seen.has(k)) continue;
+      seen.set(k, MAX_LEVEL + 1);
       queue.push({ x, y, z, level: MAX_LEVEL, horizontal: 0 });
-      seen.add(key(x, y, z));
     }
 
     let processed = 0;
-    while (queue.length && processed++ < 420) {
-      const node = queue.shift();
-      const below = World.getBlock(node.x, node.y - 1, node.z);
-
-      if (below === BLOCK.AIR) {
-        const ny = node.y - 1;
-        const k = key(node.x, ny, node.z);
-        if (!seen.has(k) && putFlow(node.x, ny, node.z, MAX_LEVEL)) {
-          seen.add(k);
-          queue.push({ x: node.x, y: ny, z: node.z, level: MAX_LEVEL, horizontal: 0 });
+    for (let head = 0; head < queue.length && processed++ < 480; head++) {
+      const node = queue[head];
+      const ny = node.y - 1;
+      if (ny >= minY && inLoadedArea(node.x, ny, node.z)) {
+        const below = World.getBlock(node.x, ny, node.z);
+        if (below === BLOCK.AIR || below === BLOCK.WATER_FLOW) {
+          offer(node.x, ny, node.z, MAX_LEVEL, 0);
+          continue;
         }
-        continue;
       }
-
-      if (node.level <= 1 || node.horizontal >= MAX_HORIZONTAL) continue;
+      if (node.level <= 2 || node.horizontal >= MAX_HORIZONTAL) continue;
       const nextLevel = node.level - 2;
-      if (nextLevel <= 0) continue;
+      for (const [dx, dz] of dirs)
+        offer(node.x + dx, node.y, node.z + dz, nextLevel, node.horizontal + 1);
+    }
 
-      for (const [dx, dz] of dirs) {
-        const nx = node.x + dx, nz = node.z + dz, ny = node.y;
-        const k = key(nx, ny, nz);
-        if (seen.has(k)) continue;
-        if (putFlow(nx, ny, nz, nextLevel)) {
-          seen.add(k);
-          queue.push({ x: nx, y: ny, z: nz, level: nextLevel, horizontal: node.horizontal + 1 });
-        }
+    // Apply only differences. Stable water no longer disappears and rebuilds every 0.28s.
+    for (const k of [...activeFlows]) {
+      const [x, y, z] = k.split(',').map(Number);
+      if (inLoadedArea(x, y, z) && !desired.has(k)) clearFlow(x, y, z);
+    }
+    for (const [k, flow] of desired) {
+      const id = World.getBlock(flow.x, flow.y, flow.z);
+      if (id === BLOCK.AIR) {
+        if (World.setBlock(flow.x, flow.y, flow.z, BLOCK.WATER_FLOW, false))
+          World.setFluidLevel(flow.x, flow.y, flow.z, flow.level);
+      } else if (id === BLOCK.WATER_FLOW) {
+        if (World.getFluidLevel(flow.x, flow.y, flow.z) !== flow.level)
+          World.setFluidLevel(flow.x, flow.y, flow.z, flow.level);
       }
+      if (World.getBlock(flow.x, flow.y, flow.z) === BLOCK.WATER_FLOW)
+        activeFlows.add(k);
     }
   }
 

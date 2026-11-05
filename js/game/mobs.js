@@ -7,6 +7,7 @@ const Mobs = (() => {
   let env = { night: false, brightness: 1 };
   let mode = GAME_MODE.CREATIVE;
   let spawnTimer = 3;
+  let lastPlayerAttackAt = -Infinity;
   let onEvent = null;
 
   function init(scene_) {
@@ -22,6 +23,7 @@ const Mobs = (() => {
     mobs = [];
     arrows = [];
     spawnTimer = 3;
+    lastPlayerAttackAt = -Infinity;
   }
 
   function setEnv(night, brightness) { env.night = night; env.brightness = brightness; }
@@ -299,7 +301,18 @@ const Mobs = (() => {
       if (t !== null && t < reach && t < bestT) { bestT = t; best = m; }
     }
     if (best) {
-      hurtMob(best, SURVIVAL.FIST_DMG, Player.pos);
+      // Holding a mouse button or double-tapping must not deal unlimited instant damage.
+      const now = performance.now();
+      if (now - lastPlayerAttackAt < 450) return best;
+      lastPlayerAttackAt = now;
+      const tool = Inventory.selectedTool();
+      const attackDamage = tool && Number.isFinite(tool.attackDamage)
+        ? tool.attackDamage : SURVIVAL.FIST_DMG;
+      hurtMob(best, attackDamage, Player.pos);
+      if (tool) {
+        Inventory.damageSelectedTool(1);
+        UI.renderHotbar();
+      }
       return best;
     }
     return null;

@@ -53,7 +53,12 @@ const Player = (() => {
   }
 
   function isSolidAt(x, y, z) {
-    return isSolidBlock(World.getBlock(Math.floor(x), Math.floor(y), Math.floor(z)));
+    const bx = Math.floor(x), by = Math.floor(y), bz = Math.floor(z);
+    if (by >= CONFIG.HEIGHT) return false;
+    if (by < 0) return true;
+    // Avoid falling into still-unloaded chunks while terrain streams in.
+    if (!World.getChunk(bx >> 4, bz >> 4)) return true;
+    return isSolidBlock(World.getBlock(bx, by, bz));
   }
 
   function moveAxis(axis, dist) {

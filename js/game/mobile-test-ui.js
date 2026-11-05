@@ -8,6 +8,8 @@ const UI = (() => {
   let currentWorldId = null;
   let inventoryOpen = false;
   let inventoryCursor = null;
+  let selectedInventoryMaterial = null;
+  let selectedCraftingMaterial = null;
 
   function renderHotbar() {
     const bar = $('hotbar');
@@ -57,11 +59,15 @@ const UI = (() => {
   }
 
   function showOverlay(name) {
+    // Close related UI through its normal path so crafting escrow is never silently lost.
+    if (name !== 'inventory' && inventoryOpen && !closeInventory()) return false;
+    if (name !== 'crafting' && isCraftingOpen() && !closeCrafting()) return false;
+    if (name !== 'furnace' && isFurnaceOpen()) closeFurnace();
     ['overlay-start', 'overlay-pause', 'overlay-death', 'overlay-inventory', 'overlay-crafting', 'overlay-furnace'].forEach(id => $(id)?.classList.add('hidden'));
-    if (name !== 'inventory') inventoryCursorReturn();
     if (name === 'start') $('overlay-start').classList.remove('hidden');
     else if (name === 'pause') $('overlay-pause').classList.remove('hidden');
     else if (name === 'death') $('overlay-death').classList.remove('hidden');
+    return true;
   }
 
   let toastTimer = null;
@@ -155,7 +161,7 @@ const UI = (() => {
   function renderInventorySlot(index, target) {
     const s = Inventory.getSlots()[index];
     const btn = document.createElement('button');
-    btn.className = 'inventory-slot' + (!s ? ' empty' : '') + (index < Inventory.HOTBAR_SIZE ? ' inventory-hotbar-slot' : '');
+    btn.className = 'inventory-slot' + (!s ? ' empty' : '') + (index < Inventory.HOTBAR_SIZE ? ' inventory-hotbar-slot' : '') + (selectedInventoryMaterial === index ? ' material-selected' : '');
     btn.setAttribute('aria-label', s ? getItemName(s.id) + ' 슬롯 ' + (index + 1) : '빈 슬롯');
     btn.innerHTML = `<span class="inv-num">${index < Inventory.HOTBAR_SIZE ? index + 1 : index - Inventory.HOTBAR_SIZE + 1}</span>`;
     if (s) {
@@ -166,17 +172,12 @@ const UI = (() => {
     } else btn.title = '빈 슬롯';
 
     btn.addEventListener('click', e => {
-      if (!inventoryOpen || Crafting.getGridSize() !== 2 || !document.body.classList.contains('touch-device')) return;
+      if (!inventoryOpen || !document.body.classList.contains('touch-device')) return;
       e.preventDefault();
-      const src = Inventory.getSlots()[index];
-      if (!src) return;
-      const taken = Inventory.takeFromSlot(index, 1);
-      if (taken && Crafting.addToFirstEmpty(taken.id) >= 0) {
-        renderInventory();
-      } else if (taken) {
-        Inventory.add(taken.id, 1);
-        showToast('제작 칸이 가득 찼습니다');
-      }
+      if (!s) return;
+      selectedInventoryMaterial = index;
+      showToast(getItemName(s.id) + ' 선택 · 위의 제작 칸을 눌러 넣으세요');
+      renderInventory();
     });
     btn.addEventListener('mousedown', e => {
       if (inventoryOpen && document.body.classList.contains('touch-device')) return;
@@ -211,7 +212,7 @@ const UI = (() => {
           if (current) inventoryCursor = Inventory.takeFromSlot(index);
         } else if (!current) {
           inventoryCursor = Inventory.putIntoSlot(index, inventoryCursor);
-        } else if (current.id === inventoryCursor.id && !getToolDef(current.id)) {
+        } else if (current.id === inventoryCursor.id && !getToolDef(current.id) && !getArmorDef(current.id)) {
           inventoryCursor = Inventory.putIntoSlot(index, inventoryCursor);
         } else {
           const old = Inventory.takeFromSlot(index);
@@ -296,7 +297,29 @@ const UI = (() => {
           renderInventory();
         });
       } else {
-        cell.title = 'Shift+클릭으로 재료 넣기';
+        cell.title = '인벤토리의 재료를 선택한 뒤 이 칸을 누르세요';
+        cell.addEventListener('click', () => {
+          if (inventoryCursor) {
+            if (getToolDef(inventoryCursor.id) || getArmorDef(inventoryCursor.id)) return;
+            Crafting.setCell(cellData.index, inventoryCursor.id);
+            inventoryCursor.count--;
+            if (inventoryCursor.count <= 0) inventoryCursor = null;
+          } else if (selectedInventoryMaterial !== null) {
+            const slot = Inventory.getSlots()[selectedInventoryMaterial];
+            if (!slot || getToolDef(slot.id) || getArmorDef(slot.id)) return;
+            const taken = Inventory.takeFromSlot(selectedInventoryMaterial, 1);
+            if (!taken) return;
+            if (!Crafting.setCell(cellData.index, taken.id)) {
+              Inventory.putIntoSlot(selectedInventoryMaterial, taken);
+              return;
+            }
+          } else {
+            showToast('먼저 인벤토리에서 재료를 선택하세요');
+            return;
+          }
+          renderInventory();
+          updateInventoryCursor(innerWidth / 2, innerHeight / 2);
+        });
       }
       grid.appendChild(cell);
     });
@@ -320,10 +343,13 @@ const UI = (() => {
   }
 
   function openInventory() {
+    if (Crafting.getGridSize() !== 2 && !returnCraftingMaterials()) {
+      showToast('3×3 제작 칸의 재료를 돌려줄 공간이 없습니다');
+      return false;
+    }
+    if (Crafting.getGridSize() !== 2) Crafting.resetGrid(2);
     inventoryOpen = true;
-    inventoryCursor = null;
-    Crafting.setGridSize(2);
-    Crafting.resetGrid(2);
+    selectedInventoryMaterial = null;
     document.querySelectorAll('.equip-slot:not(.disabled)').forEach(btn => {
       if (btn.dataset.bound) return;
       btn.dataset.bound = '1';
@@ -336,13 +362,28 @@ const UI = (() => {
     });
     renderInventory();
     $('overlay-inventory').classList.remove('hidden');
+    return true;
   }
 
   function closeInventory() {
     if (!returnCraftingMaterials()) { showToast('재료를 돌려줄 공간이 부족합니다'); return false; }
     if (!inventoryCursorReturn()) return false;
     inventoryOpen = false;
+    selectedInventoryMaterial = null;
     $('overlay-inventory').classList.add('hidden');
+    return true;
+  }
+
+  function getInventoryCursor() {
+    if (!inventoryCursor) return null;
+    return { ...inventoryCursor };
+  }
+
+  function restoreInventoryCursor(stack) {
+    if (!stack || !Number.isInteger(stack.id) || !getItemDef(stack.id) ||
+        !Number.isInteger(stack.count) || stack.count < 1 || stack.count > 64) return false;
+    inventoryCursor = { id: stack.id, count: stack.count };
+    if (Number.isFinite(stack.durability)) inventoryCursor.durability = stack.durability;
     return true;
   }
 
@@ -359,7 +400,7 @@ const UI = (() => {
     el.innerHTML = '';
     Inventory.getSlots().forEach((s, i) => {
       const btn = document.createElement('button');
-      btn.className = 'craft-inv-slot' + (!s ? ' empty' : '');
+      btn.className = 'craft-inv-slot' + (!s ? ' empty' : '') + (selectedCraftingMaterial === i ? ' material-selected' : '');
       btn.disabled = !s;
       btn.innerHTML = s
         ? `<span class="craft-inv-num">${i + 1}</span><img src="${Textures.blockIcon(s.id)}" alt=""><span class="craft-inv-count">${s.count === Infinity ? '∞' : s.count}</span>`
@@ -367,12 +408,9 @@ const UI = (() => {
       btn.title = s ? getItemName(s.id) : '빈 슬롯';
       btn.addEventListener('click', () => {
         if (!s) return;
-        const taken=Inventory.takeFromSlot(i,1);
-        if (taken && Crafting.addToFirstEmpty(taken.id) >= 0) renderCrafting();
-        else {
-          if (taken) Inventory.add(taken.id, 1);
-          showToast('제작 격자가 가득 찼습니다');
-        }
+        selectedCraftingMaterial = i;
+        showToast(getItemName(s.id) + ' 선택 · 제작 칸을 눌러 넣으세요');
+        renderCraftingInventory();
       });
       el.appendChild(btn);
     });
@@ -401,7 +439,21 @@ const UI = (() => {
         });
       } else {
         cell.innerHTML = '';
-        cell.title = '재료를 선택해서 놓기';
+        cell.title = '아래 인벤토리에서 재료를 선택하고 이 칸을 누르세요';
+        cell.addEventListener('click', () => {
+          const slot = selectedCraftingMaterial === null ? null : Inventory.getSlots()[selectedCraftingMaterial];
+          if (!slot || getToolDef(slot.id) || getArmorDef(slot.id)) {
+            showToast('먼저 아래에서 제작 재료를 선택하세요');
+            return;
+          }
+          const taken = Inventory.takeFromSlot(selectedCraftingMaterial, 1);
+          if (!taken) return;
+          if (!Crafting.setCell(i, taken.id)) {
+            Inventory.putIntoSlot(selectedCraftingMaterial, taken);
+            return;
+          }
+          renderCrafting();
+        });
       }
       craftGrid.appendChild(cell);
     });
@@ -449,8 +501,12 @@ const UI = (() => {
     if (inventoryOpen) renderInventory();
   }
   function openCrafting() {
-    Crafting.setGridSize(3);
-    Crafting.resetGrid(3);
+    if (Crafting.getGridSize() !== 3 && !returnCraftingMaterials()) {
+      showToast('2×2 제작 칸의 재료를 돌려줄 공간이 없습니다');
+      return false;
+    }
+    selectedCraftingMaterial = null;
+    if (Crafting.getGridSize() !== 3) Crafting.resetGrid(3);
     renderCrafting();
     const clear = $('craft-clear');
     if (clear) clear.onclick = () => {
@@ -458,10 +514,12 @@ const UI = (() => {
       renderCrafting();
     };
     $('overlay-crafting').classList.remove('hidden');
+    return true;
   }
 
   function closeCrafting() {
     if (!returnCraftingMaterials()) { showToast('재료를 돌려줄 공간이 부족합니다'); return false; }
+    selectedCraftingMaterial = null;
     $('overlay-crafting').classList.add('hidden');
     return true;
   }
@@ -668,7 +726,7 @@ const UI = (() => {
   return {
     renderHotbar, setSelected, showItemName, showOverlay, showToast, setHUD, setTime, setMiningProgress,
     setModeLabel, renderWorlds, renderCrafting, openCrafting, closeCrafting, isCraftingOpen,
-    renderInventory, openInventory, closeInventory, isInventoryOpen,
+    renderInventory, openInventory, closeInventory, isInventoryOpen, getInventoryCursor, restoreInventoryCursor,
     renderFurnace, openFurnace, closeFurnace, isFurnaceOpen, dropSelected, updateInventoryCursor,
     updateSurvival, showDeath, hideDeath, openPicker, closePicker, isPickerOpen, setStartEnabled, flashVignette
   };

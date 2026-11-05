@@ -50,7 +50,7 @@ const Terrain = (() => {
             if (y === h) id = sandy ? BLOCK.SAND : (snowy ? BLOCK.SNOW : BLOCK.GRASS);
             else if (y >= h - 3) id = sandy ? BLOCK.SAND : BLOCK.DIRT;
             else id = BLOCK.STONE;
-            if (h > SEA + 2 && y >= 3 && y <= h - 2) {
+            if (h > SEA + 2 && y >= 3 && y <= h - 4) {
               const cheese = Noise.noise3(wx * .026, y * .042, wz * .026, seed + 41);
               const spaghetti = Math.abs(Noise.noise2(wx * .016 + y * .031, wz * .016 - y * .027, seed + 77) - .5);
               const noodle = Math.abs(Noise.noise3(wx * .072, y * .11, wz * .072, seed + 113) - .5);
@@ -81,7 +81,7 @@ const Terrain = (() => {
       // 드물게 더 길게 이어지는 대형 철/구리 광맥을 추가한다.
       const largeVeinChance = oreRng();
       if (largeVeinChance < .035) {
-        const large = largeVeinChance < .11
+        const large = largeVeinChance < .0175
           ? { id: BLOCK.IRON_ORE, minY: 10, maxY: 31, length: 8 }
           : { id: BLOCK.COPPER_ORE, minY: 14, maxY: 40, length: 7 };
         let x = 2 + Math.floor(oreRng() * 12);
@@ -143,24 +143,45 @@ const Terrain = (() => {
         const h = heights[tx * C + tz];
         if (h <= SEA + 1 || h > 52) continue;
         if (data[idx(tx, h, tz)] !== BLOCK.GRASS) continue;
-        const th = 4 + Math.floor(rng() * 2);
+        const localBiome = biomeAt(cx * C + tx, cz * C + tz);
+        // Different silhouettes make forests, taiga and jungles feel distinct.
+        const th = localBiome === 'jungle' ? 6 + Math.floor(rng() * 3)
+          : localBiome === 'taiga' ? 6 + Math.floor(rng() * 2)
+          : 4 + Math.floor(rng() * 2);
+        if (h + th + 1 >= H) continue;
         for (let y = 1; y <= th; y++) data[idx(tx, h + y, tz)] = BLOCK.LOG;
-        for (let dy = th - 2; dy <= th - 1; dy++)
-          for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) {
-            if (Math.abs(dx) === 2 && Math.abs(dz) === 2 && rng() < .5) continue;
-            const i = idx(tx + dx, h + dy, tz + dz);
-            if (data[i] === BLOCK.AIR) data[i] = BLOCK.LEAVES;
+        const leaf = (lx, ly, lz) => {
+          if (lx < 0 || lx >= C || lz < 0 || lz >= C || ly < 1 || ly >= H) return;
+          const index = idx(lx, ly, lz);
+          if (data[index] === BLOCK.AIR) data[index] = BLOCK.LEAVES;
+        };
+        if (localBiome === 'taiga') {
+          // A tapering spruce-like cone.
+          for (let dy = th - 4; dy <= th + 1; dy++) {
+            const radius = dy >= th + 1 ? 0 : dy >= th - 1 ? 1 : 2;
+            for (let dx = -radius; dx <= radius; dx++)
+              for (let dz = -radius; dz <= radius; dz++) {
+                if (Math.abs(dx) === 2 && Math.abs(dz) === 2) continue;
+                leaf(tx + dx, h + dy, tz + dz);
+              }
           }
-        for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
-          if (Math.abs(dx) === 1 && Math.abs(dz) === 1 && rng() < .4) continue;
-          const i = idx(tx + dx, h + th, tz + dz);
-          if (data[i] === BLOCK.AIR) data[i] = BLOCK.LEAVES;
+        } else {
+          // Round broadleaf crowns, with an extra lush layer for jungle trees.
+          const crownStart = th - (localBiome === 'jungle' ? 3 : 2);
+          for (let dy = crownStart; dy <= th - 1; dy++) {
+            for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) {
+              if (Math.abs(dx) === 2 && Math.abs(dz) === 2 && rng() < .65) continue;
+              leaf(tx + dx, h + dy, tz + dz);
+            }
+          }
+          for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++)
+            leaf(tx + dx, h + th, tz + dz);
+          leaf(tx, h + th + 1, tz);
+          leaf(tx + 1, h + th + 1, tz);
+          leaf(tx - 1, h + th + 1, tz);
+          leaf(tx, h + th + 1, tz + 1);
+          leaf(tx, h + th + 1, tz - 1);
         }
-        data[idx(tx, h + th + 1, tz)] = BLOCK.LEAVES;
-        if (data[idx(tx + 1, h + th + 1, tz)] === BLOCK.AIR) data[idx(tx + 1, h + th + 1, tz)] = BLOCK.LEAVES;
-        if (data[idx(tx - 1, h + th + 1, tz)] === BLOCK.AIR) data[idx(tx - 1, h + th + 1, tz)] = BLOCK.LEAVES;
-        if (data[idx(tx, h + th + 1, tz + 1)] === BLOCK.AIR) data[idx(tx, h + th + 1, tz + 1)] = BLOCK.LEAVES;
-        if (data[idx(tx, h + th + 1, tz - 1)] === BLOCK.AIR) data[idx(tx, h + th + 1, tz - 1)] = BLOCK.LEAVES;
       }
 
       // Surface ruins are disabled: keep naturally generated terrain clear.

@@ -37,6 +37,8 @@
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, .1, 500);
   camera.rotation.order = 'YXZ';
+  // Camera-attached first-person arms only render when the camera is in the scene graph.
+  scene.add(camera);
 
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -67,7 +69,7 @@
       ? Math.max(0, Math.min(2, saved.thirdPersonView | 0))
       : (saved && saved.thirdPerson ? 1 : 0),
     time: saved ? saved.time : .22,
-    renderDist: saved ? saved.renderDist : CONFIG.RENDER_DIST,
+    renderDist: saved && Number.isFinite(saved.renderDist) ? Math.max(2, Math.min(5, saved.renderDist | 0)) : (isTouch ? 2 : CONFIG.RENDER_DIST),
     sound: saved ? saved.sound !== false : true,
     suppressPause: false,
     paused: false,
@@ -83,6 +85,15 @@
     ? saved.inventory.map(s => (typeof s === 'number' && s > 0) ? { id: s, count: -1 } : s)
     : savedHotbar;
   Inventory.init(state.mode, savedInventory, saved && saved.equipment ? saved.equipment : null);
+  // Restore ingredients held in the crafting grid, not only the inventory slots.
+  if (saved?.crafting && Array.isArray(saved.crafting.grid) && saved.crafting.grid.length === 9) {
+    Crafting.resetGrid(saved.crafting.size === 3 ? 3 : 2);
+    saved.crafting.grid.forEach((id, index) => {
+      if (Number.isInteger(id) && id > 0 && getItemDef(id) && !getToolDef(id) && !getArmorDef(id))
+        Crafting.setCell(index, id);
+    });
+  }
+  if (saved?.inventoryCursor) UI.restoreInventoryCursor(saved.inventoryCursor);
 
   if (saved && saved.player) {
     const p = saved.player;
@@ -219,7 +230,7 @@
 
   function doSave(silent) {
     const ok = SaveSystem.save(worldId, {
-      version: 5,
+      version: 6,
       savedAt: Date.now(),
       worldId,
       worldName: worldMeta.name,
@@ -234,6 +245,8 @@
       hotbar: Inventory.serialize().slice(0, Inventory.HOTBAR_SIZE),
       inventory: Inventory.serialize(),
       equipment: Inventory.serializeEquipment(),
+      crafting: { size: Crafting.getGridSize(), grid: Crafting.getGrid() },
+      inventoryCursor: UI.getInventoryCursor(),
       thirdPerson: state.thirdPersonView > 0,
       thirdPersonView: state.thirdPersonView,
       player: {
@@ -298,7 +311,7 @@
   const touchControls = document.createElement('div');
   touchControls.id = 'touch-controls';
   if (isTouch) {
-    touchControls.innerHTML = '<div id="touch-pad" aria-label="이동 조이스틱"><div id="touch-knob"></div></div><div id="touch-actions"><button data-act="jump">점프</button><button data-act="mine">채굴</button><button data-act="place">놓기</button><button data-act="inventory">가방</button><button data-act="camera">시점</button><button data-act="pause">메뉴</button></div>';
+    touchControls.innerHTML = '<div id="touch-pad" aria-label="이동 조이스틱"><div id="touch-knob"></div></div><div id="touch-actions"><button data-act="jump">점프</button><button data-act="mine">채굴</button><button data-act="place">사용/설치</button><button data-act="run">달리기</button><button data-act="inventory">가방</button><button data-act="camera">시점</button><button data-act="blocks">블록</button><button data-act="fly">비행</button><button data-act="drop">버리기</button><button data-act="pause">메뉴</button></div>';
     document.body.append(touchControls);
     document.body.classList.add('touch-device');
     const pad = touchControls.querySelector('#touch-pad');
@@ -332,15 +345,47 @@
     document.addEventListener('pointercancel', e => { if(e.pointerId===lookId) lookId=null; });
     for (const button of touchControls.querySelectorAll('button')) {
       const act = button.dataset.act;
-      const stop = () => { if(act==='jump')keys.Space=false; if(act==='mine')canvas.dispatchEvent(new MouseEvent('mouseup',{button:0,bubbles:true})); };
+      const stop = () => {
+        if (act === 'jump') keys.Space = false;
+        if (act === 'run') keys.ShiftLeft = false;
+        if (act === 'mine') canvas.dispatchEvent(new MouseEvent('mouseup', { button: 0, bubbles: true }));
+      };
       button.addEventListener('pointerdown', e => {
         e.preventDefault(); e.stopPropagation();
         if(!touchActive)return;
         if(act==='jump')keys.Space=true;
+        if(act==='run')keys.ShiftLeft=true;
         if(act==='mine')canvas.dispatchEvent(new MouseEvent('mousedown',{button:0,bubbles:true}));
         if(act==='place')canvas.dispatchEvent(new MouseEvent('mousedown',{button:2,bubbles:true}));
-        if(act==='inventory') { state.suppressPause=true; disableTouchInput(); resetPad(); UI.openInventory(); }
+        if(act==='inventory') { state.suppressPause=true; disableTouchInput(); resetPad(); if (UI.openInventory() === false) resumeInput(); }
         if(act==='camera') { state.thirdPersonView = (state.thirdPersonView + 1) % 3; UI.showToast(['1인칭','3인칭 뒤','3인칭 앞'][state.thirdPersonView]); }
+        if(act==='blocks') {
+          if (state.mode !== GAME_MODE.CREATIVE) UI.showToast('크리에이티브에서 블록 선택을 사용할 수 있어요');
+          else {
+            disableTouchInput();
+            UI.openPicker(id => {
+              Inventory.setSlot(Inventory.getSelected(), id);
+              UI.renderHotbar();
+              resumeInput();
+            });
+          }
+        }
+        if(act==='fly') {
+          if (state.mode !== GAME_MODE.CREATIVE) UI.showToast('비행은 크리에이티브 전용입니다');
+          else {
+            Player.flying = !Player.flying;
+            UI.showToast(Player.flying ? '비행 ON · 점프로 상승, 달리기로 하강' : '비행 OFF');
+          }
+        }
+        if(act==='drop') {
+          if (state.mode === GAME_MODE.SURVIVAL) {
+            const dropped = UI.dropSelected(false);
+            if (dropped) {
+              Drops.spawn(dropped.id, dropped.count, Player.pos.x, Player.pos.y + .7, Player.pos.z);
+              UI.renderHotbar();
+            }
+          } else UI.showToast('서바이벌에서 아이템을 버릴 수 있어요');
+        }
         if(act==='pause') { state.paused=true; disableTouchInput(); resetPad(); UI.showOverlay('pause'); doSave(true); }
       });
       button.addEventListener('pointerup',stop);
@@ -431,7 +476,7 @@
       disableTouchInput();
       state.suppressPause = true;
       document.exitPointerLock?.();
-      UI.openInventory();
+      if (UI.openInventory() === false) resumeInput();
       return;
     }
     if (e.code === 'KeyC') {
@@ -463,6 +508,7 @@
     if (e.target?.closest?.('#touch-controls, #hotbar, .overlay, #picker, button, input')) return;
     if (!(state.locked || (isTouch && touchActive)) || Player.dead || state.paused) return;
     if (e.button === 0) {
+      PlayerModel.swing();
       const dir = new THREE.Vector3();
       camera.getWorldDirection(dir);
       const hitMob = Mobs.tryAttack(camera.position, dir, 3.6);
@@ -483,11 +529,12 @@
         state.suppressPause = true;
         document.exitPointerLock?.();
         if (target.id === BLOCK.FURNACE) UI.openFurnace();
-        else UI.openCrafting();
+        else if (UI.openCrafting() === false) resumeInput();
         return;
       }
       const s = Inventory.selectedSlot();
       if (!s) return;
+      PlayerModel.swing();
       if (isFoodId(s.id)) {
         if (Player.eat(ITEMS[s.id].food)) {
           blip(280, .07, 'triangle', .05);
@@ -639,6 +686,52 @@
     createWorldAndOpen(name, rawSeed);
   });
   document.getElementById('btn-save').addEventListener('click', () => doSave(false));
+  // Backup files are private local JSON downloads, not uploaded to any server.
+  document.getElementById('btn-export-world')?.addEventListener('click', () => {
+    if (!doSave(true)) { UI.showToast('월드 저장에 실패해 백업할 수 없습니다'); return; }
+    const snapshot = SaveSystem.exportWorld(worldId);
+    if (!snapshot) { UI.showToast('백업 데이터를 찾지 못했습니다'); return; }
+    try {
+      const blob = new Blob([JSON.stringify(snapshot)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'WebCraft-' + String(worldMeta.name || 'world').replace(/[\\/:*?"<>|]/g, '_') + '.json';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+      UI.showToast('월드 백업 파일 내려받기 시작');
+    } catch (error) {
+      UI.showToast('월드 백업 파일을 만들 수 없습니다');
+    }
+  });
+  const worldImportInput = document.getElementById('world-import-file');
+  document.getElementById('btn-import-world')?.addEventListener('click', () => worldImportInput?.click());
+  worldImportInput?.addEventListener('change', async () => {
+    const file = worldImportInput.files?.[0];
+    if (!file) return;
+    try {
+      if (file.size > 8 * 1024 * 1024) {
+        UI.showToast('8MB 이하의 WebCraft 백업 파일만 가져올 수 있습니다');
+        return;
+      }
+      const parsed = JSON.parse(await file.text());
+      const imported = SaveSystem.importWorld(parsed);
+      if (!imported) {
+        UI.showToast('올바른 WebCraft 월드 백업 파일이 아닙니다');
+        return;
+      }
+      doSave(true);
+      UI.showToast('새 월드로 가져왔습니다');
+      location.href = 'play.html?world=' + encodeURIComponent(imported.id);
+    } catch (error) {
+      UI.showToast('파일을 읽을 수 없습니다. 백업 파일을 확인해 주세요');
+    } finally {
+      worldImportInput.value = '';
+    }
+  });
+
   document.getElementById('btn-home').addEventListener('click', () => { doSave(true); location.href = 'index.html'; });
   document.getElementById('btn-respawn').addEventListener('click', () => {
     miningHeld = false;
@@ -693,6 +786,16 @@
     camera.updateProjectionMatrix();
     renderer.setSize(innerWidth, innerHeight);
   });
+  // Save as soon as the user switches apps; browser page suspension can skip unload.
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && state.started) {
+      disableTouchInput();
+      state.paused = true;
+      UI.showOverlay('pause');
+      doSave(true);
+      document.exitPointerLock?.();
+    }
+  });
   addEventListener('beforeunload', () => { if (state.started) doSave(true); });
   setInterval(() => { if (state.started) doSave(true); }, CONFIG.AUTOSAVE_SEC * 1000);
 
@@ -705,7 +808,7 @@
     const dt = Math.min(clock.getDelta(), .05);
 
     if (!state.ready) {
-      World.update(Player.pos.x, Player.pos.z, state.renderDist, 10, 16);
+      World.update(Player.pos.x, Player.pos.z, state.renderDist, isTouch ? 4 : 8, isTouch ? 6 : 12);
       if (World.isReady()) {
         state.ready = true;
         UI.setStartEnabled(true);
@@ -735,7 +838,7 @@
         updateWeather(dt);
         Fluids.update(Player.pos.x, Player.pos.y, Player.pos.z, dt);
       }
-      World.update(Player.pos.x, Player.pos.z, state.renderDist);
+      World.update(Player.pos.x, Player.pos.z, state.renderDist, isTouch ? 1 : 2, isTouch ? 2 : 4);
     }
 
     const sprinting = (keys['ShiftLeft'] || keys['ShiftRight']) && keys['KeyW'] && !Player.flying;

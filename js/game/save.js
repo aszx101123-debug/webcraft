@@ -191,6 +191,76 @@ const SaveSystem = (() => {
     return true;
   }
 
+  // Portable, explicit backups: importing always creates a NEW world.
+  function exportWorld(id) {
+    const meta = get(id);
+    const world = load(id);
+    if (!meta || !world) return null;
+    return {
+      type: 'webcraft-world-export',
+      formatVersion: 1,
+      exportedAt: new Date().toISOString(),
+      meta: { name: meta.name, seed: meta.seed },
+      world
+    };
+  }
+
+  function importWorld(payload) {
+    if (!payload || payload.type !== 'webcraft-world-export' ||
+        payload.formatVersion !== 1 || !payload.meta || !payload.world) return null;
+    const data = payload.world;
+    if (!validateWorldData(data)) return null;
+    const seed = payload.meta.seed;
+    if (!Number.isSafeInteger(seed) || seed < 1 || seed > 2147483647) return null;
+    if (data.seed !== undefined && data.seed !== seed) return null;
+
+    // Validate cells and inventory before giving uploaded data to the renderer.
+    if (data.edits) {
+      if (data.edits.length > 12000) return null;
+      for (const entry of data.edits) {
+        if (!Array.isArray(entry) || entry.length !== 2 ||
+            typeof entry[0] !== 'string' || !/^-?\d+,-?\d+$/.test(entry[0]) ||
+            !Array.isArray(entry[1]) || entry[1].length > 16384) return null;
+        for (const cell of entry[1]) {
+          if (!Array.isArray(cell) || cell.length !== 2 ||
+              !Number.isInteger(cell[0]) || cell[0] < 0 || cell[0] >= 16384 ||
+              !Number.isInteger(cell[1]) || cell[1] < 0 || cell[1] >= BLOCKS.length) return null;
+        }
+      }
+    }
+    if (data.inventory && (data.inventory.length > 36 ||
+        data.inventory.some(s => s && (
+          !Number.isInteger(s.id) || !getItemDef(s.id) ||
+          !Number.isInteger(s.count) || (s.count !== -1 && (s.count < 1 || s.count > 64))
+        )))) return null;
+    if (data.crafting) {
+      const craft = data.crafting;
+      if ((craft.size !== 2 && craft.size !== 3) ||
+          !Array.isArray(craft.grid) || craft.grid.length !== 9) return null;
+      for (const id of craft.grid) {
+        if (id !== null && id !== 0 && (!Number.isInteger(id) || !getItemDef(id) ||
+            getToolDef(id) || getArmorDef(id))) return null;
+      }
+    }
+    if (data.inventoryCursor) {
+      const stack = data.inventoryCursor;
+      if (!Number.isInteger(stack.id) || !getItemDef(stack.id) ||
+          !Number.isInteger(stack.count) || stack.count < 1 || stack.count > 64) return null;
+    }
+    if (data.player) {
+      for (const n of [data.player.x, data.player.y, data.player.z])
+        if (!Number.isFinite(n) || Math.abs(n) > 1000000) return null;
+    }
+    const meta = create(payload.meta.name || '가져온 월드', seed);
+    if (!meta) return null;
+    const safeWorld = { ...data, worldId: meta.id, worldName: meta.name, seed };
+    if (!save(meta.id, safeWorld)) {
+      remove(meta.id);
+      return null;
+    }
+    return meta;
+  }
+
   function ensureDefault(seed) {
     let id = getActiveId();
     if (id) return id;
@@ -200,6 +270,6 @@ const SaveSystem = (() => {
 
   return {
     list, get, getActiveId, setActiveId, create, remove, rename,
-    save, load, clear, ensureDefault
+    save, load, clear, ensureDefault, exportWorld, importWorld
   };
 })();

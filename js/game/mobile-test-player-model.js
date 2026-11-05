@@ -3,6 +3,9 @@
 const PlayerModel = (() => {
   let group=null,firstPerson=null;
   let scene=null,camera=null;
+  let swingTime=0;
+
+  function swing() { swingTime = .27; }
 
   function mat(color) {
     return new THREE.MeshLambertMaterial({ color });
@@ -68,13 +71,16 @@ const PlayerModel = (() => {
     const speed = Math.hypot(player.vel.x, player.vel.z);
     const moving = player.onGround && speed > .25;
     const phase = performance.now() * .012 * Math.min(1.5, speed / Math.max(.1, CONFIG.SPEED));
+    swingTime = Math.max(0, swingTime - dt);
+    const hitSwing = swingTime > 0 ? Math.sin((1 - swingTime / .27) * Math.PI) : 0;
     const sway = moving ? Math.sin(phase) * .12 : 0;
     const bob = moving ? Math.abs(Math.cos(phase)) * .035 : 0;
     firstPerson.children.forEach((part, i) => {
       const left = i % 2 === 0;
-      part.position.y = (i < 2 ? -.55 : -.95) + bob;
-      part.position.z = -.72 + (left ? sway : -sway);
-      part.rotation.x = (left ? 1 : -1) * sway * .65;
+      part.visible = !left || !!Inventory.getEquipment().offhand;
+      part.position.y = (i < 2 ? -.55 : -.95) + bob + (!left ? hitSwing * .045 : 0);
+      part.position.z = -.72 + (left ? sway : -sway) - (!left ? hitSwing * .12 : 0);
+      part.rotation.x = (left ? 1 : -1) * sway * .65 - (!left ? hitSwing * .68 : 0);
     });
     if(!thirdPerson||player.dead)return;
     group.position.set(player.pos.x,player.pos.y,player.pos.z);
@@ -92,7 +98,8 @@ const PlayerModel = (() => {
       parts.legL.rotation.x *= .82;
       parts.legR.rotation.x *= .82;
     }
+    if (hitSwing > 0) parts.armR.rotation.x -= hitSwing * .7;
   }
 
-  return { init, update };
+  return { init, update, swing };
 })();

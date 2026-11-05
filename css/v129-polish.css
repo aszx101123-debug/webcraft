@@ -1,0 +1,80 @@
+/* WebCraft v1.2.9 visual consistency and improved input feedback. */
+:root{--wc-frame:#505660;--wc-edge:#aeb8bb;--wc-deep:#161c20;--wc-amber:#eed27c}
+#hotbar{
+  background:rgba(27,32,35,.83);
+  border:3px solid rgba(126,137,137,.78);
+  border-radius:4px;
+  padding:4px;
+  gap:3px;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.14),0 6px 23px rgba(0,0,0,.5)
+}
+#hotbar .slot{
+  border:2px solid rgba(76,85,88,.94);
+  border-radius:2px;
+  background:rgba(41,47,49,.93);
+  box-shadow:inset 2px 2px 0 rgba(11,15,17,.65),inset -1px -1px 0 rgba(150,151,145,.26);
+  transition:border-color .08s ease,background .08s ease
+}
+#hotbar .slot.sel{
+  transform:none;
+  border-color:#f8f6e5;
+  outline:2px solid rgba(255,255,255,.55);
+  outline-offset:-1px;
+  background:rgba(72,80,78,.97);
+  box-shadow:inset 0 0 0 2px rgba(250,250,225,.17)
+}
+#hotbar .slot img,.craft-cell img,.inventory-slot img,.craft-inv-slot img,.equip-slot img{
+  image-rendering:pixelated
+}
+.panel{
+  background:linear-gradient(155deg,#26313a,#171f29 72%);
+  border:3px solid #6c7a80;
+  border-radius:5px;
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,.08),inset -3px -3px 0 rgba(0,0,0,.24),0 18px 55px rgba(0,0,0,.55)
+}
+.panel h1,.panel h2{letter-spacing:.01em}
+.inventory-main,.equipment-panel,.craft-left,.craft-recipes{
+  border-radius:4px
+}
+.inventory-slot,.craft-inv-slot,.craft-cell{
+  border-radius:3px;
+  cursor:pointer;
+  transition:background .08s,border-color .08s
+}
+.inventory-slot:hover,.craft-inv-slot:hover,.craft-cell:hover{
+  background:#263440;
+  border-color:#a7b9c3
+}
+.inventory-slot.material-selected,
+.craft-inv-slot.material-selected{
+  border:2px solid #f5d36e;
+  background:#3a3b2b;
+  box-shadow:0 0 0 2px rgba(246,214,107,.24),inset 0 0 0 1px rgba(255,255,255,.1)
+}
+#craft-output.ready,#inventory-craft-output.ready{box-shadow:0 0 0 2px rgba(125,207,112,.32)}
+.world-backup-tools{display:flex;justify-content:center;flex-wrap:wrap;gap:8px}
+.world-backup-tools button{flex:1 1 160px}
+.touch-device #touch-actions button{
+  border-radius:7px;
+  border:2px solid rgba(202,223,223,.52);
+  background:linear-gradient(160deg,rgba(45,60,62,.95),rgba(22,33,39,.96));
+  box-shadow:inset 1px 1px 0 rgba(255,255,255,.11),0 3px 12px rgba(0,0,0,.4);
+  font-size:11px
+}
+.touch-device #touch-actions button:active{
+  background:rgba(103,140,113,.95);
+  border-color:#d9f5bb
+}
+.touch-device #touch-actions button[data-act="mine"]{border-color:#d5aa70}
+.touch-device #touch-actions button[data-act="place"]{border-color:#94b7d7}
+.touch-device #touch-actions button[data-act="pause"]{border-color:#d99b9b}
+.touch-device #hotbar .slot{border-width:2px}
+.touch-device #toast{bottom:max(155px,env(safe-area-inset-bottom) + 130px);max-width:92vw;line-height:1.4}
+@media(max-height:480px) and (orientation:landscape){
+ .touch-device #toast{bottom:45px}
+ .touch-device #hud-time{font-size:11px;top:5px}
+ .touch-device .update-badge{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+ .slot,.inventory-slot,.craft-inv-slot,.craft-cell{transition:none!important}
+}
