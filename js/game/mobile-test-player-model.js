@@ -14,8 +14,74 @@ const PlayerModel = (() => {
 
   const ATTACK_DURATION = .34;
 
+  // Original cosmetic palettes change the avatar only, not game statistics.
+  const palettes = {
+    skin: [
+      { label: '밝은 베이지', value: 0xe9bd92 }, { label: '복숭아', value: 0xd5a57f },
+      { label: '구릿빛', value: 0xb77955 }, { label: '짙은 갈색', value: 0x80513c }
+    ],
+    hair: [
+      { label: '검정', value: 0x26242a }, { label: '갈색', value: 0x4b3428 },
+      { label: '밤색', value: 0x7b4b30 }, { label: '금발', value: 0xbda16d },
+      { label: '은색', value: 0xc9c9cc }
+    ],
+    shirt: [
+      { label: '청록', value: 0x2f8c90 }, { label: '파랑', value: 0x426ab4 },
+      { label: '빨강', value: 0xb35053 }, { label: '초록', value: 0x518e53 },
+      { label: '보라', value: 0x8456a2 }, { label: '주황', value: 0xc78b3c }
+    ],
+    pants: [
+      { label: '남색', value: 0x33435f }, { label: '회색', value: 0x6b7888 },
+      { label: '갈색', value: 0x70503b }, { label: '검정', value: 0x272c38 }
+    ],
+    boots: [
+      { label: '검정', value: 0x24262c }, { label: '갈색', value: 0x5b4335 },
+      { label: '회색', value: 0x666b70 }
+    ],
+    hairStyle: [
+      { label: '짧은 머리', value: 'short' },
+      { label: '앞머리', value: 'fringe' },
+      { label: '긴 머리', value: 'long' }
+    ]
+  };
+  const defaults = { skin: 1, hair: 1, shirt: 0, pants: 0, boots: 0, hairStyle: 'short' };
+  let appearance = { ...defaults };
+  let bodyMaterials = null, hairBits = null;
+  let heldMain = null, heldOff = null, heldMainId = 0, heldOffId = 0;
+  let worldRight = null, worldLeft = null;
+
+  function normalizeAppearance(next) {
+    const normalized = { ...defaults };
+    if (!next || typeof next !== 'object' || Array.isArray(next)) return normalized;
+    for (const field of ['skin', 'hair', 'shirt', 'pants', 'boots']) {
+      if (Number.isInteger(next[field]) && next[field] >= 0 && next[field] < palettes[field].length)
+        normalized[field] = next[field];
+    }
+    if (palettes.hairStyle.some(item => item.value === next.hairStyle))
+      normalized.hairStyle = next.hairStyle;
+    return normalized;
+  }
+  function getAppearance() { return { ...appearance }; }
+  function getPalettes() { return palettes; }
+  function setAppearance(next) {
+    appearance = normalizeAppearance(next);
+    if (bodyMaterials) {
+      for (const field of ['skin','hair','shirt','pants','boots'])
+        bodyMaterials[field].color.setHex(palettes[field][appearance[field]].value);
+      bodyMaterials.cuff.color.setHex(palettes.shirt[appearance.shirt].value);
+      bodyMaterials.cuff.color.multiplyScalar(.75);
+    }
+    if (hairBits) {
+      hairBits.fringe.visible = appearance.hairStyle !== 'short';
+      hairBits.longL.visible = appearance.hairStyle === 'long';
+      hairBits.longR.visible = appearance.hairStyle === 'long';
+    }
+    return getAppearance();
+  }
+
+
   function material(color) {
-    return new THREE.MeshLambertMaterial({ color });
+    return color && typeof color === 'object' ? color : new THREE.MeshLambertMaterial({ color });
   }
 
   function cube(w, h, d, color, x = 0, y = 0, z = 0) {
@@ -61,12 +127,13 @@ const PlayerModel = (() => {
   }
 
   function init(scene, camera) {
-    const skin = 0xd5a57f;
-    const hair = 0x4b3428;
-    const shirt = 0x2f8c90;
-    const cuff = 0x226a70;
-    const pants = 0x33435f;
-    const boots = 0x24262c;
+    const skin = material(0xd5a57f);
+    const hair = material(0x4b3428);
+    const shirt = material(0x2f8c90);
+    const cuff = material(0x226a70);
+    const pants = material(0x33435f);
+    const boots = material(0x24262c);
+    bodyMaterials = { skin, hair, shirt, cuff, pants, boots };
 
     worldModel = new THREE.Group();
     worldModel.add(cube(.74, .82, .42, shirt, 0, 1.23, 0));
@@ -75,7 +142,12 @@ const PlayerModel = (() => {
     const head = joint(0, 2.03, 0);
     head.add(cube(.62, .62, .62, skin));
     head.add(cube(.66, .18, .66, hair, 0, .33, 0));
-    head.add(cube(.66, .22, .12, hair, 0, .15, -.31));
+    const fringe = cube(.66, .22, .12, hair, 0, .15, -.31);
+    head.add(fringe);
+    const longL = cube(.14, .52, .60, hair, -.39, -.24, 0);
+    const longR = cube(.14, .52, .60, hair, .39, -.24, 0);
+    head.add(longL, longR);
+    hairBits = { fringe, longL, longR };
     head.add(cube(.075, .075, .03, 0x20252b, .15, .02, .315));
     head.add(cube(.075, .075, .03, 0x20252b, -.15, .02, .315));
     head.add(cube(.11, .06, .035, 0x8f4a43, 0, -.14, .315));
@@ -98,6 +170,7 @@ const PlayerModel = (() => {
     firstPerson.add(viewRight, viewLeft);
     firstPerson.visible = false;
     camera.add(firstPerson);
+    setAppearance(appearance);
   }
 
   function swing() {
@@ -151,5 +224,5 @@ const PlayerModel = (() => {
     limbs.head.rotation.x = Math.max(-.24, Math.min(.24, player.pitch * .20));
   }
 
-  return { init, update, swing };
+  return { init, update, swing, getAppearance, setAppearance, getPalettes };
 })();
