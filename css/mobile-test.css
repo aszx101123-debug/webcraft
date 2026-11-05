@@ -1,5 +1,8 @@
 /* Shared PC / touch controls. PC remains mouse-and-keyboard only. */
 #touch-controls{display:none}
+.touch-keys{display:none}
+.touch-device .touch-keys{display:block;margin:12px auto;padding:9px 12px;max-width:580px;border-radius:8px;background:rgba(20,45,70,.72);color:#d8eeff;font-size:12px;line-height:1.65}
+.touch-device .keys{display:none}
 .touch-device.touch-playing #touch-controls{display:block;position:fixed;inset:0;z-index:27;pointer-events:none}
 .touch-device{overscroll-behavior:none}
 .touch-device canvas{touch-action:none}
