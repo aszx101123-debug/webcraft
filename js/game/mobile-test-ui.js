@@ -166,7 +166,7 @@ const UI = (() => {
     } else btn.title = '빈 슬롯';
 
     btn.addEventListener('click', e => {
-      if (!inventoryOpen || Crafting.getGridSize() !== 2 || !matchMedia('(pointer: coarse)').matches) return;
+      if (!inventoryOpen || Crafting.getGridSize() !== 2 || !document.body.classList.contains('touch-device')) return;
       e.preventDefault();
       const src = Inventory.getSlots()[index];
       if (!src) return;
@@ -179,7 +179,7 @@ const UI = (() => {
       }
     });
     btn.addEventListener('mousedown', e => {
-      if (inventoryOpen && matchMedia('(pointer: coarse)').matches) return;
+      if (inventoryOpen && document.body.classList.contains('touch-device')) return;
       e.preventDefault();
       e.stopPropagation();
       if (e.button === 0 && e.shiftKey && inventoryOpen && Crafting.getGridSize() === 2) {
