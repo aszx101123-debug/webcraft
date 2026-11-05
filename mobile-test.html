@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>WebCraft — 모바일 테스트</title>
 <meta name="description" content="브라우저에서 바로 즐기는 마인크래프트 스타일 샌드박스 게임 WebCraft — 서바이벌과 크리에이티브">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⛏️</text></svg>">
@@ -11,11 +11,11 @@
 <link rel="apple-touch-icon" href="img/icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri/dist/galmuri.css">
 <link rel="stylesheet" href="css/game.css">
-<link rel="stylesheet" href="css/mobile-test.css?v=2">
+<link rel="stylesheet" href="css/mobile-test.css?v=pcmobile1">
 </head>
 <body>
 
-<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.2.7 · 팔/제작/갑옷/바이옴 패치</div>
+<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.2.7 · PC/모바일 호환 패치</div>
 <div id="boot-error" class="boot-error hidden" role="alert">
   <div class="boot-error-panel">
     <div class="boot-error-icon">!</div>
@@ -209,22 +209,22 @@
 <script src="js/game/config.js"></script>
 <script src="js/game/noise.js"></script>
 <script src="js/game/terrain.js?v=ruinfix1"></script>
-<script src="js/game/mobile-test-textures.js?v=4"></script>
+<script src="js/game/mobile-test-textures.js?v=pcmobile1"></script>
 <script src="js/game/world.js"></script>
 <script src="js/game/player.js"></script>
-<script src="js/game/mobile-test-player-model.js?v=3"></script>
+<script src="js/game/mobile-test-player-model.js?v=pcmobile1"></script>
 <script src="js/game/fluids.js"></script>
 <script src="js/game/interaction.js"></script>
 <script src="js/game/items.js"></script>
 <script src="js/game/drops.js"></script>
 <script src="js/game/mobs.js"></script>
 <script src="js/game/save.js"></script>
-<script src="js/game/mobile-test-crafting.js?v=4"></script>
-<script src="js/game/mobile-test-ui.js?v=4"></script>
-<script src="js/game/mobile-test-main.js?v=2"></script>
+<script src="js/game/mobile-test-crafting.js?v=pcmobile1"></script>
+<script src="js/game/mobile-test-ui.js?v=pcmobile1"></script>
+<script src="js/game/mobile-test-main.js?v=pcmobile1"></script>
 <script>
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-  addEventListener('load', () => navigator.serviceWorker.getRegistrations().then(regs => Promise.all(regs.map(r => r.unregister()))).catch(() => {}));
+  addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(() => {}));
 }
 </script>
 </body>
