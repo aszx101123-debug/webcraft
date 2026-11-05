@@ -86,3 +86,23 @@
  #overlay-inventory .inventory-slot .inv-num{font-size:8px}
  #overlay-inventory .inventory-slot .inv-count{font-size:10px}
 }
+
+/* v1.3.1: the shared skin studio has nine groups instead of six. */
+#character-options{
+  max-height:220px;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  padding:3px 6px 6px 3px;
+  scrollbar-width:thin;
+  scrollbar-color:#6f9088 #16202a;
+}
+#character-options .character-hair-options{gap:5px}
+#character-options .character-hair-button{min-height:28px;white-space:normal}
+#character-options .character-option-label{font-size:11px}
+@media(min-width:901px){
+  #overlay-inventory .inventory-panel{max-height:92dvh}
+}
+@media(max-width:900px){
+  #character-options{max-height:190px}
+  #overlay-inventory .character-editor{padding:7px}
+}
