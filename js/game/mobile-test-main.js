@@ -37,6 +37,8 @@
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, .1, 500);
   camera.rotation.order = 'YXZ';
+  // Camera-attached first-person arms only render when the camera is in the scene graph.
+  scene.add(camera);
 
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
