@@ -1,12 +1,13 @@
 'use strict';
 
-const VERSION = 'webcraft-ruinfix-20261105';
+const VERSION = 'webcraft-cross-platform-20261105';
 const CORE = [
   './',
   './index.html',
   './play.html',
   './css/style.css',
   './css/game.css',
+  './css/mobile-test.css?v=pcmobile1',
   './manifest.webmanifest',
   './img/icon-192.png',
   './img/icon-512.png',
@@ -28,6 +29,11 @@ const CORE = [
   './js/game/crafting.js',
   './js/game/ui.js',
   './js/game/main.js',
+  './js/game/mobile-test-main.js?v=pcmobile1',
+  './js/game/mobile-test-ui.js?v=pcmobile1',
+  './js/game/mobile-test-crafting.js?v=pcmobile1',
+  './js/game/mobile-test-textures.js?v=pcmobile1',
+  './js/game/mobile-test-player-model.js?v=pcmobile1',
   './js/game/player-model.js',
   './js/game/fluids.js'
 ];
