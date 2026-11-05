@@ -143,7 +143,7 @@ const PlayerModel = (() => {
     ];
     worldModel.add(...stripe);
     const badge = cube(.17,.19,.02,0xe0bd67,.21,1.38,.231);
-    const badgeCenter = cube(.095,.10,.026,0x294c65,.21,1.38,.249);
+    const badgeCenter = cube(.095,.10,.026,0x294c65,0,0,.018);
     badge.add(badgeCenter);worldModel.add(badge);
     const hoodie = [
       cube(.35,.19,.018,cuff,0,1.11,.237),
