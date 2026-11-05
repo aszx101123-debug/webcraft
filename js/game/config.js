@@ -25,7 +25,7 @@ const BLOCK = Object.freeze({
   AIR: 0, GRASS: 1, DIRT: 2, STONE: 3, COBBLE: 4, SAND: 5, LOG: 6, LEAVES: 7,
   PLANK: 8, GLASS: 9, BRICK: 10, GLOWSTONE: 11, WATER: 12, BEDROCK: 13,
   CRAFTING_TABLE: 14, COAL_ORE: 15, IRON_ORE: 16, GOLD_ORE: 17, COPPER_ORE: 18,
-  REDSTONE_ORE: 19, LAPIS_ORE: 20, DIAMOND_ORE: 21, EMERALD_ORE: 22, WATER_FLOW: 23, SNOW: 24, FURNACE: 25
+  REDSTONE_ORE: 19, LAPIS_ORE: 20, DIAMOND_ORE: 21, EMERALD_ORE: 22, WATER_FLOW: 23, SNOW: 24, FURNACE: 25, TORCH: 26
 });
 
 const BLOCKS = [
@@ -54,7 +54,8 @@ const BLOCKS = [
   { name: '에메랄드 광석', tiles: { all: [7, 3] }, miningTime: 2.2, tool: 'pickaxe', minTier: 3, oreDrop: true },
   { name: '흐르는 물', tiles: { all: [5, 1] }, liquid: true, flow: true, miningTime: .2 },
   { name: '눈', tiles: { all: [7, 1] }, miningTime: .18, tool: 'shovel' },
-  { name: '화로', tiles: { top: [8, 1], bottom: [8, 1], side: [9, 0] }, miningTime: 1.6, tool: 'pickaxe', minTier: 1 }
+  { name: '화로', tiles: { top: [8, 1], bottom: [8, 1], side: [9, 0] }, miningTime: 1.6, tool: 'pickaxe', minTier: 1 },
+  { name: '횃불', tiles: { top: [8, 2], bottom: [8, 2], side: [9, 1] }, miningTime: .12, nonSolid: true }
 ];
 
 const ITEM = Object.freeze({
@@ -113,7 +114,7 @@ const DEFAULT_HOTBAR = [
 const PLACEABLE_IDS = [
   BLOCK.GRASS, BLOCK.DIRT, BLOCK.STONE, BLOCK.COBBLE, BLOCK.SAND, BLOCK.LOG,
   BLOCK.LEAVES, BLOCK.PLANK, BLOCK.GLASS, BLOCK.BRICK, BLOCK.GLOWSTONE,
-  BLOCK.CRAFTING_TABLE, BLOCK.FURNACE, BLOCK.WATER, BLOCK.COAL_ORE, BLOCK.IRON_ORE, BLOCK.GOLD_ORE,
+  BLOCK.CRAFTING_TABLE, BLOCK.FURNACE, BLOCK.TORCH, BLOCK.WATER, BLOCK.COAL_ORE, BLOCK.IRON_ORE, BLOCK.GOLD_ORE,
   BLOCK.COPPER_ORE, BLOCK.REDSTONE_ORE, BLOCK.LAPIS_ORE, BLOCK.DIAMOND_ORE, BLOCK.EMERALD_ORE, BLOCK.SNOW
 ];
 
@@ -172,7 +173,7 @@ const MOB_DEFS = {
 };
 
 function isSolidBlock(id) {
-  return id !== BLOCK.AIR && !BLOCKS[id].liquid;
+  return id !== BLOCK.AIR && !!BLOCKS[id] && !BLOCKS[id].liquid && !BLOCKS[id].nonSolid;
 }
 
 function isPlaceable(id) {
