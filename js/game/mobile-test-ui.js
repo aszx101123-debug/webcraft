@@ -343,11 +343,13 @@ const UI = (() => {
   }
 
   function openInventory() {
+    if (Crafting.getGridSize() !== 2 && !returnCraftingMaterials()) {
+      showToast('3×3 제작 칸의 재료를 돌려줄 공간이 없습니다');
+      return false;
+    }
+    if (Crafting.getGridSize() !== 2) Crafting.resetGrid(2);
     inventoryOpen = true;
-    inventoryCursor = null;
     selectedInventoryMaterial = null;
-    Crafting.setGridSize(2);
-    Crafting.resetGrid(2);
     document.querySelectorAll('.equip-slot:not(.disabled)').forEach(btn => {
       if (btn.dataset.bound) return;
       btn.dataset.bound = '1';
@@ -368,6 +370,19 @@ const UI = (() => {
     inventoryOpen = false;
     selectedInventoryMaterial = null;
     $('overlay-inventory').classList.add('hidden');
+    return true;
+  }
+
+  function getInventoryCursor() {
+    if (!inventoryCursor) return null;
+    return { ...inventoryCursor };
+  }
+
+  function restoreInventoryCursor(stack) {
+    if (!stack || !Number.isInteger(stack.id) || !getItemDef(stack.id) ||
+        !Number.isInteger(stack.count) || stack.count < 1 || stack.count > 64) return false;
+    inventoryCursor = { id: stack.id, count: stack.count };
+    if (Number.isFinite(stack.durability)) inventoryCursor.durability = stack.durability;
     return true;
   }
 
@@ -485,9 +500,12 @@ const UI = (() => {
     if (inventoryOpen) renderInventory();
   }
   function openCrafting() {
+    if (Crafting.getGridSize() !== 3 && !returnCraftingMaterials()) {
+      showToast('2×2 제작 칸의 재료를 돌려줄 공간이 없습니다');
+      return false;
+    }
     selectedCraftingMaterial = null;
-    Crafting.setGridSize(3);
-    Crafting.resetGrid(3);
+    if (Crafting.getGridSize() !== 3) Crafting.resetGrid(3);
     renderCrafting();
     const clear = $('craft-clear');
     if (clear) clear.onclick = () => {
@@ -706,7 +724,7 @@ const UI = (() => {
   return {
     renderHotbar, setSelected, showItemName, showOverlay, showToast, setHUD, setTime, setMiningProgress,
     setModeLabel, renderWorlds, renderCrafting, openCrafting, closeCrafting, isCraftingOpen,
-    renderInventory, openInventory, closeInventory, isInventoryOpen,
+    renderInventory, openInventory, closeInventory, isInventoryOpen, getInventoryCursor, restoreInventoryCursor,
     renderFurnace, openFurnace, closeFurnace, isFurnaceOpen, dropSelected, updateInventoryCursor,
     updateSurvival, showDeath, hideDeath, openPicker, closePicker, isPickerOpen, setStartEnabled, flashVignette
   };
