@@ -360,12 +360,12 @@
     if (e.code === 'Space') e.preventDefault();
     if (e.code === 'Escape' && UI.isInventoryOpen()) {
       UI.closeInventory();
-      canvas.requestPointerLock();
+      resumeInput();
       return;
     }
     if (e.code === 'Escape' && UI.isCraftingOpen()) {
       UI.closeCrafting();
-      canvas.requestPointerLock();
+      resumeInput();
       return;
     }
     if (e.code === 'F3') { e.preventDefault(); const h = document.getElementById('hud-info'); h.style.display = h.style.display === 'none' ? '' : 'none'; }
@@ -421,7 +421,7 @@
         Inventory.setSlot(Inventory.getSelected(), id);
         UI.renderHotbar();
         blip(340, .05, 'square', .03);
-        canvas.requestPointerLock();
+        resumeInput();
       });
     }
   });
