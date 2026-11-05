@@ -508,6 +508,7 @@
     if (e.target?.closest?.('#touch-controls, #hotbar, .overlay, #picker, button, input')) return;
     if (!(state.locked || (isTouch && touchActive)) || Player.dead || state.paused) return;
     if (e.button === 0) {
+      PlayerModel.swing();
       const dir = new THREE.Vector3();
       camera.getWorldDirection(dir);
       const hitMob = Mobs.tryAttack(camera.position, dir, 3.6);
@@ -533,6 +534,7 @@
       }
       const s = Inventory.selectedSlot();
       if (!s) return;
+      PlayerModel.swing();
       if (isFoodId(s.id)) {
         if (Player.eat(ITEMS[s.id].food)) {
           blip(280, .07, 'triangle', .05);
@@ -784,6 +786,14 @@
     camera.updateProjectionMatrix();
     renderer.setSize(innerWidth, innerHeight);
   });
+  // Save as soon as the user switches apps; browser page suspension can skip unload.
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && state.started) {
+      disableTouchInput();
+      state.paused = true;
+      doSave(true);
+    }
+  });
   addEventListener('beforeunload', () => { if (state.started) doSave(true); });
   setInterval(() => { if (state.started) doSave(true); }, CONFIG.AUTOSAVE_SEC * 1000);
 
@@ -796,7 +806,7 @@
     const dt = Math.min(clock.getDelta(), .05);
 
     if (!state.ready) {
-      World.update(Player.pos.x, Player.pos.z, state.renderDist, 10, 16);
+      World.update(Player.pos.x, Player.pos.z, state.renderDist, isTouch ? 4 : 8, isTouch ? 6 : 12);
       if (World.isReady()) {
         state.ready = true;
         UI.setStartEnabled(true);
@@ -826,7 +836,7 @@
         updateWeather(dt);
         Fluids.update(Player.pos.x, Player.pos.y, Player.pos.z, dt);
       }
-      World.update(Player.pos.x, Player.pos.z, state.renderDist);
+      World.update(Player.pos.x, Player.pos.z, state.renderDist, isTouch ? 1 : 2, isTouch ? 2 : 4);
     }
 
     const sprinting = (keys['ShiftLeft'] || keys['ShiftRight']) && keys['KeyW'] && !Player.flying;
