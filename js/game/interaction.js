@@ -30,7 +30,7 @@ const Interact = (() => {
     let face = null;
     for (let i = 0; i < 160; i++) {
       const id = World.getBlock(x, y, z);
-      if (isSolidBlock(id)) return { x, y, z, id, face };
+      if (isSolidBlock(id) || id === BLOCK.TORCH) return { x, y, z, id, face };
       if (tmx < tmy && tmx < tmz) { if (tmx > maxDist) return null; x += stepX; tmx += tdx; face = [-stepX, 0, 0]; }
       else if (tmy < tmz) { if (tmy > maxDist) return null; y += stepY; tmy += tdy; face = [0, -stepY, 0]; }
       else { if (tmz > maxDist) return null; z += stepZ; tmz += tdz; face = [0, 0, -stepZ]; }
@@ -130,6 +130,7 @@ const Interact = (() => {
     const py = target.y + target.face[1];
     const pz = target.z + target.face[2];
     const cur = World.getBlock(px, py, pz);
+    if (blockId === BLOCK.TORCH && (target.face[1] !== 1 || cur !== BLOCK.AIR || !isSolidBlock(World.getBlock(px, py - 1, pz)))) return false;
     if (cur !== BLOCK.AIR && cur !== BLOCK.WATER) return false;
     if (isSolidBlock(blockId) && overlapsPlayer(px, py, pz)) return false;
     return World.setBlock(px, py, pz, blockId);
