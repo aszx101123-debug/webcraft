@@ -10,6 +10,8 @@ const UI = (() => {
   let inventoryCursor = null;
   let selectedInventoryMaterial = null;
   let selectedCraftingMaterial = null;
+  let previewFromBack = false;
+  let characterControlsBound = false;
 
   function renderHotbar() {
     const bar = $('hotbar');
@@ -255,6 +257,83 @@ const UI = (() => {
     updateInventoryCursor(innerWidth / 2, innerHeight / 2);
   }
 
+  const characterFields = [
+    ['skin', '피부 색상'], ['hair', '머리 색상'], ['shirt', '상의'],
+    ['pants', '바지'], ['boots', '신발'], ['hairStyle', '머리 스타일']
+  ];
+  function updateCharacterPreview() {
+    const canvas = $('character-preview');
+    if (!canvas) return;
+    PlayerModel.drawPreview(canvas, previewFromBack);
+    const item = $('character-held-icon');
+    if (item) {
+      const id = Inventory.selectedId();
+      item.classList.toggle('hidden', !id);
+      if (id) {
+        item.src = Textures.blockIcon(id);
+        item.alt = '현재 손에 든 ' + getItemName(id);
+      } else item.removeAttribute('src');
+    }
+  }
+  function initializeCharacterEditor() {
+    const rotate = $('character-rotate');
+    const reset = $('character-reset');
+    if (characterControlsBound || !rotate || !reset) return;
+    characterControlsBound = true;
+    rotate.addEventListener('click', () => {
+      previewFromBack = !previewFromBack;
+      rotate.textContent = previewFromBack ? '앞에서 보기' : '뒤에서 보기';
+      updateCharacterPreview();
+    });
+    reset.addEventListener('click', () => {
+      PlayerModel.setAppearance(null);
+      renderCharacterEditor();
+      document.dispatchEvent(new Event('webcraft-appearance-changed'));
+      showToast('기본 캐릭터 스타일을 적용했습니다');
+    });
+  }
+  function renderCharacterEditor() {
+    const controls = $('character-options');
+    if (!controls) return;
+    initializeCharacterEditor();
+    const palette = PlayerModel.getPalettes();
+    const appearance = PlayerModel.getAppearance();
+    controls.innerHTML = '';
+    for (const [field, label] of characterFields) {
+      const row = document.createElement('div');
+      row.className = 'character-option-row';
+      const caption = document.createElement('span');
+      caption.className = 'character-option-label';
+      caption.textContent = label;
+      const buttons = document.createElement('div');
+      buttons.className = field === 'hairStyle' ? 'character-hair-options' : 'character-swatches';
+      palette[field].forEach((choice, index) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = field === 'hairStyle' ? 'character-hair-button' : 'character-swatch';
+        const selected = appearance[field] === (field === 'hairStyle' ? choice.value : index);
+        button.setAttribute('aria-pressed', String(selected));
+        button.setAttribute('aria-label', label + ': ' + choice.label);
+        button.title = choice.label;
+        if (field === 'hairStyle') button.textContent = choice.label;
+        else button.style.backgroundColor = '#' + choice.value.toString(16).padStart(6, '0');
+        button.addEventListener('click', () => {
+          PlayerModel.setAppearance({
+            ...PlayerModel.getAppearance(),
+            [field]: field === 'hairStyle' ? choice.value : index
+          });
+          renderCharacterEditor();
+          document.dispatchEvent(new Event('webcraft-appearance-changed'));
+          showToast(choice.label + ' 스타일 적용');
+        });
+        buttons.appendChild(button);
+      });
+      row.append(caption, buttons);
+      controls.appendChild(row);
+    }
+    updateCharacterPreview();
+  }
+
   function renderInventory() {
     const grid = $('inventory-grid');
     const hotbar = $('inventory-hotbar-grid');
@@ -265,6 +344,7 @@ const UI = (() => {
     for (let i = 0; i < Inventory.HOTBAR_SIZE; i++) renderInventorySlot(i, hotbar);
     renderEquipment();
     renderInventoryCrafting();
+    renderCharacterEditor();
   }
 
   function returnCraftingMaterials() {

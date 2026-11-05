@@ -110,6 +110,7 @@ check('world exports import without overwriting original', () => {
     version: 6, seed: 12345,
     player: { x: 3, y: 30, z: 7 },
     inventory: Inventory.serialize(),
+    appearance: {skin:2,hair:3,shirt:4,pants:1,boots:1,hairStyle:'long'},
     crafting: { size: 2, grid: [BLOCK.LOG, null, null, null, null, null, null, null, null] },
     inventoryCursor: { id: BLOCK.COBBLE, count: 1 },
     edits: [['0,0', [[65, BLOCK.DIRT]]]]
@@ -120,6 +121,8 @@ check('world exports import without overwriting original', () => {
   assert.ok(copy && copy.id !== meta.id);
   assert.ok(SaveSystem.get(meta.id));
   assert.equal(SaveSystem.load(copy.id).crafting.grid[0], BLOCK.LOG);
+  assert.equal(SaveSystem.load(copy.id).appearance.hairStyle, 'long');
+  assert.equal(SaveSystem.load(copy.id).appearance.shirt, 4);
   const damaged = JSON.parse(JSON.stringify(exported));
   damaged.world.edits = [['0,0', [[99999, BLOCK.DIRT]]]];
   assert.equal(SaveSystem.importWorld(damaged), null);
@@ -170,15 +173,18 @@ check('flowing water does not rebuild unchanged and clears after source removal'
   assert.equal([...blocks.values()].filter(id => id === BLOCK.WATER_FLOW).length, 0);
 });
 
-check('PC/mobile pages include v1.2.9 scripts and world backup controls', () => {
+check('PC/mobile pages include v1.3.0 avatar editor, held items and world backup controls', () => {
   for (const page of ['play.html', 'mobile-test.html']) {
     const html = src(page);
-    assert.ok(html.includes('mobile-test-main.js?v=arms1291'));
+    assert.ok(html.includes('mobile-test-main.js?v=v130'));
     assert.ok(html.includes('v129-polish.css?v=v129'));
     assert.ok(html.includes('btn-export-world'));
     assert.ok(html.includes('btn-import-world'));
+    assert.ok(html.includes('id="character-preview"'));
+    assert.ok(html.includes('id="character-options"'));
+    assert.ok(html.includes('css/v130-character.css?v=v130'));
   }
-  assert.ok(src('index.html').includes('v1.2.9'));
+  assert.ok(src('index.html').includes('v1.3.0'));
 });
 
 console.log('All ' + passed + ' WebCraft regression checks passed.');

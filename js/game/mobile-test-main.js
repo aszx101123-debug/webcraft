@@ -53,6 +53,7 @@
   World.init(scene, seed, saved ? saved.edits : null);
   Fluids.init();
   PlayerModel.init(scene,camera);
+  PlayerModel.setAppearance(saved && saved.appearance ? saved.appearance : null);
   Mobs.init(scene);
   Drops.init(scene, (id, n) => {
     UI.showToast(`${getItemName(id)} +${n}`);
@@ -245,6 +246,7 @@
       hotbar: Inventory.serialize().slice(0, Inventory.HOTBAR_SIZE),
       inventory: Inventory.serialize(),
       equipment: Inventory.serializeEquipment(),
+      appearance: PlayerModel.getAppearance(),
       crafting: { size: Crafting.getGridSize(), grid: Crafting.getGrid() },
       inventoryCursor: UI.getInventoryCursor(),
       thirdPerson: state.thirdPersonView > 0,
@@ -686,6 +688,9 @@
     const name = document.getElementById('world-name-input').value.trim();
     const rawSeed = document.getElementById('world-seed-input').value.trim();
     createWorldAndOpen(name, rawSeed);
+  });
+  document.addEventListener('webcraft-appearance-changed', () => {
+    if (state.started) doSave(true);
   });
   document.getElementById('btn-save').addEventListener('click', () => doSave(false));
   // Backup files are private local JSON downloads, not uploaded to any server.

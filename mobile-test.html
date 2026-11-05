@@ -13,10 +13,11 @@
 <link rel="stylesheet" href="css/game.css">
 <link rel="stylesheet" href="css/mobile-test.css?v=v129">
 <link rel="stylesheet" href="css/v129-polish.css?v=v129">
+<link rel="stylesheet" href="css/v130-character.css?v=v130">
 </head>
 <body>
 
-<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.2.9.1 · 팔·손 연결 및 걷기·채굴 애니메이션 개선</div>
+<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.3.0 · 손에 든 도구·블록 표시와 캐릭터 꾸미기 추가</div>
 <div id="boot-error" class="boot-error hidden" role="alert">
   <div class="boot-error-panel">
     <div class="boot-error-icon">!</div>
@@ -149,6 +150,19 @@
         <div id="inventory-hotbar-grid" class="inventory-grid hotbar-grid"></div>
       </div>
       <div class="equipment-panel">
+        <section class="character-editor" aria-label="캐릭터 미리보기와 꾸미기">
+          <div class="inventory-section-title character-editor-title">내 캐릭터 · 꾸미기</div>
+          <div class="character-preview-stage">
+            <canvas id="character-preview" width="164" height="224" role="img" aria-label="현재 캐릭터 모습"></canvas>
+            <img id="character-held-icon" class="character-held-icon hidden" alt="손에 든 아이템">
+          </div>
+          <div class="character-preview-actions">
+            <button type="button" id="character-rotate" class="btn small">뒤에서 보기</button>
+            <button type="button" id="character-reset" class="btn small ghost">기본 스타일</button>
+          </div>
+          <div id="character-options" class="character-options" aria-label="캐릭터 색상과 머리 스타일"></div>
+          <p class="character-editor-help">변경한 모습은 1인칭·3인칭에 바로 적용되고 월드에 저장돼요.</p>
+        </section>
         <div class="inventory-craft-panel">
           <div class="inventory-section-title">2×2 제작</div>
           <div class="inventory-craft-board">
@@ -224,13 +238,13 @@
   });
 })();
 </script>
-<script src="js/game/config.js?v=arms1291"></script>
+<script src="js/game/config.js?v=v130"></script>
 <script src="js/game/noise.js"></script>
 <script src="js/game/terrain.js?v=v129"></script>
 <script src="js/game/mobile-test-textures.js?v=v129"></script>
 <script src="js/game/world.js?v=torch1"></script>
 <script src="js/game/player.js?v=v129"></script>
-<script src="js/game/mobile-test-player-model.js?v=arms1291"></script>
+<script src="js/game/mobile-test-player-model.js?v=v130"></script>
 <script src="js/game/fluids.js?v=v129"></script>
 <script src="js/game/interaction.js?v=torch1"></script>
 <script src="js/game/items.js?v=v129"></script>
@@ -238,8 +252,8 @@
 <script src="js/game/mobs.js?v=v129"></script>
 <script src="js/game/save.js?v=v129"></script>
 <script src="js/game/mobile-test-crafting.js?v=v129"></script>
-<script src="js/game/mobile-test-ui.js?v=v129"></script>
-<script src="js/game/mobile-test-main.js?v=arms1291"></script>
+<script src="js/game/mobile-test-ui.js?v=v130"></script>
+<script src="js/game/mobile-test-main.js?v=v130"></script>
 <script>
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(() => {}));
