@@ -242,6 +242,7 @@
     UI.setTime(`${weatherIcon} ${hh}:${mm}`);
   }
 
+  let saveBadgeTimer=null;
   function doSave(silent) {
     const ok = SaveSystem.save(worldId, {
       version: 6,
@@ -273,6 +274,14 @@
       blockObjects: BlockFurniture.serialize(),
       journal: WorldJournal.serialize()
     });
+    const badge=document.getElementById('save-indicator');
+    if(badge && state.started){
+      badge.textContent=ok?'✓ 월드 저장됨':'⚠ 저장 공간을 확인해 주세요';
+      badge.classList.toggle('save-failed',!ok);
+      badge.classList.add('show');
+      clearTimeout(saveBadgeTimer);
+      saveBadgeTimer=setTimeout(()=>badge.classList.remove('show'),ok?1800:7000);
+    }
     if (!silent) UI.showToast(ok ? '월드가 저장되었습니다' : '저장 실패: 저장 공간 부족');
     return ok;
   }
@@ -454,6 +463,13 @@
     resumeInput();
   });
   document.getElementById('journal-close')?.addEventListener('click',()=>WorldJournal.close());
+  document.getElementById('journal-set-home')?.addEventListener('click',()=>{
+    if(WorldJournal.setHome(Player.pos)){
+      WorldJournal.render();
+      doSave(true);
+      UI.showToast('현재 위치를 집으로 기록했습니다');
+    }
+  });
   let discoveryTimer=null;
   function announceDiscovery(entry){
     UI.showToast('새 바이옴 발견: '+WorldJournal.biomeName(entry.biome));
@@ -466,6 +482,11 @@
   }
 
   document.addEventListener('keydown', e => {
+    if((e.ctrlKey||e.metaKey) && e.code==='KeyS'){
+      e.preventDefault();
+      if(state.started)doSave(false);
+      return;
+    }
     if (WorldJournal.isOpen()) {
       if(e.code==='Escape'||e.code==='KeyJ'){
         e.preventDefault();
@@ -1033,6 +1054,7 @@
           '몹: '+mc.total+' (야생 '+mc.passive+' / 적대 '+mc.hostile+')',
           '청크 대기: '+World.pendingCount()+' · 리빌드: '+World.dirtyCount(),
           '탐험: '+journal.found+'개 바이옴 · 이동 '+journal.distance+'블록',
+          '집: '+(journal.home?('X '+journal.home.x+' / Z '+journal.home.z+' · '+journal.homeDistance+'블록 거리'):'미설정'),
           '카메라: '+(state.thirdPersonView===0?'1인칭':'3인칭')
         ].join('\n');
       }
