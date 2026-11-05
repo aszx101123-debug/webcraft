@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.2.7-arms-crafting-armor-biomes-20260921';
+const VERSION = 'webcraft-ruinfix-20261105';
 const CORE = [
   './',
   './index.html',
