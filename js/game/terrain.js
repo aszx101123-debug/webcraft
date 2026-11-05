@@ -163,29 +163,7 @@ const Terrain = (() => {
         if (data[idx(tx, h + th + 1, tz - 1)] === BLOCK.AIR) data[idx(tx, h + th + 1, tz - 1)] = BLOCK.LEAVES;
       }
 
-      // Tiny deterministic ruin: a rare landmark for exploration, kept inside one chunk.
-      const structRng = Noise.mulberry32(Math.floor(Noise.hash2(cx + 700, cz - 900, seed + 5050) * 4294967296));
-      if (structRng() < .035) {
-        const sx = 4 + Math.floor(structRng() * 8);
-        const sz = 4 + Math.floor(structRng() * 8);
-        const sh = heights[sx * C + sz];
-        const base = data[idx(sx, sh, sz)];
-        if (base === BLOCK.GRASS || base === BLOCK.SNOW) {
-          for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) {
-            const yy = sh + 1;
-            if (Math.abs(dx) === 2 || Math.abs(dz) === 2) {
-              for (let dy = 0; dy < 2; dy++) {
-                const li = idx(sx + dx, sh + 1 + dy, sz + dz);
-                if (sx + dx >= 0 && sx + dx < C && sz + dz >= 0 && sz + dz < C && data[li] === BLOCK.AIR) data[li] = BLOCK.COBBLE;
-              }
-            }
-          }
-          const center = idx(sx, sh + 1, sz);
-          if (data[center] === BLOCK.AIR) data[center] = BLOCK.CRAFTING_TABLE;
-          const light = idx(sx + 1, sh + 1, sz);
-          if (sx + 1 < C && data[light] === BLOCK.AIR) data[light] = BLOCK.GLOWSTONE;
-        }
-      }
+      // Surface ruins are disabled: keep naturally generated terrain clear.
       return data;
     }
 
