@@ -51,6 +51,7 @@
 
   Textures.init();
   World.init(scene, seed, saved ? saved.edits : null);
+  WorldJournal.init(saved?.journal);
   BlockFurniture.init(saved?.blockObjects);
   BlockPhysics.init();
   Fluids.init();
@@ -269,7 +270,8 @@
         yaw: Player.yaw, pitch: Player.pitch, flying: Player.flying
       },
       edits: World.getEdits(),
-      blockObjects: BlockFurniture.serialize()
+      blockObjects: BlockFurniture.serialize(),
+      journal: WorldJournal.serialize()
     });
     if (!silent) UI.showToast(ok ? '월드가 저장되었습니다' : '저장 실패: 저장 공간 부족');
     return ok;
@@ -327,7 +329,7 @@
   const touchControls = document.createElement('div');
   touchControls.id = 'touch-controls';
   if (isTouch) {
-    touchControls.innerHTML = '<div id="touch-pad" aria-label="이동 조이스틱"><div id="touch-knob"></div></div><div id="touch-actions"><button data-act="jump">점프</button><button data-act="mine">채굴</button><button data-act="place">사용/설치</button><button data-act="run">달리기</button><button data-act="inventory">가방</button><button data-act="camera">시점</button><button data-act="blocks">블록</button><button data-act="fly">비행</button><button data-act="drop">버리기</button><button data-act="pause">메뉴</button></div>';
+    touchControls.innerHTML = '<div id="touch-pad" aria-label="이동 조이스틱"><div id="touch-knob"></div></div><div id="touch-actions"><button data-act="jump">점프</button><button data-act="mine">채굴</button><button data-act="place">사용/설치</button><button data-act="run">달리기</button><button data-act="inventory">가방</button><button data-act="journal">일지</button><button data-act="camera">시점</button><button data-act="blocks">블록</button><button data-act="fly">비행</button><button data-act="drop">버리기</button><button data-act="pause">메뉴</button></div>';
     document.body.append(touchControls);
     document.body.classList.add('touch-device');
     const pad = touchControls.querySelector('#touch-pad');
@@ -374,6 +376,7 @@
         if(act==='mine')canvas.dispatchEvent(new MouseEvent('mousedown',{button:0,bubbles:true}));
         if(act==='place')canvas.dispatchEvent(new MouseEvent('mousedown',{button:2,bubbles:true}));
         if(act==='inventory') { state.suppressPause=true; disableTouchInput(); resetPad(); if (UI.openInventory() === false) resumeInput(); }
+        if(act==='journal') { disableTouchInput();resetPad();WorldJournal.show(); }
         if(act==='camera') { state.thirdPersonView = (state.thirdPersonView + 1) % 3; UI.showToast(['1인칭','3인칭 뒤','3인칭 앞'][state.thirdPersonView]); }
         if(act==='blocks') {
           if (state.mode !== GAME_MODE.CREATIVE) UI.showToast('크리에이티브에서 블록 선택을 사용할 수 있어요');
@@ -425,6 +428,7 @@
   }
 
   function beginGameplay(mode) {
+    WorldJournal.close(false);
     BlockFurniture.closeChest(false);
     state.mode = mode;
     Player.setMode(mode);
@@ -444,8 +448,31 @@
     resumeInput();
   });
   document.getElementById('chest-close')?.addEventListener('click', () => BlockFurniture.closeChest());
+  WorldJournal.setOnClose(()=>{
+    state.suppressPause=true;
+    doSave(true);
+    resumeInput();
+  });
+  document.getElementById('journal-close')?.addEventListener('click',()=>WorldJournal.close());
+  let discoveryTimer=null;
+  function announceDiscovery(entry){
+    UI.showToast('새 바이옴 발견: '+WorldJournal.biomeName(entry.biome));
+    const box=document.getElementById('journal-discovery');
+    if(!box)return;
+    box.textContent='✦ 새로운 바이옴 · '+WorldJournal.biomeName(entry.biome);
+    box.classList.add('show');
+    clearTimeout(discoveryTimer);
+    discoveryTimer=setTimeout(()=>box.classList.remove('show'),2800);
+  }
 
   document.addEventListener('keydown', e => {
+    if (WorldJournal.isOpen()) {
+      if(e.code==='Escape'||e.code==='KeyJ'){
+        e.preventDefault();
+        WorldJournal.close();
+      }
+      return;
+    }
     if (BlockFurniture.isChestOpen()) {
       if (e.code==='Escape') {
         e.preventDefault();
@@ -477,7 +504,20 @@
       resumeInput();
       return;
     }
-    if (e.code === 'F3') { e.preventDefault(); const h = document.getElementById('hud-info'); h.style.display = h.style.display === 'none' ? '' : 'none'; }
+    if (e.code === 'F3') {
+      e.preventDefault();
+      document.getElementById('debug-panel')?.classList.toggle('hidden');
+      return;
+    }
+    if (e.code === 'KeyJ' && state.started && !Player.dead &&
+        (state.locked || (isTouch&&touchActive))) {
+      e.preventDefault();
+      disableTouchInput();
+      state.suppressPause=true;
+      document.exitPointerLock?.();
+      WorldJournal.show();
+      return;
+    }
     if (e.code === 'F5') {
       e.preventDefault();
       state.thirdPersonView = (state.thirdPersonView + 1) % 3;
@@ -666,6 +706,7 @@
   }
 
   function openWorldMenu() {
+    WorldJournal.close(false);
     BlockFurniture.closeChest(false);
     if (UI.isInventoryOpen() && !UI.closeInventory()) return;
     if (UI.isCraftingOpen() && !UI.closeCrafting()) return;
@@ -876,9 +917,11 @@
         UI.setStartEnabled(true);
       }
     } else {
-      const active = state.started && !state.paused && !Player.dead && !UI.isInventoryOpen() && !UI.isCraftingOpen() && !UI.isFurnaceOpen() && !BlockFurniture.isChestOpen();
+      const active = state.started && !state.paused && !Player.dead && !UI.isInventoryOpen() && !UI.isCraftingOpen() && !UI.isFurnaceOpen() && !BlockFurniture.isChestOpen() && !WorldJournal.isOpen();
       if (active) {
         Player.update(dt, keys);
+        const discovery=WorldJournal.update(dt,Player.pos,World.biomeAt(Player.pos.x,Player.pos.z));
+        if(discovery)announceDiscovery(discovery);
         Interact.update();
         const aimed=Interact.getTarget();
         const targetLabel=document.getElementById('target-block-name');
@@ -975,6 +1018,24 @@
       const p = Player.pos;
       const mc = Mobs.counts();
       UI.setHUD(`FPS ${fps} · x ${p.x.toFixed(0)} y ${p.y.toFixed(0)} z ${p.z.toFixed(0)} · 청크 ${World.chunkCount()} · 몹 ${mc.total}`);
+      const debug=document.getElementById('debug-panel');
+      if(debug && !debug.classList.contains('hidden')){
+        const biome=World.biomeAt(p.x,p.z);
+        const direction=((Player.yaw%(Math.PI*2))*180/Math.PI+360)%360;
+        const journal=WorldJournal.getStats();
+        debug.textContent=[
+          'WEBCRAFT v1.3.5 · DEBUG (F3)',
+          'FPS: '+fps+' · 청크 로딩: '+World.chunkCount(),
+          '위치: X '+p.x.toFixed(1)+' / Y '+p.y.toFixed(1)+' / Z '+p.z.toFixed(1),
+          '바이옴: '+WorldJournal.biomeName(biome),
+          '방향: '+Math.round(direction)+'°',
+          '월드 시드: '+World.getSeed(),
+          '몹: '+mc.total+' (야생 '+mc.passive+' / 적대 '+mc.hostile+')',
+          '청크 대기: '+World.pendingCount()+' · 리빌드: '+World.dirtyCount(),
+          '탐험: '+journal.found+'개 바이옴 · 이동 '+journal.distance+'블록',
+          '카메라: '+(state.thirdPersonView===0?'1인칭':'3인칭')
+        ].join('\n');
+      }
       UI.updateSurvival(state.mode, Player.hp, Player.food, Player.air);
     }
 
