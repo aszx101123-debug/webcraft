@@ -347,7 +347,7 @@ const Mobs = (() => {
       mesh: built.mesh, parts: built.parts,
       dir: new THREE.Vector3(0, 0, 1),
       moving: false, onGround: false,
-      wanderT: Math.random() * 2, attackT: 0, shootT: 1 + Math.random() * 2,
+      wanderT: Math.random() * 2, wanderMoving: false, attackT: 0, shootT: 1 + Math.random() * 2,
       strafeT: 2, strafeDir: 1, hurtT: 0, flashed: false,
       hurtGrace: 0, healthVisibleT: 0, provokedT: 0,
       burnT: 0, fleeT: 0, animT: 0, jumpT: 0, pathT: 0,
@@ -405,7 +405,7 @@ const Mobs = (() => {
     });
   }
 
-  function hurtMob(m, dmg, knockFrom) {
+  function hurtMob(m, dmg, knockFrom, force=1) {
     if (m.dead || m.hurtGrace > 0) return false;
     m.hurtGrace = .33;
     m.healthVisibleT = 1.8;
@@ -415,9 +415,9 @@ const Mobs = (() => {
     if (knockFrom) {
       const dx = m.pos.x - knockFrom.x, dz = m.pos.z - knockFrom.z;
       const l = Math.hypot(dx, dz) || 1;
-      m.vel.x += dx / l * 6;
-      m.vel.z += dz / l * 6;
-      m.vel.y = Math.max(m.vel.y, 4.5);
+      m.vel.x += dx / l * 5 * force;
+      m.vel.z += dz / l * 5 * force;
+      m.vel.y = Math.max(m.vel.y, 3.8 * force);
     }
     if (!m.def.hostile) m.fleeT = 4;
     if (m.type==='spider')m.provokedT=7;
@@ -468,10 +468,12 @@ const Mobs = (() => {
       if (t !== null && t < reach && t < bestT) { bestT = t; best = m; }
     }
     if (best) {
-      // Consistent, visible cooldown instead of applying damage on every click.
       const now=performance.now();
-      const charge=Math.max(0,Math.min(1,(now-lastPlayerAttackAt)/450));
-      if(now-lastPlayerAttackAt<450){
+      const selectedId=Inventory.selectedSlot()?.id||0;
+      const elapsed=now-lastPlayerAttackAt;
+      const charge=Combat.charge(selectedId,elapsed);
+      // Avoid input repeats on the exact same frame, while allowing weak swings.
+      if(elapsed<120){
         lastAttackResult={target:best,landed:false,reason:'recharge',charge,damage:0};
         return best;
       }
@@ -480,16 +482,20 @@ const Mobs = (() => {
         return null;
       }
       lastPlayerAttackAt=now;
-      const tool=Inventory.selectedTool();
-      const damage=tool&&Number.isFinite(tool.attackDamage)
-        ? tool.attackDamage:SURVIVAL.FIST_DMG;
-      const landed=hurtMob(best,damage,Player.pos);
-      if(landed&&tool){
+      const critical=Combat.canCritical(Player,charge);
+      const damage=Combat.damage(selectedId,charge,critical);
+      const force=Combat.knockback(selectedId,charge,critical);
+      const landed=hurtMob(best,damage,Player.pos,force);
+      if(landed&&Inventory.selectedTool()){
         Inventory.damageSelectedTool(1);
         UI.renderHotbar();
       }
-      lastAttackResult={target:best,landed,
-        reason:landed?'hit':'hurt-grace',charge,damage:landed?damage:0};
+      lastAttackResult={
+        target:best,landed,reason:landed?'hit':'hurt-grace',charge,
+        damage:landed?Math.round(damage*10)/10:0,critical:landed&&critical,
+        stat:Combat.statsFor(selectedId)
+      };
+      if(landed&&critical&&onEvent)onEvent('critical',best);
       return best;
     }
     return null;
@@ -617,13 +623,13 @@ const Mobs = (() => {
           m.wanderT -= dt;
           if (m.wanderT <= 0) {
             m.wanderT = 1.5 + Math.random() * 3;
-            if (Math.random() < .45) m.moving = false;
-            else {
+            m.wanderMoving=Math.random()>=.45;
+            if(m.wanderMoving){
               const a = Math.random() * Math.PI * 2;
-              m.dir.set(Math.cos(a), 0, Math.sin(a));
-              m.moving = true;
+              m.dir.set(Math.cos(a),0,Math.sin(a));
             }
-          } else m.moving = m.wanderT > 0 && m.dir.lengthSq() > 0;
+          }
+          m.moving=m.wanderMoving;
         }
       } else {
         const aggro = survival && !Player.dead && m.def.aggro && dist < m.def.aggro &&
@@ -652,13 +658,13 @@ const Mobs = (() => {
           m.wanderT -= dt;
           if (m.wanderT <= 0) {
             m.wanderT = 2 + Math.random() * 3;
-            if (Math.random() < .5) m.moving = false;
-            else {
-              const a = Math.random() * Math.PI * 2;
-              m.dir.set(Math.cos(a), 0, Math.sin(a));
-              m.moving = true;
+            m.wanderMoving=Math.random()>=.5;
+            if(m.wanderMoving){
+              const a=Math.random()*Math.PI*2;
+              m.dir.set(Math.cos(a),0,Math.sin(a));
             }
-          } else m.moving = m.dir.lengthSq() > 0;
+          }
+          m.moving=m.wanderMoving;
         }
 
         if (!env.night && (m.type==='zombie'||m.type==='skeleton') && skyExposed(m)) {
@@ -763,7 +769,7 @@ const Mobs = (() => {
   }
 
   function getAttackCharge() {
-    return Math.max(0,Math.min(1,(performance.now()-lastPlayerAttackAt)/450));
+    return Combat.charge(Inventory.selectedSlot()?.id||0,performance.now()-lastPlayerAttackAt);
   }
   function getLastAttackResult(){return lastAttackResult;}
 
