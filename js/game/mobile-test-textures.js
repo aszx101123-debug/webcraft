@@ -474,6 +474,24 @@ const Textures = (() => {
     const B = BLOCKS[id];
     const topTile = B.tiles.top || B.tiles.all;
     const sideTile = B.tiles.side || B.tiles.all;
+    if(B.shape==='slab'||B.shape==='stair'||B.shape==='door'||B.shape==='doorTop'){
+      const drawTile=(tile,x,y,w,h)=>{
+        g.drawImage(canvas,tile[0]*TS,tile[1]*TS,TS,TS,x,y,w,h);
+      };
+      if(B.shape==='slab'){
+        drawTile(sideTile,5,24,38,15);
+        g.fillStyle='rgba(23,28,34,.25)';g.fillRect(5,35,38,4);
+        drawTile(B.tiles.top||sideTile,8,19,33,8);
+      }else if(B.shape==='stair'){
+        drawTile(sideTile,5,28,37,12);
+        drawTile(sideTile,22,15,20,14);
+        g.fillStyle='rgba(17,23,26,.30)';g.fillRect(5,36,37,4);
+      }else{
+        drawTile(sideTile,14,3,20,42);
+        g.fillStyle='rgba(16,24,28,.40)';g.fillRect(14,42,20,3);
+      }
+      iconCache[id]=c.toDataURL();return iconCache[id];
+    }
     const draw = (tile, m, dark) => {
       g.save();
       g.setTransform(m[0], m[1], m[2], m[3], m[4], m[5]);
