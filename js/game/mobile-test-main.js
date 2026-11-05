@@ -627,6 +627,12 @@
     state.suppressPause = true;
     resumeInput();
   });
+  document.getElementById('furnace-close')?.addEventListener('click', () => {
+    UI.closeFurnace();
+    state.paused = false;
+    state.suppressPause = true;
+    resumeInput();
+  });
   document.getElementById('btn-create-world').addEventListener('click', () => {
     const name = document.getElementById('world-name-input').value.trim();
     const rawSeed = document.getElementById('world-seed-input').value.trim();
