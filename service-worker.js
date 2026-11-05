@@ -1,45 +1,37 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.2.8-pc-mobile-crafting-v5';
+const VERSION = 'webcraft-v1.2.9-deep-upgrade-20261105';
 const CORE = [
-  './',
-  './index.html',
-  './play.html',
-  './css/style.css',
-  './css/game.css',
-  './css/mobile-test.css?v=pcmobile4',
-  './manifest.webmanifest',
-  './img/icon-192.png',
-  './img/icon-512.png',
-  './img/og-image.png',
-  './img/shot-coast.png',
-  './img/shot-forest.png',
-  './img/shot-night.png',
-  './js/game/items.js',
-  './js/game/items.js?v=craftfix128',
-  './js/game/drops.js',
-  './js/game/mobs.js',
-  './js/game/config.js',
-  './js/game/config.js?v=v128',
-  './js/game/noise.js',
-  './js/game/terrain.js',
-  './js/game/textures.js',
-  './js/game/world.js',
-  './js/game/world.js?v=torch1',
-  './js/game/player.js',
-  './js/game/interaction.js',
-  './js/game/interaction.js?v=torch1',
-  './js/game/save.js',
-  './js/game/crafting.js',
-  './js/game/ui.js',
-  './js/game/main.js',
-  './js/game/mobile-test-main.js?v=pcmobile4',
-  './js/game/mobile-test-ui.js?v=pcmobile5',
-  './js/game/mobile-test-crafting.js?v=pcmobile4',
-  './js/game/mobile-test-textures.js?v=pcmobile4',
-  './js/game/mobile-test-player-model.js?v=pcmobile4',
-  './js/game/player-model.js',
-  './js/game/fluids.js'
+  "./",
+  "./index.html",
+  "./play.html",
+  "./mobile-test.html",
+  "./manifest.webmanifest",
+  "./img/icon-192.png",
+  "./img/icon-512.png",
+  "./img/og-image.png",
+  "./img/shot-coast.png",
+  "./img/shot-forest.png",
+  "./img/shot-night.png",
+  "./css/game.css",
+  "./css/mobile-test.css?v=v129",
+  "./css/v129-polish.css?v=v129",
+  "./js/game/config.js?v=v129",
+  "./js/game/noise.js",
+  "./js/game/terrain.js?v=v129",
+  "./js/game/mobile-test-textures.js?v=v129",
+  "./js/game/world.js?v=torch1",
+  "./js/game/player.js?v=v129",
+  "./js/game/mobile-test-player-model.js?v=v129",
+  "./js/game/fluids.js?v=v129",
+  "./js/game/interaction.js?v=torch1",
+  "./js/game/items.js?v=v129",
+  "./js/game/drops.js",
+  "./js/game/mobs.js?v=v129",
+  "./js/game/save.js?v=v129",
+  "./js/game/mobile-test-crafting.js?v=v129",
+  "./js/game/mobile-test-ui.js?v=v129",
+  "./js/game/mobile-test-main.js?v=v129"
 ];
 
 self.addEventListener('install', e => {
@@ -53,7 +45,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== VERSION).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => k.startsWith('webcraft-') && k !== VERSION).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
