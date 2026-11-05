@@ -173,7 +173,7 @@ check('flowing water does not rebuild unchanged and clears after source removal'
 check('PC/mobile pages include v1.2.9 scripts and world backup controls', () => {
   for (const page of ['play.html', 'mobile-test.html']) {
     const html = src(page);
-    assert.ok(html.includes('mobile-test-main.js?v=v129'));
+    assert.ok(html.includes('mobile-test-main.js?v=arms1291'));
     assert.ok(html.includes('v129-polish.css?v=v129'));
     assert.ok(html.includes('btn-export-world'));
     assert.ok(html.includes('btn-import-world'));
