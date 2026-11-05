@@ -298,7 +298,7 @@
   const touchControls = document.createElement('div');
   touchControls.id = 'touch-controls';
   if (isTouch) {
-    touchControls.innerHTML = '<div id="touch-pad" aria-label="이동 조이스틱"><div id="touch-knob"></div></div><div id="touch-actions"><button data-act="jump">점프</button><button data-act="mine">채굴</button><button data-act="place">놓기</button><button data-act="inventory">가방</button><button data-act="camera">시점</button><button data-act="pause">메뉴</button></div>';
+    touchControls.innerHTML = '<div id="touch-pad" aria-label="이동 조이스틱"><div id="touch-knob"></div></div><div id="touch-actions"><button data-act="jump">점프</button><button data-act="mine">채굴</button><button data-act="place">사용/설치</button><button data-act="run">달리기</button><button data-act="inventory">가방</button><button data-act="camera">시점</button><button data-act="blocks">블록</button><button data-act="fly">비행</button><button data-act="drop">버리기</button><button data-act="pause">메뉴</button></div>';
     document.body.append(touchControls);
     document.body.classList.add('touch-device');
     const pad = touchControls.querySelector('#touch-pad');
@@ -332,15 +332,47 @@
     document.addEventListener('pointercancel', e => { if(e.pointerId===lookId) lookId=null; });
     for (const button of touchControls.querySelectorAll('button')) {
       const act = button.dataset.act;
-      const stop = () => { if(act==='jump')keys.Space=false; if(act==='mine')canvas.dispatchEvent(new MouseEvent('mouseup',{button:0,bubbles:true})); };
+      const stop = () => {
+        if (act === 'jump') keys.Space = false;
+        if (act === 'run') keys.ShiftLeft = false;
+        if (act === 'mine') canvas.dispatchEvent(new MouseEvent('mouseup', { button: 0, bubbles: true }));
+      };
       button.addEventListener('pointerdown', e => {
         e.preventDefault(); e.stopPropagation();
         if(!touchActive)return;
         if(act==='jump')keys.Space=true;
+        if(act==='run')keys.ShiftLeft=true;
         if(act==='mine')canvas.dispatchEvent(new MouseEvent('mousedown',{button:0,bubbles:true}));
         if(act==='place')canvas.dispatchEvent(new MouseEvent('mousedown',{button:2,bubbles:true}));
         if(act==='inventory') { state.suppressPause=true; disableTouchInput(); resetPad(); UI.openInventory(); }
         if(act==='camera') { state.thirdPersonView = (state.thirdPersonView + 1) % 3; UI.showToast(['1인칭','3인칭 뒤','3인칭 앞'][state.thirdPersonView]); }
+        if(act==='blocks') {
+          if (state.mode !== GAME_MODE.CREATIVE) UI.showToast('크리에이티브에서 블록 선택을 사용할 수 있어요');
+          else {
+            disableTouchInput();
+            UI.openPicker(id => {
+              Inventory.setSlot(Inventory.getSelected(), id);
+              UI.renderHotbar();
+              resumeInput();
+            });
+          }
+        }
+        if(act==='fly') {
+          if (state.mode !== GAME_MODE.CREATIVE) UI.showToast('비행은 크리에이티브 전용입니다');
+          else {
+            Player.flying = !Player.flying;
+            UI.showToast(Player.flying ? '비행 ON · 점프로 상승, 달리기로 하강' : '비행 OFF');
+          }
+        }
+        if(act==='drop') {
+          if (state.mode === GAME_MODE.SURVIVAL) {
+            const dropped = UI.dropSelected(false);
+            if (dropped) {
+              Drops.spawn(dropped.id, dropped.count, Player.pos.x, Player.pos.y + .7, Player.pos.z);
+              UI.renderHotbar();
+            }
+          } else UI.showToast('서바이벌에서 아이템을 버릴 수 있어요');
+        }
         if(act==='pause') { state.paused=true; disableTouchInput(); resetPad(); UI.showOverlay('pause'); doSave(true); }
       });
       button.addEventListener('pointerup',stop);
