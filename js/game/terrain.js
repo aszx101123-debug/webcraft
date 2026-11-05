@@ -43,12 +43,17 @@ const Terrain = (() => {
         heights[x * C + z] = h;
         const biome = biomeAt(wx, wz);
         const sandy=h<=SEA+1||biome==='desert'||biome==='swamp';const snowy=biome==='snowy'||biome==='taiga';
+        const shoreRoll=Noise.hash2(wx,wz,seed+801);
+        const shoreBlock=(h<=SEA+2&&biome!=='desert')
+          ? (shoreRoll<.11?BLOCK.CLAY:shoreRoll<.29?BLOCK.GRAVEL:BLOCK.SAND)
+          : BLOCK.SAND;
         for (let y = 0; y < H; y++) {
           let id = BLOCK.AIR;
           if (y === 0) id = BLOCK.BEDROCK;
           else if (y <= h) {
-            if (y === h) id = sandy ? BLOCK.SAND : (snowy ? BLOCK.SNOW : BLOCK.GRASS);
-            else if (y >= h - 3) id = sandy ? BLOCK.SAND : BLOCK.DIRT;
+            if (y === h) id = sandy ? shoreBlock : (snowy ? BLOCK.SNOW : BLOCK.GRASS);
+            else if (y >= h - 3) id = sandy ? (biome==='desert'?BLOCK.SAND:shoreBlock) : BLOCK.DIRT;
+            else if (biome==='desert' && y >= h-6) id = BLOCK.SANDSTONE;
             else id = BLOCK.STONE;
             if (h > SEA + 2 && y >= 3 && y <= h - 4) {
               const cheese = Noise.noise3(wx * .026, y * .042, wz * .026, seed + 41);
@@ -149,11 +154,15 @@ const Terrain = (() => {
           : localBiome === 'taiga' ? 6 + Math.floor(rng() * 2)
           : 4 + Math.floor(rng() * 2);
         if (h + th + 1 >= H) continue;
-        for (let y = 1; y <= th; y++) data[idx(tx, h + y, tz)] = BLOCK.LOG;
+        const isSpruce=localBiome==='taiga';
+        const isBirch=localBiome==='forest' && rng()<.48;
+        const trunkId=isSpruce?BLOCK.SPRUCE_LOG:isBirch?BLOCK.BIRCH_LOG:BLOCK.LOG;
+        const leafId=isSpruce?BLOCK.SPRUCE_LEAVES:isBirch?BLOCK.BIRCH_LEAVES:BLOCK.LEAVES;
+        for (let y = 1; y <= th; y++) data[idx(tx, h + y, tz)] = trunkId;
         const leaf = (lx, ly, lz) => {
           if (lx < 0 || lx >= C || lz < 0 || lz >= C || ly < 1 || ly >= H) return;
           const index = idx(lx, ly, lz);
-          if (data[index] === BLOCK.AIR) data[index] = BLOCK.LEAVES;
+          if (data[index] === BLOCK.AIR) data[index] = leafId;
         };
         if (localBiome === 'taiga') {
           // A tapering spruce-like cone.
@@ -181,6 +190,22 @@ const Terrain = (() => {
           leaf(tx - 1, h + th + 1, tz);
           leaf(tx, h + th + 1, tz + 1);
           leaf(tx, h + th + 1, tz - 1);
+        }
+      }
+
+      // Sparse upright cacti in dry biomes; no random stone towers or ruins.
+      if (centerBiome==='desert') {
+        for(let p=0;p<3;p++){
+          const tx=2+Math.floor(rng()*12),tz=2+Math.floor(rng()*12);
+          const h=heights[tx*C+tz];
+          if(h<=SEA+2||h>=H-5||biomeAt(cx*C+tx,cz*C+tz)!=='desert')continue;
+          if(data[idx(tx,h,tz)]!==BLOCK.SAND)continue;
+          if(rng()>.52)continue;
+          const height=2+Math.floor(rng()*2);
+          for(let y=1;y<=height;y++){
+            if(data[idx(tx,h+y,tz)]!==BLOCK.AIR)break;
+            data[idx(tx,h+y,tz)]=BLOCK.CACTUS;
+          }
         }
       }
 
