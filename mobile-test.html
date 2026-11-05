@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="img/icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri/dist/galmuri.css">
 <link rel="stylesheet" href="css/game.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/aszx101123-debug/webcraft@8e99c3d76da9db083111d6944a55489738a44d80/css/mobile-upgrade.css">
+<link rel="stylesheet" href="css/mobile-test.css?v=2">
 </head>
 <body>
 
@@ -195,11 +195,11 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script>
 (() => {
-  const showBootError = () => document.getElementById("boot-error")?.classList.remove("hidden");
+  const showBootError = (message) => { const panel = document.getElementById("boot-error"); if (!panel) return; panel.classList.remove("hidden"); let detail = document.getElementById("mobile-error-detail"); if (!detail) { detail = document.createElement("pre"); detail.id = "mobile-error-detail"; detail.style.cssText = "white-space:pre-wrap;overflow-wrap:anywhere;max-width:90vw;font-size:12px;color:#ffb4b4;padding:12px"; panel.appendChild(detail); } detail.textContent = String(message || "알 수 없는 오류"); };
   window.addEventListener("error", event => {
-    if (event?.error || event?.message) showBootError();
+    if (event?.error || event?.message) showBootError(event?.error?.stack || event?.message);
   });
-  window.addEventListener("unhandledrejection", () => showBootError());
+  window.addEventListener("unhandledrejection", event => showBootError(event.reason?.stack || event.reason || "Promise 오류"));
   addEventListener("load", () => {
     document.getElementById("boot-retry")?.addEventListener("click", () => location.reload());
     document.getElementById("boot-home")?.addEventListener("click", () => { location.href = "index.html"; });
@@ -221,10 +221,10 @@
 <script src="js/game/save.js"></script>
 <script src="js/game/crafting.js"></script>
 <script src="js/game/ui.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/aszx101123-debug/webcraft@8e99c3d76da9db083111d6944a55489738a44d80/js/game/main.js"></script>
+<script src="js/game/mobile-test-main.js?v=2"></script>
 <script>
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-  addEventListener('load', () => Promise.resolve().catch(() => {}));
+  addEventListener('load', () => navigator.serviceWorker.getRegistrations().then(regs => Promise.all(regs.map(r => r.unregister()))).catch(() => {}));
 }
 </script>
 </body>
