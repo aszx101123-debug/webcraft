@@ -199,8 +199,8 @@ const PlayerModel = (() => {
       }
       uv.needsUpdate = true;
       const item = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({
-        map: Textures.getTexture(), transparent: true,
-        alphaTest: .12, depthWrite: false, depthTest: false
+        map: Textures.getTexture(), transparent: !!BLOCKS[id].cutout,
+        alphaTest: .12, depthWrite: !firstPersonView, depthTest: !firstPersonView
       }));
       item.rotation.set(.30, .58, -.30);
       item.userData.heldSharedTexture = true;
@@ -214,7 +214,7 @@ const PlayerModel = (() => {
       new THREE.PlaneGeometry(firstPersonView ? .52 : .34, firstPersonView ? .52 : .34),
       new THREE.MeshBasicMaterial({
         map: iconTexture, transparent: true, alphaTest: .10,
-        side: THREE.DoubleSide, depthWrite: false, depthTest: false
+        side: THREE.DoubleSide, depthWrite: !firstPersonView, depthTest: !firstPersonView
       })
     );
     item.rotation.set(-.18, -.13, -.42);
