@@ -51,6 +51,7 @@
 
   Textures.init();
   World.init(scene, seed, saved ? saved.edits : null);
+  BlockPhysics.init();
   Fluids.init();
   PlayerModel.init(scene,camera);
   // Homepage edits override older world cosmetics, without disturbing world blocks.
@@ -435,6 +436,15 @@
   }
 
   document.addEventListener('keydown', e => {
+    // The creative search input must not trigger movement, camera, or game shortcuts.
+    if (UI.isPickerOpen()) {
+      if (e.code === 'Escape') {
+        e.preventDefault();
+        UI.closePicker();
+        resumeInput();
+      }
+      return;
+    }
     keys[e.code] = true;
     if (e.code === 'Space') e.preventDefault();
     if (e.code === 'Escape' && UI.isInventoryOpen()) {
@@ -838,6 +848,12 @@
       if (active) {
         Player.update(dt, keys);
         Interact.update();
+        const aimed=Interact.getTarget();
+        const targetLabel=document.getElementById('target-block-name');
+        if(targetLabel){
+          targetLabel.textContent=aimed?getItemName(aimed.id):'';
+          targetLabel.classList.toggle('show',!!aimed);
+        }
         const mined = Interact.updateMining(dt, state.mode === GAME_MODE.SURVIVAL);
         const miningProgress = Interact.miningProgress();
         UI.setMiningProgress(miningProgress);
@@ -859,6 +875,7 @@
         updateSky(dt);
         updateWeather(dt);
         Fluids.update(Player.pos.x, Player.pos.y, Player.pos.z, dt);
+        BlockPhysics.update(dt);
         const sprinting = (keys['ShiftLeft'] || keys['ShiftRight']) && keys['KeyW'] && !Player.flying;
         Player.survivalTick(dt, sprinting);
         Mobs.update(dt, true);
@@ -867,6 +884,7 @@
         updateSky(dt);
         updateWeather(dt);
         Fluids.update(Player.pos.x, Player.pos.y, Player.pos.z, dt);
+        BlockPhysics.update(dt);
       }
       World.update(Player.pos.x, Player.pos.z, state.renderDist, isTouch ? 1 : 2, isTouch ? 2 : 4);
     }

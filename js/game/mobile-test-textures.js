@@ -1,7 +1,7 @@
 'use strict';
 
 const Textures = (() => {
-  const TS=16, GRID=10, SIZE=TS*GRID;
+  const TS=16, GRID=12, SIZE=TS*GRID;
   let canvas = null, ctx = null, texture = null;
   const iconCache = {};
 
@@ -211,6 +211,185 @@ const Textures = (() => {
       });
     });
 
+    // v1.3.2: higher-contrast original pixel-art. Preserve all original atlas indices.
+    const pixelNoise = (x,y,n=0) => {
+      let z = (x*374761393 + y*668265263 + n*1442695041) | 0;
+      z = Math.imul(z^(z>>>13),1274126177); z ^= z>>>16;
+      return (z>>>0) / 4294967295;
+    };
+    fill(0,0,(x,y)=>{
+      const v=pixelNoise(x,y,1), blade=((x*3+y*7)%17===0);
+      if(blade)return vary(119,167,66,6);
+      if(v<.12)return vary(60,105,46,9);
+      if(v>.87)return vary(104,151,56,8);
+      return vary(79,135,58,8);
+    });
+    fill(1,0,(x,y)=>{
+      const top=2+(pixelNoise(x,0,41)>.55?1:0);
+      if(y<top)return css(80+(x%3)*7,141+(x%4)*4,57+(x%2)*4);
+      if(y<top+2&&pixelNoise(x,y,4)>.35)return vary(89,128,57,8);
+      const n=pixelNoise(x,y,12);
+      return n<.13?vary(82,58,41,7):n>.88?vary(154,108,70,9):vary(127,91,62,9);
+    });
+    fill(2,0,(x,y)=>{
+      const n=pixelNoise(x,y,12);
+      if(n<.12)return vary(87,65,48,5);
+      if(n>.9)return vary(160,115,71,6);
+      return vary(126,90,62,10);
+    });
+    fill(3,0,(x,y)=>{
+      const n=pixelNoise(x,y,27), dark=(x+y*3)%17===0;
+      if(dark||n<.12)return vary(86,92,97,5);
+      if(n>.83)return vary(151,158,161,9);
+      return vary(120,128,131,6);
+    });
+    fill(4,0,(x,y)=>{
+      const sx=Math.floor((x+((y>>2)&1)*2)/5),sy=Math.floor(y/4);
+      const n=pixelNoise(sx,sy,3);
+      const line=(y%4===0)||((x+((y>>2)&1)*2)%5===0);
+      if(line)return vary(60,66,70,5);
+      const v=106+n*48;
+      return vary(v,v+1,v+3,7);
+    });
+    fill(5,0,(x,y)=>{
+      const n=pixelNoise(x,y,22), grain=y%7===0;
+      if(grain)return vary(202,190,145,7);
+      if(n<.12)return vary(187,177,135,6);
+      if(n>.87)return vary(240,229,188,6);
+      return vary(218,207,166,5);
+    });
+    fill(0,1,(x,y)=>{
+      const n=pixelNoise(x,y,50);
+      if(n<.17 || ((x+y*3)%13===0))return null;
+      if(n>.83)return vary(119,168,74,8);
+      if(n<.34)return vary(37,92,35,8);
+      return vary(67,125,55,8);
+    });
+    fill(1,1,(x,y)=>{
+      const joint=(y%4===0)||(x===((Math.floor(y/4)%2)*7+3)%16);
+      if(joint)return vary(100,75,48,4);
+      if((x*7+y*13)%29===0)return vary(204,167,110,5);
+      return vary(165,130,82,8);
+    });
+    // Ores are recognizable colored mineral clusters, instead of isolated noise dots.
+    const orePalettes=[
+      [[38,42,45],[70,74,78]],[[219,170,111],[242,197,125]],
+      [[228,184,50],[255,228,112]],[[206,112,67],[244,160,101]],
+      [[190,43,50],[249,80,69]],[[39,76,194],[99,139,239]],
+      [[72,187,222],[170,249,252]],[[62,164,80],[137,224,140]]
+    ];
+    orePalettes.forEach((palette,col)=>{
+      fill(col,3,(x,y)=>{
+        let near=20;
+        for(const [cx,cy] of [[3,4],[10,10],[12,3],[5,13]]) {
+          const distance=Math.abs(x-cx)+Math.abs(y-cy)*.8+pixelNoise(x,y,col)*1.1;
+          near=Math.min(near,distance);
+        }
+        if(near<2.1)return vary(...palette[1],9);
+        if(near<3.5)return vary(...palette[0],9);
+        if(near<4)return vary(72,77,82,6);
+        const noise=pixelNoise(x,y,41);
+        return noise<.19?vary(94,99,105,7):noise>.85?vary(151,155,158,7):vary(119,124,129,7);
+      });
+    });
+
+    // 14 entirely new construction and biome blocks (atlas columns 10 and 11).
+    fill(10,0,(x,y)=>{
+      const tx=Math.floor((x+(y&1)*2)/4), ty=Math.floor(y/4);
+      const n=pixelNoise(tx,ty,61),edge=x%4===0||y%4===0;
+      return edge?vary(64,68,72,5):vary(107+n*56,111+n*56,116+n*56,9);
+    }); // gravel
+    fill(11,0,(x,y)=>{
+      const n=pixelNoise(x,y,14);
+      if(n<.13)return vary(91,100,115,8);
+      if(n>.87)return vary(149,157,164,7);
+      return vary(121,135,149,6);
+    }); // clay
+    fill(10,1,(x,y)=>{
+      const seam=y===1||y===8||y===14;
+      return seam?vary(205,188,145,5):vary(233,216,173,6);
+    }); // sandstone top
+    fill(11,1,(x,y)=>{
+      const seam=y===4||y===11;
+      const streak=x%8===0&&y>5;
+      return seam?vary(182,168,132,7):streak?vary(218,200,153,6):vary(232,213,170,6);
+    }); // sandstone side
+    fill(10,2,(x,y)=>{
+      const row=Math.floor(y/4),shift=(row%2)*4;
+      const line=(y%4===3)||((x+shift)%8===7);
+      return line?vary(62,66,70,6):vary(137+(row%2)*8,141+(row%2)*8,143+(row%2)*8,9);
+    }); // stone bricks
+    fill(11,2,(x,y)=>{
+      const edge=x===0||y===0||x===15||y===15;
+      const n=pixelNoise(x,y,44);
+      return edge?vary(85,92,97,8):vary(148+n*28,154+n*25,160+n*22,5);
+    }); // smooth stone
+    fill(10,3,(x,y)=>{
+      const sx=Math.floor((x+(y&1)*2)/5),sy=Math.floor(y/4);
+      const mortar=y%4===0||(x+((y>>2)&1)*2)%5===0;
+      if(mortar)return vary(66,79,64,6);
+      const moss=pixelNoise(x,y,16)>.77||((x+y*3)%17===0);
+      return moss?vary(72,128,62,12):vary(117,122,116,8);
+    }); // mossy cobblestone
+    fill(11,3,(x,y)=>{
+      const scar=(y*5+x*3)%23===0||((y*7+x)%19===0);
+      const line=x===2||x===13;
+      if(scar)return vary(54,60,60,8);
+      if(line)return vary(112,113,103,8);
+      return vary(224,215,185,9);
+    }); // birch bark
+    fill(10,4,(x,y)=>{
+      const d=Math.hypot(x-7.5,y-7.5),rings=Math.floor(d*1.4)%3;
+      return rings===0?vary(177,143,95,8):rings===1?vary(215,188,142,8):vary(195,160,108,8);
+    }); // birch rings
+    fill(11,4,(x,y)=>{
+      const n=pixelNoise(x,y,66);
+      if(n<.16)return null;
+      return n>.72?vary(144,201,85,10):n<.35?vary(75,138,54,9):vary(102,169,65,10);
+    }); // birch leaves
+    fill(10,5,(x,y)=>{
+      const seam=y%4===3||x===((Math.floor(y/4)%2)*8+4)%16;
+      return seam?vary(155,124,80,6):vary(207,171,112,9);
+    }); // birch planks
+    fill(11,5,(x,y)=>{
+      if(x%5===0)return vary(45,35,30,6);
+      const n=pixelNoise(x,y,4);
+      return n>.80?vary(116,83,61,6):vary(77,56,46,7);
+    }); // spruce bark
+    fill(10,6,(x,y)=>{
+      const d=Math.hypot(x-7.5,y-7.5);
+      return Math.floor(d*1.5)%3===0?vary(92,64,45,7):vary(128,91,65,8);
+    }); // spruce rings
+    fill(11,6,(x,y)=>{
+      const n=pixelNoise(x,y,64);
+      if(n<.15)return null;
+      return n>.76?vary(86,143,78,10):n<.35?vary(30,76,46,9):vary(48,108,58,9);
+    }); // spruce leaves
+    fill(10,7,(x,y)=>{
+      const seam=y%4===3||x===((Math.floor(y/4)%2)*8+4)%16;
+      return seam?vary(63,45,35,6):vary(112,78,55,8);
+    }); // spruce planks
+    fill(11,7,(x,y)=>{
+      const rib=x%5===0;
+      const spine=(y%7===2&&x%5===2);
+      if(spine)return vary(213,230,155,8);
+      return rib?vary(39,100,56,7):vary(53,142,79,9);
+    }); // cactus ribs
+    fill(10,8,(x,y)=>{
+      const edge=x<2||x>13||y<2||y>13;
+      const center=Math.hypot(x-7.5,y-7.5)<3;
+      return edge?vary(37,97,49,6):center?vary(126,163,76,7):vary(56,133,71,9);
+    }); // cactus top
+    fill(11,8,(x,y)=>{
+      if(x===0||y===0||x===15||y===15)return vary(84,54,35,6);
+      if(y===2||y===13)return vary(122,87,53,6);
+      const column=Math.floor((x-1)/3), spine=(x%3===0);
+      if(spine)return vary(59,44,29,5);
+      const colors=[[158,81,66],[69,101,146],[197,168,76],[75,126,83],[150,88,145]];
+      const rgb=colors[(column+Math.floor(y/7))%colors.length];
+      return vary(...rgb,9);
+    }); // bookshelf book spines
+
     const armorColors=[[150,105,75],[120,125,135],[190,195,205],[220,180,55],[95,220,245]];let ac=0;const armorTile=(r,g,b)=>(x,y)=>vary(r,g,b,10);for(let row=8;row<10;row++)for(let col=0;col<10;col++){const q=armorColors[Math.min(4,Math.floor(ac/4))];fill(col,row,armorTile(...q));ac++;}
 
     function hashCell(cx, cy) { return (cx * 7 + cy * 13) % 5 / 5; }
@@ -223,7 +402,7 @@ const Textures = (() => {
   }
 
   function tileUV(col, row) {
-    const e = 1 / 256;
+    const e = 1 / (SIZE*4);
     return {
       u0: col / GRID + e,
       u1: (col + 1) / GRID - e,

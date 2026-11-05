@@ -1,7 +1,7 @@
 'use strict';
 
 const CONFIG = {
-  VERSION: '1.3.1',
+  VERSION: '1.3.2',
   CHUNK: 16,
   HEIGHT: 64,
   SEA: 23,
@@ -25,7 +25,10 @@ const BLOCK = Object.freeze({
   AIR: 0, GRASS: 1, DIRT: 2, STONE: 3, COBBLE: 4, SAND: 5, LOG: 6, LEAVES: 7,
   PLANK: 8, GLASS: 9, BRICK: 10, GLOWSTONE: 11, WATER: 12, BEDROCK: 13,
   CRAFTING_TABLE: 14, COAL_ORE: 15, IRON_ORE: 16, GOLD_ORE: 17, COPPER_ORE: 18,
-  REDSTONE_ORE: 19, LAPIS_ORE: 20, DIAMOND_ORE: 21, EMERALD_ORE: 22, WATER_FLOW: 23, SNOW: 24, FURNACE: 25, TORCH: 26
+  REDSTONE_ORE: 19, LAPIS_ORE: 20, DIAMOND_ORE: 21, EMERALD_ORE: 22, WATER_FLOW: 23, SNOW: 24, FURNACE: 25, TORCH: 26,
+  GRAVEL: 27, CLAY: 28, SANDSTONE: 29, STONE_BRICKS: 30, POLISHED_STONE: 31,
+  MOSSY_COBBLE: 32, BIRCH_LOG: 33, BIRCH_LEAVES: 34, BIRCH_PLANKS: 35,
+  SPRUCE_LOG: 36, SPRUCE_LEAVES: 37, SPRUCE_PLANKS: 38, CACTUS: 39, BOOKSHELF: 40
 });
 
 const BLOCKS = [
@@ -55,7 +58,22 @@ const BLOCKS = [
   { name: '흐르는 물', tiles: { all: [5, 1] }, liquid: true, flow: true, miningTime: .2 },
   { name: '눈', tiles: { all: [7, 1] }, miningTime: .18, tool: 'shovel' },
   { name: '화로', tiles: { top: [8, 1], bottom: [8, 1], side: [9, 0] }, miningTime: 1.6, tool: 'pickaxe', minTier: 1 },
-  { name: '횃불', tiles: { top: [8, 2], bottom: [8, 2], side: [9, 1] }, miningTime: .12, nonSolid: true }
+  { name: '횃불', tiles: { top: [8, 2], bottom: [8, 2], side: [9, 1] }, miningTime: .12, nonSolid: true },
+  // v1.3.2: append-only block IDs preserve old save files.
+  { name: '자갈', tiles: { all: [10,0] }, miningTime: .55, tool: 'shovel', gravity: true, category: '자연' },
+  { name: '점토', tiles: { all: [11,0] }, miningTime: .55, tool: 'shovel', category: '자연' },
+  { name: '사암', tiles: { top: [10,1], side: [11,1], bottom: [10,1] }, miningTime: .8, tool: 'pickaxe', minTier: 1, category: '석재' },
+  { name: '석재 벽돌', tiles: { all: [10,2] }, miningTime: 1.3, tool: 'pickaxe', minTier: 1, category: '석재' },
+  { name: '매끄러운 돌', tiles: { all: [11,2] }, miningTime: 1.15, tool: 'pickaxe', minTier: 1, category: '석재' },
+  { name: '이끼 낀 조약돌', tiles: { all: [10,3] }, miningTime: 1.15, tool: 'pickaxe', minTier: 1, category: '석재' },
+  { name: '자작나무 원목', tiles: { top: [10,4], side: [11,3], bottom: [10,4] }, miningTime: .78, tool: 'cutter', category: '목재' },
+  { name: '자작나무 잎', tiles: { all: [11,4] }, cutout: true, miningTime: .16, tool: 'hoe', category: '자연' },
+  { name: '자작나무 판자', tiles: { all: [10,5] }, miningTime: .62, tool: 'cutter', category: '목재' },
+  { name: '가문비나무 원목', tiles: { top: [10,6], side: [11,5], bottom: [10,6] }, miningTime: .8, tool: 'cutter', category: '목재' },
+  { name: '가문비나무 잎', tiles: { all: [11,6] }, cutout: true, miningTime: .16, tool: 'hoe', category: '자연' },
+  { name: '가문비나무 판자', tiles: { all: [10,7] }, miningTime: .62, tool: 'cutter', category: '목재' },
+  { name: '선인장', tiles: { top: [10,8], bottom: [10,8], side: [11,7] }, miningTime: .38, category: '자연' },
+  { name: '책장', tiles: { top: [10,5], bottom: [10,5], side: [11,8] }, miningTime: .7, tool: 'cutter', category: '장식' }
 ];
 
 const ITEM = Object.freeze({
@@ -124,13 +142,17 @@ const DEFAULT_HOTBAR = [
 const PLACEABLE_IDS = [
   BLOCK.GRASS, BLOCK.DIRT, BLOCK.STONE, BLOCK.COBBLE, BLOCK.SAND, BLOCK.LOG,
   BLOCK.LEAVES, BLOCK.PLANK, BLOCK.GLASS, BLOCK.BRICK, BLOCK.GLOWSTONE,
-  BLOCK.CRAFTING_TABLE, BLOCK.FURNACE, BLOCK.TORCH, BLOCK.WATER, BLOCK.COAL_ORE, BLOCK.IRON_ORE, BLOCK.GOLD_ORE,
+  BLOCK.CRAFTING_TABLE, BLOCK.FURNACE, BLOCK.TORCH, BLOCK.WATER,
+  BLOCK.GRAVEL, BLOCK.CLAY, BLOCK.SANDSTONE, BLOCK.STONE_BRICKS, BLOCK.POLISHED_STONE,
+  BLOCK.MOSSY_COBBLE, BLOCK.BIRCH_LOG, BLOCK.BIRCH_LEAVES, BLOCK.BIRCH_PLANKS,
+  BLOCK.SPRUCE_LOG, BLOCK.SPRUCE_LEAVES, BLOCK.SPRUCE_PLANKS, BLOCK.CACTUS, BLOCK.BOOKSHELF, BLOCK.COAL_ORE, BLOCK.IRON_ORE, BLOCK.GOLD_ORE,
   BLOCK.COPPER_ORE, BLOCK.REDSTONE_ORE, BLOCK.LAPIS_ORE, BLOCK.DIAMOND_ORE, BLOCK.EMERALD_ORE, BLOCK.SNOW
 ];
 
 const BLOCK_DROPS = {
   [BLOCK.GRASS]: BLOCK.DIRT,
   [BLOCK.STONE]: BLOCK.COBBLE,
+  [BLOCK.GLASS]: 0,
   [BLOCK.COAL_ORE]: ITEM.COAL,
   // Metallic ores are smelted in the furnace rather than dropping finished ingots.
   [BLOCK.IRON_ORE]: BLOCK.IRON_ORE,
@@ -146,11 +168,15 @@ function getBlockDrop(id, rnd, tool) {
   if (id === BLOCK.AIR || id === BLOCK.WATER || id === BLOCK.WATER_FLOW || id === BLOCK.BEDROCK) return 0;
   const def = BLOCKS[id];
   if (!def) return 0;
-  if (id === BLOCK.LEAVES) return rnd && rnd() < 0.04 ? ITEM.APPLE : 0;
+  // Hoes let survival players collect leaf blocks for mossy-stone crafting.
+  if ([BLOCK.LEAVES,BLOCK.BIRCH_LEAVES,BLOCK.SPRUCE_LEAVES].includes(id) && tool?.toolType==='hoe') return id;
+  if (id === BLOCK.LEAVES || id === BLOCK.BIRCH_LEAVES) return rnd && rnd() < 0.04 ? ITEM.APPLE : 0;
+  if (id === BLOCK.SPRUCE_LEAVES) return rnd && rnd() < 0.08 ? ITEM.STICK : 0;
+  if (id === BLOCK.GLASS) return 0;
   if (def.minTier !== undefined) {
     if (!tool || tool.toolType !== def.tool || tool.tier < def.minTier) return 0;
   }
-  return BLOCK_DROPS[id] || id;
+  return Object.prototype.hasOwnProperty.call(BLOCK_DROPS,id) ? BLOCK_DROPS[id] : id;
 }
 
 function isToolId(id){return ((id>=200&&id<220)||(id>=240&&id<=244))&&!!ITEMS[id]&&!!ITEMS[id].toolType;} function isArmorId(id){return id>=220&&id<=239&&!!ITEMS[id]&&!!ITEMS[id].armorType;}
@@ -187,7 +213,20 @@ function isSolidBlock(id) {
 }
 
 function isPlaceable(id) {
-  return id !== BLOCK.AIR && id !== BLOCK.BEDROCK;
+  return isBlockId(id) && id !== BLOCK.BEDROCK && id !== BLOCK.WATER_FLOW;
+}
+
+function isFallingBlock(id) { return !!BLOCKS[id]?.gravity || id === BLOCK.SAND; }
+
+function getBlockCategory(id) {
+  const group = BLOCKS[id]?.category;
+  if (group) return group;
+  if ([BLOCK.LOG, BLOCK.PLANK, BLOCK.CRAFTING_TABLE].includes(id)) return '목재';
+  if ([BLOCK.STONE, BLOCK.COBBLE, BLOCK.BRICK, BLOCK.FURNACE].includes(id)) return '석재';
+  if ([BLOCK.COAL_ORE,BLOCK.IRON_ORE,BLOCK.GOLD_ORE,BLOCK.COPPER_ORE,BLOCK.REDSTONE_ORE,
+       BLOCK.LAPIS_ORE,BLOCK.DIAMOND_ORE,BLOCK.EMERALD_ORE].includes(id)) return '광석';
+  if ([BLOCK.GLASS,BLOCK.GLOWSTONE,BLOCK.TORCH].includes(id)) return '장식';
+  return '자연';
 }
 
 function isBlockId(id) {

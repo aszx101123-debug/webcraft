@@ -1,7 +1,7 @@
 'use strict';
 
 const Interact = (() => {
-  let highlight = null, target = null, camera = null;
+  let highlight = null, cracks = null, target = null, camera = null;
   let mining = false;
   let miningElapsed = 0;
   let miningDuration = 0;
@@ -15,6 +15,28 @@ const Interact = (() => {
     );
     highlight.visible = false;
     scene.add(highlight);
+    // Thin cracks drawn over the voxel while mining; built once and reused.
+    const points=[];
+    const line=(a,b)=>{points.push(new THREE.Vector3(...a),new THREE.Vector3(...b));};
+    for(const z of [-.507,.507]){
+      const wave=[[ -.38,-.32 ],[ -.13,-.09 ],[.12,.09],[.30,.35]];
+      for(let i=1;i<wave.length;i++)
+        line([wave[i-1][0],wave[i-1][1],z],[wave[i][0],wave[i][1],z]);
+      line([-.13,-.09,z],[-.25,.16,z]);
+      line([.12,.09,z],[.35,-.18,z]);
+    }
+    for(const x of [-.507,.507]){
+      line([x,-.31,-.30],[x,.12,-.06]);
+      line([x,.12,-.06],[x,.31,.28]);
+      line([x,.12,-.06],[x,-.05,.37]);
+    }
+    cracks = new THREE.LineSegments(
+      new THREE.BufferGeometry().setFromPoints(points),
+      new THREE.LineBasicMaterial({color:0x10151b,transparent:true,opacity:.65,depthTest:false,depthWrite:false})
+    );
+    cracks.visible=false;
+    cracks.renderOrder=8;
+    scene.add(cracks);
   }
 
   function raycast(maxDist) {
@@ -47,6 +69,7 @@ const Interact = (() => {
     miningElapsed = 0;
     miningDuration = 0;
     miningKey = '';
+    if(cracks)cracks.visible=false;
   }
 
   function update() {
@@ -56,8 +79,13 @@ const Interact = (() => {
     if (target) {
       highlight.position.set(target.x + .5, target.y + .5, target.z + .5);
       highlight.visible = true;
+      const progress = miningProgress();
+      cracks.position.copy(highlight.position);
+      cracks.visible = progress > .03;
+      if(cracks.visible)cracks.material.opacity=.35+Math.min(.55,progress*.65);
     } else {
       highlight.visible = false;
+      cracks.visible=false;
       if (mining) resetMining();
     }
   }
