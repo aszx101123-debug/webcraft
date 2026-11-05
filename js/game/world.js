@@ -260,6 +260,26 @@ const World = (() => {
     }
   }
 
+  function updateTorchLights(px, pz) {
+    if (!torchLights.length || ++torchLightTick % 20 !== 0) return;
+    const py = Player.pos.y + 1;
+    const choices = [];
+    for (const chunk of chunks.values()) {
+      for (const pos of chunk.torches || []) {
+        const dx = pos[0] - px, dy = pos[1] - py, dz = pos[2] - pz;
+        const distSq = dx * dx + dy * dy + dz * dz;
+        if (distSq < 144) choices.push({ pos, distSq });
+      }
+    }
+    choices.sort((a, b) => a.distSq - b.distSq);
+    for (let i = 0; i < torchLights.length; i++) {
+      const light = torchLights[i];
+      const selected = choices[i];
+      light.visible = !!selected;
+      if (selected) light.position.set(selected.pos[0], selected.pos[1], selected.pos[2]);
+    }
+  }
+
   function update(px, pz, r, genBudget = 2, meshBudget = 4) {
     const pcx = Math.floor(px) >> 4, pcz = Math.floor(pz) >> 4;
     ensureArea(pcx, pcz, r);
@@ -279,6 +299,7 @@ const World = (() => {
         dirtySet.delete(key(order[i].cx, order[i].cz));
       }
     }
+    updateTorchLights(px, pz);
   }
 
   function setFluidLevel(x, y, z, level) {
