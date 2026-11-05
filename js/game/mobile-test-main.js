@@ -478,11 +478,12 @@
       }
     } else if (e.button === 2) {
       const target = Interact.getTarget();
-      if (target && target.id === BLOCK.CRAFTING_TABLE) {
+      if (target && (target.id === BLOCK.CRAFTING_TABLE || target.id === BLOCK.FURNACE)) {
         disableTouchInput();
         state.suppressPause = true;
         document.exitPointerLock?.();
-        UI.openCrafting();
+        if (target.id === BLOCK.FURNACE) UI.openFurnace();
+        else UI.openCrafting();
         return;
       }
       const s = Inventory.selectedSlot();
