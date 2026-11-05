@@ -9,10 +9,12 @@ const WorldJournal = (() => {
   };
   const keys=Object.keys(NAMES);
   const MAX_DISTANCE=10;
-  let visited=[],distance=0,lastPosition=null,open=false,discovered=null,onClose=null;
+  let visited=[],distance=0,lastPosition=null,open=false,discovered=null,onClose=null,home=null;
   function init(saved) {
-    visited=[];distance=0;lastPosition=null;open=false;discovered=null;
+    visited=[];distance=0;lastPosition=null;open=false;discovered=null;home=null;
     if(saved && typeof saved==='object') {
+      if(saved.home&&['x','y','z'].every(k=>Number.isFinite(saved.home[k])&&Math.abs(saved.home[k])<10000000))
+        home={x:Math.floor(saved.home.x),y:Math.floor(saved.home.y),z:Math.floor(saved.home.z)};
       if(Number.isFinite(saved.distance))distance=Math.max(0,Math.min(100000000,saved.distance));
       if(Array.isArray(saved.visited))for(const v of saved.visited.slice(0,keys.length)){
         if(!v||!keys.includes(v.biome)||visited.some(x=>x.biome===v.biome))continue;
@@ -42,10 +44,21 @@ const WorldJournal = (() => {
     return false;
   }
   function serialize() {
-    return {version:1,distance:Math.round(distance*10)/10,
-      visited:visited.map(v=>({...v}))};
+    return {version:2,distance:Math.round(distance*10)/10,
+      home:home?{...home}:null,visited:visited.map(v=>({...v}))};
   }
-  function getStats(){return {distance:Math.floor(distance),found:visited.length,total:keys.length,visited:visited.map(v=>({...v}))};}
+  function setHome(pos){
+    if(!pos || !['x','y','z'].every(k=>Number.isFinite(pos[k])))return false;
+    home={x:Math.floor(pos.x),y:Math.floor(pos.y),z:Math.floor(pos.z)};
+    if(open)render();
+    return true;
+  }
+  function homeDistance(pos){
+    return home && pos ? Math.round(Math.hypot(pos.x-home.x,pos.z-home.z)) : null;
+  }
+  function getStats(){return {distance:Math.floor(distance),found:visited.length,
+    total:keys.length,home:home?{...home}:null,
+    homeDistance:homeDistance(lastPosition),visited:visited.map(v=>({...v}))};}
   function biomeName(id){return NAMES[id]||id||'알 수 없음';}
   function render(){
     const list=document.getElementById('journal-biomes');
@@ -53,6 +66,11 @@ const WorldJournal = (() => {
     const counts=document.getElementById('journal-summary');
     const entries=visited.map(v=>v.biome);
     if(counts)counts.textContent='발견 '+visited.length+' / '+keys.length+' 바이옴 · 이동 '+Math.round(distance)+' 블록';
+    const homeInfo=document.getElementById('journal-home');
+    if(homeInfo)homeInfo.textContent=home
+      ? '집 위치 · X '+home.x+' / Y '+home.y+' / Z '+home.z+
+        (lastPosition?' · 현재 '+homeDistance(lastPosition)+'블록 거리':'')
+      : '아직 집으로 지정한 장소가 없습니다.';
     list.replaceChildren();
     for(const biome of keys){
       const found=entries.includes(biome);
@@ -80,5 +98,5 @@ const WorldJournal = (() => {
   }
   function isOpen(){return open;}
   function setOnClose(fn){onClose=typeof fn==='function'?fn:null;}
-  return {init,update,serialize,getStats,biomeName,show,close,isOpen,setOnClose,render};
+  return {init,update,serialize,getStats,biomeName,show,close,isOpen,setOnClose,setHome,homeDistance,render};
 })();
