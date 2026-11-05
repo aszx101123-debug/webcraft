@@ -63,6 +63,9 @@ const PlayerModel = (() => {
   }
   function getAppearance() { return { ...appearance }; }
   function getPalettes() { return palettes; }
+  function colorCss(field) {
+    return '#' + palettes[field][appearance[field]].value.toString(16).padStart(6, '0');
+  }
   function setAppearance(next) {
     appearance = normalizeAppearance(next);
     if (bodyMaterials) {
