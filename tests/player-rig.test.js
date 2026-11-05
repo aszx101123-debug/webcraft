@@ -10,26 +10,54 @@ class Vector {
 class Euler extends Vector {}
 class Group {
   constructor(){
-    this.children=[];this.position=new Vector();this.rotation=new Euler();
+    this.children=[];this.position=new Vector();this.rotation=new Euler();this.userData={};
     this.scale={setScalar(v){this.value=v}};this.visible=true;
   }
   add(...items){this.children.push(...items);}
+  remove(item){this.children=this.children.filter(x=>x!==item);}
 }
 class Mesh extends Group {
   constructor(geometry,material){super();this.geometry=geometry;this.material=material;}
 }
 class BoxGeometry {
-  constructor(w,h,d){Object.assign(this,{w,h,d});}
+  constructor(w,h,d){
+    Object.assign(this,{w,h,d});
+    this.attributes={uv:{getX:()=>0,getY:()=>1,setXY(){}}};
+  }
+  dispose(){}
+}
+class PlaneGeometry extends BoxGeometry {}
+class Color {
+  constructor(hex){this.hex=hex;}
+  setHex(hex){this.hex=hex;return this;}
+  multiplyScalar(value){this.hex=Math.floor(this.hex * value);return this;}
 }
 class Material {
-  constructor(options){this.color=options.color;}
+  constructor(options){this.color=new Color(options.color||0);this.map=options.map;}
+  dispose(){}
 }
-const THREE={Group,Mesh,BoxGeometry,MeshLambertMaterial:Material};
-let offhand=null;
-const Inventory={getEquipment:()=>({offhand})};
-const PlayerModel=new Function('THREE','Inventory','CONFIG',code+'\nreturn PlayerModel;')(
-  THREE,Inventory,{SPEED:4.4}
-);
+class TextureLoader {
+  load(){return {dispose(){},magFilter:null,minFilter:null};}
+}
+const THREE={
+  Group,Mesh,BoxGeometry,PlaneGeometry,MeshLambertMaterial:Material,
+  MeshBasicMaterial:Material,TextureLoader,DoubleSide:2,NearestFilter:1
+};
+let offhand=null, selectedId=0;
+const Inventory={
+  getEquipment:()=>({offhand}),
+  selectedId:()=>selectedId
+};
+const BLOCKS=[null,{name:'잔디',tiles:{all:[0,0]}}];
+const Textures={
+  tileFor:()=>({u0:0,u1:.1,v0:0,v1:.1}),
+  getTexture:()=>({}),
+  blockIcon:()=>('data:image/png;base64,AAA')
+};
+const getItemDef=id=>id>0?{name:'test'}:null;
+const PlayerModel=new Function(
+  'THREE','Inventory','CONFIG','BLOCKS','Textures','getItemDef',code+'\nreturn PlayerModel;'
+)(THREE,Inventory,{SPEED:4.4},BLOCKS,Textures,getItemDef);
 let checks=0;
 function check(label,condition){
   assert.ok(condition,label);console.log('PASS',label);checks++;
@@ -63,4 +91,30 @@ check('third-person uses shoulder and hip pivot models',world.visible && !view.v
 p.vel.x=0;
 for(let i=0;i<35;i++)PlayerModel.update(p,.016,true);
 check('third-person arm smoothly settles after walking',Math.abs(world.children[world.children.length-4].rotation.x)<.10);
+selectedId=1;
+PlayerModel.update(p,.016,false);
+check('selected block attaches a textured 3D cube to both hand rigs',
+  right.children.some(item=>item.geometry instanceof BoxGeometry) &&
+  world.children[world.children.length-3].children.some(item=>item.geometry instanceof BoxGeometry));
+selectedId=240;
+PlayerModel.update(p,.016,false);
+check('switching to a tool replaces cube with pixel item sprite',
+  right.children.some(item=>item.geometry instanceof PlaneGeometry) &&
+  !right.children.some(item=>item.geometry.constructor===BoxGeometry));
+selectedId=0;
+offhand=null;
+PlayerModel.update(p,.016,false);
+check('empty hand removes equipped sprites',right.children.length===3);
+const updated=PlayerModel.setAppearance({skin:2,hair:3,shirt:4,pants:1,boots:2,hairStyle:'long'});
+check('customization colors and hairstyles update together',
+  updated.skin===2 && updated.shirt===4 && updated.hairStyle==='long');
+check('world model material changes when shirt color changes',
+  world.children[0].material.color.hex===PlayerModel.getPalettes().shirt[4].value);
+const invalid=PlayerModel.setAppearance({skin:100,shirt:-7,hairStyle:'unknown'});
+check('invalid appearance choices revert to stable defaults',
+  invalid.skin===1 && invalid.shirt===0 && invalid.hairStyle==='short');
+let drawCount=0;
+const ctx={clearRect(){},fillRect(){drawCount++},set fillStyle(value){}};
+PlayerModel.drawPreview({width:164,height:224,getContext:()=>ctx});
+check('E inventory avatar preview renders blocky character',drawCount>15);
 console.log('All '+checks+' character-rig tests passed.');
