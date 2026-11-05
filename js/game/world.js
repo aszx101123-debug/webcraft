@@ -32,7 +32,7 @@ const World = (() => {
     const NB = BLOCKS[nb];
     if (NB.liquid) return !BLOCKS[id].liquid;
     if (NB.cutout) return id !== nb;
-    if (NB.nonSolid) return true;
+    if (NB.nonSolid || NB.shape) return true;
     return false;
   }
 
