@@ -176,7 +176,9 @@ const World = (() => {
     disposeChunk(ch);
     const pos = [], nor = [], uv = [], col = [], ind = [];
     const wp = [], wn = [], wu = [], wc = [], wi = [];
+    const tp = [], tn = [], tu = [], tc = [], ti = [];
     const ox = ch.cx * C, oz = ch.cz * C;
+    ch.torches = [];
 
     function getNb(lx, y, lz) {
       if (y < 0 || y >= H) return BLOCK.AIR;
@@ -192,12 +194,14 @@ const World = (() => {
       if (!id) continue;
       const B = BLOCKS[id];
       const liquid = !!B.liquid;
+      const torch = id === BLOCK.TORCH;
+      if (torch) ch.torches.push([ox + x + .5, y + .55, oz + z + .5]);
       for (const f of FACES) {
         const nb = getNb(x + f.n[0], y + f.n[1], z + f.n[2]);
-        if (!faceVisible(id, nb)) continue;
+        if (!torch && !faceVisible(id, nb)) continue;
         const t = Textures.tileFor(id, f.key);
-        const P = liquid ? wp : pos, N = liquid ? wn : nor;
-        const U = liquid ? wu : uv, CC = liquid ? wc : col, I = liquid ? wi : ind;
+        const P = torch ? tp : (liquid ? wp : pos), N = torch ? tn : (liquid ? wn : nor);
+        const U = torch ? tu : (liquid ? wu : uv), CC = torch ? tc : (liquid ? wc : col), I = torch ? ti : (liquid ? wi : ind);
         const vi = P.length / 3;
         for (let i = 0; i < 4; i++) {
           const c = f.c[i];
@@ -207,7 +211,13 @@ const World = (() => {
             const topY = y + 0.15 + 0.72 * (level / 8);
             if (c[1] === 1) vy = topY;
           }
-          P.push(ox + x + c[0], vy, oz + z + c[2]);
+          let vx = ox + x + c[0], vz = oz + z + c[2];
+          if (torch) {
+            vx = ox + x + .40 + c[0] * .20;
+            vz = oz + z + .40 + c[2] * .20;
+            vy = y + .08 + c[1] * .70;
+          }
+          P.push(vx, vy, vz);
           N.push(f.n[0], f.n[1], f.n[2]);
           const q = f.uv[i];
           U.push(q[0] ? t.u1 : t.u0, q[1] ? t.v1 : t.v0);
@@ -226,6 +236,16 @@ const World = (() => {
       g.setIndex(ind);
       ch.mesh = new THREE.Mesh(g, matSolid);
       group.add(ch.mesh);
+    }
+    if (tp.length) {
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(tp, 3));
+      g.setAttribute('normal', new THREE.Float32BufferAttribute(tn, 3));
+      g.setAttribute('uv', new THREE.Float32BufferAttribute(tu, 2));
+      g.setAttribute('color', new THREE.Float32BufferAttribute(tc, 3));
+      g.setIndex(ti);
+      ch.torchMesh = new THREE.Mesh(g, matTorch);
+      group.add(ch.torchMesh);
     }
     if (wp.length) {
       const g = new THREE.BufferGeometry();
