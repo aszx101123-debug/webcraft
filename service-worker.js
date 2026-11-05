@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.3.5-journal-creatures-20261105';
+const VERSION = 'webcraft-v1.3.5-journal-creatures-cache2';
 const CORE = [
   "./",
   "./index.html",
@@ -21,7 +21,7 @@ const CORE = [
   "./css/v133-build.css?v=v133",
   "./css/v134-combat.css?v=v134",
   "./css/v135-adventure.css?v=v135",
-  "./js/game/config.js?v=v134",
+  "./js/game/config.js?v=v135",
   "./js/game/noise.js",
   "./js/game/terrain.js?v=v132",
   "./js/game/mobile-test-textures.js?v=v133",
