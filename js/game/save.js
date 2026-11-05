@@ -232,7 +232,7 @@ const SaveSystem = (() => {
     // Per-position orientation and chest contents must remain bounded on import.
     if (data.blockObjects) for (const entry of data.blockObjects) {
       if (!Array.isArray(entry) || entry.length!==2 ||
-          typeof entry[0]!=='string' || !/^-?\\d+,\\d+,-?\\d+$/.test(entry[0]) ||
+          typeof entry[0]!=='string' || !/^-?\d+,\d+,-?\d+$/.test(entry[0]) ||
           !entry[1] || typeof entry[1]!=='object' || Array.isArray(entry[1]))return null;
       const obj=entry[1];
       if (obj.facing!==undefined &&
