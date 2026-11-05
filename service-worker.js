@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.3.3-build-home-20261105';
+const VERSION = 'webcraft-v1.3.4-mob-quality-20261105';
 const CORE = [
   "./",
   "./index.html",
@@ -19,7 +19,8 @@ const CORE = [
   "./css/v130-character.css?v=v131",
   "./css/v132-blocks.css?v=v132",
   "./css/v133-build.css?v=v133",
-  "./js/game/config.js?v=v133",
+  "./css/v134-combat.css?v=v134",
+  "./js/game/config.js?v=v134",
   "./js/game/noise.js",
   "./js/game/terrain.js?v=v132",
   "./js/game/mobile-test-textures.js?v=v133",
@@ -33,11 +34,11 @@ const CORE = [
   "./js/game/interaction.js?v=v133",
   "./js/game/items.js?v=v129",
   "./js/game/drops.js",
-  "./js/game/mobs.js?v=v129",
+  "./js/game/mobs.js?v=v134",
   "./js/game/save.js?v=v129",
   "./js/game/mobile-test-crafting.js?v=v133",
   "./js/game/mobile-test-ui.js?v=v132",
-  "./js/game/mobile-test-main.js?v=v133",
+  "./js/game/mobile-test-main.js?v=v134",
   "./css/style.css",
   "./css/skin-studio.css?v=v131",
   "./css/v133-home.css?v=v133",

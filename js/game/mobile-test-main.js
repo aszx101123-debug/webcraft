@@ -555,7 +555,8 @@
       camera.getWorldDirection(dir);
       const hitMob = Mobs.tryAttack(camera.position, dir, 3.6);
       if (hitMob) {
-        Player.addExhaustion(SURVIVAL.ATTACK_COST);
+        if (Mobs.getLastAttackResult()?.landed)
+          Player.addExhaustion(SURVIVAL.ATTACK_COST);
       } else if (state.mode === GAME_MODE.SURVIVAL) {
         miningHeld = Interact.startBreak(true);
         UI.setMiningProgress(Interact.miningProgress());
@@ -888,6 +889,11 @@
         const mined = Interact.updateMining(dt, state.mode === GAME_MODE.SURVIVAL);
         const miningProgress = Interact.miningProgress();
         UI.setMiningProgress(miningProgress);
+        const attackFill=document.getElementById('attack-charge-fill');
+        const attackLabel=document.getElementById('attack-charge-label');
+        const charge=Mobs.getAttackCharge();
+        if(attackFill)attackFill.style.width=Math.round(charge*100)+'%';
+        if(attackLabel)attackLabel.textContent=charge>.98?'공격 준비':'공격 회복 중';
         if (miningHeld && miningProgress > 0) {
           miningSwingElapsed += dt;
           if (miningSwingElapsed >= .48) {

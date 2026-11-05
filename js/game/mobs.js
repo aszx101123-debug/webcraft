@@ -8,6 +8,7 @@ const Mobs = (() => {
   let mode = GAME_MODE.CREATIVE;
   let spawnTimer = 3;
   let lastPlayerAttackAt = -Infinity;
+  let lastAttackResult = null;
   let onEvent = null;
 
   function init(scene_) {
@@ -18,18 +19,46 @@ const Mobs = (() => {
 
   function reset() {
     if (!group) return;
-    mobs.forEach(m => group.remove(m.mesh));
-    arrows.forEach(a => group.remove(a.mesh));
-    mobs = [];
-    arrows = [];
+    while(mobs.length)removeMob(mobs.length-1);
+    while(arrows.length)removeArrow(arrows.length-1);
     spawnTimer = 3;
     lastPlayerAttackAt = -Infinity;
+    lastAttackResult = null;
   }
 
   function setEnv(night, brightness) { env.night = night; env.brightness = brightness; }
   function setMode(m) { mode = m; }
 
-  function mat(color) { return new THREE.MeshLambertMaterial({ color }); }
+  // An original procedurally-generated 16×16 texture gives each surface small
+  // pixel-level color variation without loading external assets or copying textures.
+  const mobTextureCache=new Map();
+  function pixelTexture(color){
+    if(mobTextureCache.has(color))return mobTextureCache.get(color);
+    if(typeof document==='undefined'||typeof THREE.CanvasTexture!=='function')return null;
+    const canvas=document.createElement('canvas');
+    canvas.width=16;canvas.height=16;
+    const ctx=canvas.getContext('2d');
+    if(!ctx)return null;
+    let seed=(color^0x71e9a63)>>>0;
+    for(let y=0;y<16;y++)for(let x=0;x<16;x++){
+      seed=(Math.imul(seed^((x+3)*17+(y+7)*41),1664525)+1013904223)>>>0;
+      const edge=(x===0||y===0||x===15||y===15)?-.07:0;
+      const grain=((seed>>>22)%24)/255;
+      const v=Math.max(170,Math.min(255,Math.round(233+edge*255+grain*255-12)));
+      ctx.fillStyle='rgb('+v+','+v+','+v+')';
+      ctx.fillRect(x,y,1,1);
+    }
+    const texture=new THREE.CanvasTexture(canvas);
+    texture.magFilter=THREE.NearestFilter;
+    texture.minFilter=THREE.NearestFilter;
+    texture.generateMipmaps=false;
+    mobTextureCache.set(color,texture);
+    return texture;
+  }
+  function mat(color) {
+    const texture=pixelTexture(color);
+    return new THREE.MeshLambertMaterial(texture?{color,map:texture}:{color});
+  }
   function box(w, h, d, color, x, y, z) {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(color));
     m.position.set(x, y, z);
@@ -38,7 +67,7 @@ const Mobs = (() => {
 
   function buildMob(type) {
     const g = new THREE.Group();
-    const parts = { legs: [] };
+    const parts = { legs: [], arms: [], extraLegs: [], head: null, healthBar: null, detailGroup: null };
     const limb = (w, h, d, color, x, y, z) => {
       const l = box(w, h, d, color, x, y, z);
       parts.legs.push(l);
@@ -46,17 +75,13 @@ const Mobs = (() => {
       return l;
     };
     const sphere = (r, color, x, y, z, sx = 1, sy = 1, sz = 1) => {
-      const m = new THREE.Mesh(new THREE.SphereGeometry(r, 8, 6), mat(color));
-      m.position.set(x, y, z);
-      m.scale.set(sx, sy, sz);
+      const m = box(2*r*sx,2*r*sy,2*r*sz,color,x,y,z);
       g.add(m);
       return m;
     };
     const cone = (r, h, color, x, y, z, rotX = 0, rotZ = 0) => {
-      const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, 6), mat(color));
-      m.position.set(x, y, z);
-      m.rotation.x = rotX;
-      m.rotation.z = rotZ;
+      const m = box(r*1.65,h,r*1.65,color,x,y,z);
+      m.rotation.x=rotX;m.rotation.z=rotZ;
       g.add(m);
       return m;
     };
@@ -175,6 +200,137 @@ const Mobs = (() => {
       g.add(box(.14, .1, .08, 0xb72e31, .08, .25, .94));
       g.add(box(.14, .1, .08, 0xb72e31, -.08, .25, .94));
     }
+    // Pixel-overlaid details and animated shoulder/hip joints for each species.
+    const detailGroup=new THREE.Group();
+    g.add(detailGroup);
+    parts.detailGroup=detailGroup;
+    const detail=(w,h,d,col,x,y,z)=>{
+      const p=box(w,h,d,col,x,y,z);detailGroup.add(p);return p;
+    };
+    const patch=(x,y,z,w,h,color)=>{
+      const p=detail(w,h,.018,color,x,y,z);return p;
+    };
+    const legJoint=(mesh)=>{
+      const base=mesh.position.clone();
+      const height=mesh.geometry?.parameters?.height||.4;
+      const pivot=new THREE.Group();
+      pivot.position.set(base.x,base.y+height*.5,base.z);
+      g.remove(mesh);
+      mesh.position.set(0,-height*.5,0);
+      pivot.add(mesh);
+      g.add(pivot);
+      return pivot;
+    };
+    if(type!=='spider')parts.legs=parts.legs.map(legJoint);
+    const makeArm=(x,y,z,color,sleeveColor,raised=0)=>{
+      const pivot=new THREE.Group();
+      pivot.position.set(x,y,z);
+      pivot.rotation.x=raised;
+      pivot.userData.baseX=raised;
+      const sleeve=box(.17,.29,.20,sleeveColor,0,-.16,0);
+      const arm=box(.16,.37,.18,color,0,-.48,0);
+      const cuff=box(.18,.045,.20,0x303c46,0,-.34,.004);
+      pivot.add(sleeve,arm,cuff);
+      g.add(pivot);
+      parts.arms.push(pivot);
+      return pivot;
+    };
+    if(type==='pig'){
+      patch(.0,.87,.725,.10,.06,0xffddce);
+      patch(-.21,.71,.707,.035,.035,0xfdf0e3);
+      patch(.21,.71,.707,.035,.035,0xfdf0e3);
+      patch(-.22,.6,.763,.07,.045,0xb8697e);
+      patch(.22,.6,.763,.07,.045,0xb8697e);
+      detail(.15,.09,.16,0xffb6c3,-.245,.93,.35);
+      detail(.15,.09,.16,0xffb6c3,.245,.93,.35);
+      for(const sx of [-1,1]){
+        detail(.19,.075,.20,0x7d5360,sx*.29,.07,.25);
+        detail(.19,.075,.20,0x7d5360,sx*.29,.07,-.25);
+      }
+    }else if(type==='cow'){
+      for(const [px,py,pz,w,h] of [
+        [-.27,.97,.42,.24,.25],[.34,1.0,.42,.21,.19],
+        [-.18,.87,-.421,.25,.30],[.30,1.08,-.421,.27,.25]
+      ])patch(px,py,pz,w,h,0x312921);
+      patch(0,1.0,.812,.18,.09,0xeab3b0);
+      for(const sx of [-1,1]){
+        detail(.1,.1,.12,0x372a22,sx*.17,.37,.40);
+        patch(sx*.14,1.23,.795,.035,.045,0xe8ebed);
+      }
+    }else if(type==='sheep'){
+      for(const x of [-.31,0,.31])for(const z of [-.25,.12,.39]){
+        if(z===.39&&x===0)continue;
+        detail(.27,.23,.26,((x+z)>0)?0xf4f1e7:0xd3d8d2,x,1.33,z);
+      }
+      for(const sx of [-1,1])for(const z of [-.24,.24]){
+        detail(.19,.14,.19,0xe6e9e0,sx*.34,.68,z);
+        detail(.18,.12,.18,0x524840,sx*.30,.065,z);
+      }
+      patch(0,1.03,.942,.065,.045,0x302b27);
+    }else if(type==='chicken'){
+      detail(.34,.17,.28,0xf4f1e9,0,.46,-.43);
+      for(const sx of [-1,1]){
+        detail(.15,.29,.09,0xd4d8d2,sx*.28,.58,-.04);
+        detail(.12,.055,.16,0xdca542,sx*.11,.08,.17);
+      }
+      detail(.10,.1,.12,0xecaf4c,0,.73,.55);
+      detail(.06,.06,.07,0xffede0,-.10,.88,.443);
+      detail(.06,.06,.07,0xffede0,.10,.88,.443);
+    }else if(type==='zombie'){
+      makeArm(-.40,1.43,.10,0x669c63,0x3e7e79,-.85);
+      makeArm(.40,1.43,.10,0x669c63,0x3e7e79,-.85);
+      patch(0,1.25,.184,.42,.065,0x4e938a);
+      patch(-.15,.98,.19,.18,.20,0x2f5952);
+      patch(.20,1.05,.19,.13,.13,0x6faca0);
+      patch(0,1.81,.247,.36,.075,0x6cae62);
+      patch(-.13,1.58,.253,.085,.045,0x2a3c28);
+      patch(.13,1.58,.253,.085,.045,0x2a3c28);
+      for(const sx of [-1,1]){
+        patch(sx*.14,.62,.126,.1,.14,0x1d3049);
+        patch(sx*.14,.14,.126,.12,.1,0x253447);
+      }
+    }else if(type==='skeleton'){
+      makeArm(-.33,1.45,.04,0xdcd8c8,0xd8d4c8,-.52);
+      makeArm(.33,1.45,.04,0xdcd8c8,0xd8d4c8,-.52);
+      // Exposed vertebrae, rib lines, jaw and facial shading.
+      detail(.11,.68,.1,0xbab9ad,0,1.06,.15);
+      for(const y of [.93,1.04,1.15,1.26]){
+        patch(0,y,.185,.35,.048,0xc4c5b9);
+        for(const sx of [-1,1])detail(.04,.09,.07,0x888b85,sx*.17,y,.145);
+      }
+      detail(.32,.09,.25,0xc9c5b9,0,1.44,.055);
+      patch(0,1.57,.238,.12,.04,0x4e4840);
+      patch(-.11,1.69,.252,.10,.11,0x201f23);
+      patch(.11,1.69,.252,.10,.11,0x201f23);
+      detail(.025,.48,.025,0xd5d0b6,.40,1.30,.61);
+      for(const sx of [-1,1])patch(sx*.12,.30,.079,.045,.17,0xb8b7af);
+    }else if(type==='spider'){
+      // Four additional articulated legs complete the eight-legged silhouette.
+      for(const sx of [-1,1])for(const z of [-.47,.44]){
+        const hip=new THREE.Group();
+        hip.position.set(sx*.47,.5,z);
+        const upper=box(.50,.09,.08,0x292833,sx*.25,-.005,0);
+        upper.rotation.z=sx*.20;
+        const joint=box(.14,.12,.16,0x3d3847,sx*.51,-.12,0);
+        const foot=box(.10,.34,.095,0x201f26,sx*.62,-.26,0);
+        hip.add(upper,joint,foot);
+        g.add(hip);
+        parts.extraLegs.push(hip);
+      }
+      for(const x of [-.24,0,.24])for(const z of [-.32,-.08,.18]){
+        detail(.11,.035,.12,0x514552,x,.77,z);
+      }
+      patch(-.14,.54,.929,.09,.1,0xff7563);
+      patch(.14,.54,.929,.09,.1,0xff7563);
+    }
+    const health=new THREE.Group();
+    health.position.set(0,(MOB_DEFS[type]?.height||1.2)+.27,0);
+    const bg=box(.76,.075,.025,0x171b26,0,0,0);
+    const fill=box(.72,.048,.029,0x8edc80,0,0,.01);
+    health.add(bg,fill);
+    health.visible=false;
+    g.add(health);
+    parts.healthBar={group:health,fill};
     return { mesh: g, parts };
   }
   function spawn(type, x, y, z) {
@@ -193,6 +349,7 @@ const Mobs = (() => {
       moving: false, onGround: false,
       wanderT: Math.random() * 2, attackT: 0, shootT: 1 + Math.random() * 2,
       strafeT: 2, strafeDir: 1, hurtT: 0, flashed: false,
+      hurtGrace: 0, healthVisibleT: 0, provokedT: 0,
       burnT: 0, fleeT: 0, animT: 0, jumpT: 0, pathT: 0,
       dead: false, deadT: 0
     };
@@ -202,8 +359,14 @@ const Mobs = (() => {
 
   function removeMob(i) {
     group.remove(mobs[i].mesh);
-    mobs[i].mesh.traverse(o => { if (o.geometry) o.geometry.dispose(); });
-    mobs.splice(i, 1);
+    mobs[i].mesh.traverse(o=>{
+      if(o.geometry)o.geometry.dispose();
+      if(o.material){
+        for(const material of (Array.isArray(o.material)?o.material:[o.material]))
+          if(material?.dispose)material.dispose();
+      }
+    });
+    mobs.splice(i,1);
   }
 
   function collideBox(m, axis, dist) {
@@ -243,7 +406,9 @@ const Mobs = (() => {
   }
 
   function hurtMob(m, dmg, knockFrom) {
-    if (m.dead) return;
+    if (m.dead || m.hurtGrace > 0) return false;
+    m.hurtGrace = .33;
+    m.healthVisibleT = 1.8;
     m.hp -= dmg;
     m.hurtT = .18;
     flash(m, true);
@@ -255,12 +420,14 @@ const Mobs = (() => {
       m.vel.y = Math.max(m.vel.y, 4.5);
     }
     if (!m.def.hostile) m.fleeT = 4;
+    if (m.type==='spider')m.provokedT=7;
     if (onEvent) onEvent('hurt', m);
     if (m.hp <= 0) {
       m.dead = true;
       m.deadT = .35;
       if (onEvent) onEvent('die', m);
     }
+    return true;
   }
 
   function dropLoot(m) {
@@ -301,18 +468,28 @@ const Mobs = (() => {
       if (t !== null && t < reach && t < bestT) { bestT = t; best = m; }
     }
     if (best) {
-      // Holding a mouse button or double-tapping must not deal unlimited instant damage.
-      const now = performance.now();
-      if (now - lastPlayerAttackAt < 450) return best;
-      lastPlayerAttackAt = now;
-      const tool = Inventory.selectedTool();
-      const attackDamage = tool && Number.isFinite(tool.attackDamage)
-        ? tool.attackDamage : SURVIVAL.FIST_DMG;
-      hurtMob(best, attackDamage, Player.pos);
-      if (tool) {
+      // Consistent, visible cooldown instead of applying damage on every click.
+      const now=performance.now();
+      const charge=Math.max(0,Math.min(1,(now-lastPlayerAttackAt)/450));
+      if(now-lastPlayerAttackAt<450){
+        lastAttackResult={target:best,landed:false,reason:'recharge',charge,damage:0};
+        return best;
+      }
+      if(!hasLineOfSight(eye,{x:best.pos.x,y:best.pos.y+best.def.height*.64,z:best.pos.z})){
+        lastAttackResult={target:best,landed:false,reason:'blocked',charge,damage:0};
+        return null;
+      }
+      lastPlayerAttackAt=now;
+      const tool=Inventory.selectedTool();
+      const damage=tool&&Number.isFinite(tool.attackDamage)
+        ? tool.attackDamage:SURVIVAL.FIST_DMG;
+      const landed=hurtMob(best,damage,Player.pos);
+      if(landed&&tool){
         Inventory.damageSelectedTool(1);
         UI.renderHotbar();
       }
+      lastAttackResult={target:best,landed,
+        reason:landed?'hit':'hurt-grace',charge,damage:landed?damage:0};
       return best;
     }
     return null;
@@ -416,9 +593,13 @@ const Mobs = (() => {
       const dist = Math.sqrt(dx * dx + dz * dz + (pp.y - m.pos.y) ** 2);
 
       if (dist > 64) { removeMob(i); continue; }
+      if(m.parts.detailGroup)m.parts.detailGroup.visible=dist<28;
 
       m.attackT -= dt;
       m.hurtT -= dt;
+      m.hurtGrace = Math.max(0,m.hurtGrace-dt);
+      m.healthVisibleT = Math.max(0,m.healthVisibleT-dt);
+      m.provokedT = Math.max(0,m.provokedT-dt);
       m.jumpT -= dt;
       m.pathT -= dt;
       if (m.hurtT <= 0 && m.flashed) flash(m, false);
@@ -445,7 +626,8 @@ const Mobs = (() => {
           } else m.moving = m.wanderT > 0 && m.dir.lengthSq() > 0;
         }
       } else {
-        const aggro = survival && !Player.dead && m.def.aggro && dist < m.def.aggro;
+        const aggro = survival && !Player.dead && m.def.aggro && dist < m.def.aggro &&
+          (m.type!=='spider'||env.night||m.provokedT>0);
         if (aggro) {
           m.dir.set(dx, 0, dz).normalize();
           m.moving = true;
@@ -479,7 +661,7 @@ const Mobs = (() => {
           } else m.moving = m.dir.lengthSq() > 0;
         }
 
-        if (!env.night && skyExposed(m)) {
+        if (!env.night && (m.type==='zombie'||m.type==='skeleton') && skyExposed(m)) {
           m.burnT += dt;
           if (m.burnT >= 1) {
             m.burnT = 0;
@@ -511,11 +693,34 @@ const Mobs = (() => {
 
       if (m.moving) m.yaw = lerpAngle(m.yaw, Math.atan2(m.dir.x, m.dir.z), Math.min(1, dt * 8));
       m.mesh.rotation.y = m.yaw;
+      m.animT += dt * (m.moving ? speed * 3.2 : .25);
       m.mesh.position.copy(m.pos);
-      m.animT += dt * (m.moving ? speed * 3.2 : 0);
+      m.mesh.position.y += m.moving
+        ? Math.sin(m.animT*2)*.025 : Math.sin(m.animT*.8)*.008;
+      m.mesh.rotation.z = m.moving
+        ? Math.sin(m.animT)*.014 : Math.sin(m.animT*.45)*.006;
       m.parts.legs.forEach((l, li) => {
-        l.rotation.x = m.moving ? Math.sin(m.animT + (li % 2) * Math.PI) * .55 : l.rotation.x * .8;
+        l.rotation.x = m.moving ? Math.sin(m.animT + (li % 2) * Math.PI) * .50
+          : l.rotation.x * Math.max(0,1-dt*5);
       });
+      m.parts.arms.forEach((arm,i)=>{
+        const base=arm.userData.baseX||0;
+        arm.rotation.x=base+(m.moving?Math.sin(m.animT+Math.PI*(i+1))*.34
+          :Math.sin(m.animT*.38+i)*.025);
+      });
+      m.parts.extraLegs.forEach((limb,i)=>{
+        limb.rotation.z=Math.sin(m.animT+i*Math.PI*.5)*.13;
+      });
+      if(m.parts.healthBar){
+        const {group:bar,fill}=m.parts.healthBar;
+        bar.visible=m.healthVisibleT>0;
+        if(bar.visible){
+          const ratio=Math.max(.015,Math.min(1,m.hp/m.def.hp));
+          fill.scale.x=ratio;
+          fill.position.x=-.36*(1-ratio);
+          bar.rotation.y=Math.atan2(pp.x-m.pos.x,pp.z-m.pos.z)-m.yaw;
+        }
+      }
     }
 
     for (let i = arrows.length - 1; i >= 0; i--) {
@@ -557,6 +762,11 @@ const Mobs = (() => {
     arrows.splice(i, 1);
   }
 
+  function getAttackCharge() {
+    return Math.max(0,Math.min(1,(performance.now()-lastPlayerAttackAt)/450));
+  }
+  function getLastAttackResult(){return lastAttackResult;}
+
   function counts() {
     return {
       total: mobs.length,
@@ -567,7 +777,8 @@ const Mobs = (() => {
   }
 
   return {
-    init, reset, spawn, update, tryAttack, setEnv, setMode, counts,
+    init, reset, spawn, update, tryAttack, getAttackCharge, getLastAttackResult,
+    setEnv, setMode, counts,
     set onEvent(fn) { onEvent = fn; }
   };
 })();

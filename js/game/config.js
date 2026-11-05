@@ -1,7 +1,7 @@
 'use strict';
 
 const CONFIG = {
-  VERSION: '1.3.3',
+  VERSION: '1.3.4',
   CHUNK: 16,
   HEIGHT: 64,
   SEA: 23,
@@ -203,19 +203,19 @@ const SURVIVAL = {
   EXHAUST_PER_FOOD: 4, BASE_EXHAUST: 0.09, SPRINT_MULT: 4.5,
   JUMP_COST: 0.25, MINE_COST: 0.06, ATTACK_COST: 0.12, REGEN_COST: 3,
   REGEN_MIN_FOOD: 18, REGEN_SEC: 3, STARVE_SEC: 4, STARVE_MIN_HP: 1,
-  FALL_SAFE: 3, FIST_DMG: 4
+  FALL_SAFE: 3, FIST_DMG: 1
 };
 
 const MOB_CAPS = { hostile: 12, passive: 10 };
 
 const MOB_DEFS = {
-  pig:      { name: '돼지',    hostile: false, hp: 12, speed: 1.5, height: .9, width: .82,  drops: [{ id: ITEM.PORK, min: 1, max: 2 }] },
-  cow:{name:'소',hostile:false,hp:12,speed:1.4,height:1.28,width:.9,drops:[{id:ITEM.BEEF,min:1,max:3},{id:ITEM.LEATHER,min:0,max:2,chance:.75}]},
-  sheep:    { name: '양',      hostile: false, hp: 10, speed: 1.4, height: 1.22, width: .82, drops: [{ id: ITEM.MUTTON, min: 1, max: 2 }] },
+  pig:      { name: '돼지',    hostile: false, hp: 10, speed: 1.5, height: .9, width: .82,  drops: [{ id: ITEM.PORK, min: 1, max: 2 }] },
+  cow:{name:'소',hostile:false,hp:10,speed:1.4,height:1.28,width:.9,drops:[{id:ITEM.BEEF,min:1,max:3},{id:ITEM.LEATHER,min:0,max:2,chance:.75}]},
+  sheep:    { name: '양',      hostile: false, hp: 8, speed: 1.4, height: 1.22, width: .82, drops: [{ id: ITEM.MUTTON, min: 1, max: 2 }] },
   chicken:  { name: '닭',      hostile: false, hp: 4,  speed: 1.3, height: .65, width: .45, drops: [{ id: ITEM.CHICKEN, min: 1, max: 1 }] },
-  zombie:   { name: '좀비',    hostile: true,  hp: 16, speed: 2.35, height: 1.9,  width: .62, dmg: 3, aggro: 24, drops: [{ id: ITEM.ROTTEN, min: 1, max: 1, chance: .45 }] },
-  skeleton: { name: '스켈레톤', hostile: true, hp: 14, speed: 2.15, height: 1.9, width: .56, dmg: 3, aggro: 26, ranged: true, drops: [] },
-  spider:   { name: '거미',    hostile: true,  hp: 12, speed: 3.2, height: .75, width: 1.0,  dmg: 2.5, aggro: 18, drops: [] }
+  zombie:   { name: '좀비',    hostile: true,  hp: 20, speed: 2.35, height: 1.9,  width: .62, dmg: 3, aggro: 24, drops: [{ id: ITEM.ROTTEN, min: 1, max: 1, chance: .45 }] },
+  skeleton: { name: '스켈레톤', hostile: true, hp: 20, speed: 2.15, height: 1.9, width: .56, dmg: 3, aggro: 26, ranged: true, drops: [] },
+  spider:   { name: '거미',    hostile: true,  hp: 16, speed: 3.2, height: .75, width: 1.0,  dmg: 2.5, aggro: 18, drops: [] }
 };
 
 // Local voxel AABBs, used consistently by world meshing, player movement and placement.

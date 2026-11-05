@@ -16,10 +16,11 @@
 <link rel="stylesheet" href="css/v130-character.css?v=v131">
 <link rel="stylesheet" href="css/v132-blocks.css?v=v132">
 <link rel="stylesheet" href="css/v133-build.css?v=v133">
+<link rel="stylesheet" href="css/v134-combat.css?v=v134">
 </head>
 <body>
 
-<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.3.3 · 계단·반 블록·문·상자 추가 + 월드 건축 확장</div>
+<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.3.4 · 계단·반 블록·문·상자 추가 + 월드 건축 확장</div>
 <div id="boot-error" class="boot-error hidden" role="alert">
   <div class="boot-error-panel">
     <div class="boot-error-icon">!</div>
@@ -34,6 +35,10 @@
 </div>
 <div id="cross">+</div>
 <div id="mine-progress" aria-hidden="true"><div id="mine-progress-fill"></div></div>
+<div id="attack-readiness" aria-label="공격 회복 상태">
+  <div class="attack-meter-track"><div id="attack-charge-fill"></div></div>
+  <span id="attack-charge-label">공격 준비</span>
+</div>
 <div id="target-block-name" aria-live="off"></div>
 <div id="hud-info"></div>
 <div id="hud-time"></div>
@@ -263,7 +268,7 @@
   });
 })();
 </script>
-<script src="js/game/config.js?v=v133"></script>
+<script src="js/game/config.js?v=v134"></script>
 <script src="js/game/noise.js"></script>
 <script src="js/game/terrain.js?v=v132"></script>
 <script src="js/game/mobile-test-textures.js?v=v133"></script>
@@ -277,11 +282,11 @@
 <script src="js/game/interaction.js?v=v133"></script>
 <script src="js/game/items.js?v=v129"></script>
 <script src="js/game/drops.js"></script>
-<script src="js/game/mobs.js?v=v129"></script>
+<script src="js/game/mobs.js?v=v134"></script>
 <script src="js/game/save.js?v=v129"></script>
 <script src="js/game/mobile-test-crafting.js?v=v133"></script>
 <script src="js/game/mobile-test-ui.js?v=v132"></script>
-<script src="js/game/mobile-test-main.js?v=v133"></script>
+<script src="js/game/mobile-test-main.js?v=v134"></script>
 <script>
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(() => {}));

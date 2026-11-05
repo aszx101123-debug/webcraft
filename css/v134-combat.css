@@ -1,0 +1,29 @@
+/* WebCraft v1.3.4: compact Minecraft-style attack recovery meter */
+#attack-readiness{
+  position:fixed;top:calc(50% + 57px);left:50%;transform:translateX(-50%);
+  z-index:23;display:flex;align-items:center;flex-direction:column;gap:4px;
+  pointer-events:none;opacity:.9;
+}
+#attack-readiness .attack-meter-track{
+  width:72px;height:5px;border-radius:3px;overflow:hidden;
+  border:1px solid #131d24;background:#13232cb8;
+  box-shadow:0 2px 7px #0008,inset 0 1px 3px #0006;
+}
+#attack-charge-fill{
+  display:block;height:100%;width:100%;
+  background:linear-gradient(90deg,#6aa595,#bde9a5);
+  box-shadow:0 0 5px #a9e4a56b;
+  transition:width 70ms linear;
+}
+#attack-charge-label{
+  font-size:9px;line-height:1;color:#deeedf;font-weight:750;
+  letter-spacing:.03em;text-shadow:0 1px 4px #020708;
+}
+@media(max-width:750px){
+  #attack-readiness{top:calc(50% + 39px)}
+  #attack-readiness .attack-meter-track{width:58px;height:4px}
+  #attack-charge-label{font-size:8px}
+}
+@media(max-height:500px){
+  #attack-readiness{top:calc(50% + 30px)}
+}
