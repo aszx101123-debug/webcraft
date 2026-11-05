@@ -117,6 +117,15 @@ check('world model material changes when shirt color changes',
 const invalid=PlayerModel.setAppearance({skin:100,shirt:-7,hairStyle:'unknown'});
 check('invalid appearance choices revert to stable defaults',
   invalid.skin===1 && invalid.shirt===0 && invalid.hairStyle==='short');
+PlayerModel.setAppearance({...WebCraftSkins.defaults,shirtStyle:'stripe'});
+check('striped shirt geometry is visible and hoodie decoration is hidden',
+  world.children[3].visible && world.children[4].visible && !world.children[6].visible);
+PlayerModel.setAppearance({...WebCraftSkins.defaults,shirtStyle:'hoodie'});
+check('hoodie sleeves and neckline details follow selected skin',
+  world.children.slice(6,10).every(part=>part.visible) && !world.children[3].visible);
+PlayerModel.setAppearance({...WebCraftSkins.defaults,accessory:'scarf'});
+check('scarf is attached to the 3D character and appears when selected',
+  world.children[10].visible && world.children[11].visible);
 let drawCount=0;
 const ctx={clearRect(){},fillRect(){drawCount++},save(){},restore(){},scale(){},set fillStyle(value){}};
 PlayerModel.drawPreview({width:164,height:224,getContext:()=>ctx});
