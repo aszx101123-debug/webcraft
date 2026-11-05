@@ -160,6 +160,23 @@ const Textures = (() => {
     fill(6, 6, (x, y) => ((x < 4 && y < 4) || (y % 5 === 0)) ? vary(151, 104, 62, 8) : vary(176, 123, 76, 8));
     fill(7, 6, (x, y) => ((x + y) % 4 === 0) ? vary(102, 70, 46, 8) : vary(138, 94, 61, 8));
     fill(6, 7, (x, y) => ((x - y) % 5 === 0) ? vary(112, 112, 120, 8) : vary(150, 150, 158, 8));
+    // Original pixel-art furnace: framed dark opening and carved top grate.
+    fill(9, 0, (x, y) => {
+      const border = x < 2 || x > 13 || y < 2 || y > 13;
+      const opening = x >= 4 && x <= 11 && y >= 6 && y <= 12;
+      if (border) return vary(68, 71, 76, 7);
+      if (opening) {
+        if (y >= 10 && x >= 6 && x <= 9) return vary(221, 116, 38, 12);
+        return vary(24, 27, 32, 5);
+      }
+      return ((x*5+y*7)%9 < 2) ? vary(139, 143, 149, 9) : vary(112, 116, 121, 9);
+    });
+    fill(8, 1, (x, y) => {
+      if (x <= 1 || x >= 14 || y <= 1 || y >= 14) return vary(73, 76, 82, 7);
+      if ((x >= 5 && x <= 10) && (y >= 5 && y <= 10)) return vary(57, 59, 62, 8);
+      return vary(130, 134, 140, 10);
+    });
+
     const armorColors=[[150,105,75],[120,125,135],[190,195,205],[220,180,55],[95,220,245]];let ac=0;const armorTile=(r,g,b)=>(x,y)=>vary(r,g,b,10);for(let row=8;row<10;row++)for(let col=0;col<10;col++){const q=armorColors[Math.min(4,Math.floor(ac/4))];fill(col,row,armorTile(...q));ac++;}
 
     function hashCell(cx, cy) { return (cx * 7 + cy * 13) % 5 / 5; }
