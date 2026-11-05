@@ -52,7 +52,7 @@ check('skin preview renders both faces in pixel art',()=>{
 class Element {
   constructor(id){
     this.id=id;this.children=[];this.events={};this.className='';
-    this.style={setProperty(){}};this.attributes={};this.classList={toggle:()=>{}};
+    this.style={setProperty(){}};this.attributes={};this.classList={add:()=>{},toggle:()=>{}};
     this.textContent='';
   }
   replaceChildren(...elements){this.children=elements;}
