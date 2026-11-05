@@ -791,7 +791,9 @@
     if (document.hidden && state.started) {
       disableTouchInput();
       state.paused = true;
+      UI.showOverlay('pause');
       doSave(true);
+      document.exitPointerLock?.();
     }
   });
   addEventListener('beforeunload', () => { if (state.started) doSave(true); });
