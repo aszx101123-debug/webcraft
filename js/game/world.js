@@ -372,6 +372,7 @@ const World = (() => {
   return {
     init, update, getBlock, setBlock, getChunk, getEdits, onBlockChanged, invalidateAt,
     heightAt: (x, z) => gen ? gen.heightAt(x, z) : 0,
+    biomeAt: (x, z) => gen ? gen.biomeAt(x, z) : 'plains',
     pendingCount: () => pending.length,
     dirtyCount: () => dirtySet.size,
     chunkCount: () => chunks.size,
