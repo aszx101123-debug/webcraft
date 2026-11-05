@@ -52,6 +52,7 @@ const SaveSystem = (() => {
       if (!isFiniteNumber(data.player.x) || !isFiniteNumber(data.player.y) || !isFiniteNumber(data.player.z)) return false;
     }
     if (data.edits !== undefined && !Array.isArray(data.edits)) return false;
+    if (data.blockObjects !== undefined && (!Array.isArray(data.blockObjects) || data.blockObjects.length>5000)) return false;
     if (data.inventory !== undefined && !Array.isArray(data.inventory)) return false;
     if (data.equipment !== undefined && (typeof data.equipment !== 'object' || Array.isArray(data.equipment))) return false;
     return true;
@@ -225,6 +226,25 @@ const SaveSystem = (() => {
           if (!Array.isArray(cell) || cell.length !== 2 ||
               !Number.isInteger(cell[0]) || cell[0] < 0 || cell[0] >= 16384 ||
               !Number.isInteger(cell[1]) || cell[1] < 0 || cell[1] >= BLOCKS.length) return null;
+        }
+      }
+    }
+    // Per-position orientation and chest contents must remain bounded on import.
+    if (data.blockObjects) for (const entry of data.blockObjects) {
+      if (!Array.isArray(entry) || entry.length!==2 ||
+          typeof entry[0]!=='string' || !/^-?\\d+,\\d+,-?\\d+$/.test(entry[0]) ||
+          !entry[1] || typeof entry[1]!=='object' || Array.isArray(entry[1]))return null;
+      const obj=entry[1];
+      if (obj.facing!==undefined &&
+          !['north','south','east','west'].includes(obj.facing))return null;
+      if (obj.half!==undefined && !['top','bottom'].includes(obj.half))return null;
+      if (obj.open!==undefined && typeof obj.open!=='boolean')return null;
+      if (obj.chest!==undefined) {
+        if (!Array.isArray(obj.chest) || obj.chest.length!==18)return null;
+        for (const slot of obj.chest) {
+          if (slot===null)continue;
+          if (!slot || !Number.isInteger(slot.id) || !getItemDef(slot.id) ||
+              !Number.isInteger(slot.count) || slot.count<1 || slot.count>64)return null;
         }
       }
     }
