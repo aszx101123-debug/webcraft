@@ -393,6 +393,7 @@
     }
   }
   let miningHeld = false;
+  let miningSwingElapsed = 0;
   const canvas = renderer.domElement;
   function resumeInput() {
     if (isTouch) {
@@ -508,6 +509,7 @@
     if (e.target?.closest?.('#touch-controls, #hotbar, .overlay, #picker, button, input')) return;
     if (!(state.locked || (isTouch && touchActive)) || Player.dead || state.paused) return;
     if (e.button === 0) {
+      miningSwingElapsed = 0;
       PlayerModel.swing();
       const dir = new THREE.Vector3();
       camera.getWorldDirection(dir);
@@ -819,7 +821,17 @@
         Player.update(dt, keys);
         Interact.update();
         const mined = Interact.updateMining(dt, state.mode === GAME_MODE.SURVIVAL);
-        UI.setMiningProgress(Interact.miningProgress());
+        const miningProgress = Interact.miningProgress();
+        UI.setMiningProgress(miningProgress);
+        if (miningHeld && miningProgress > 0) {
+          miningSwingElapsed += dt;
+          if (miningSwingElapsed >= .48) {
+            PlayerModel.swing();
+            miningSwingElapsed = 0;
+          }
+        } else {
+          miningSwingElapsed = 0;
+        }
         if (mined) {
           miningHeld = false;
           blip(95, .12, 'triangle', .09);
