@@ -169,3 +169,4 @@ const WebCraftSkins = (() => {
   }
   return {KEY,palettes,defaults,presets,labels,normalize,hex,shade,load,save,draw};
 })();
+if (typeof window !== 'undefined') window.WebCraftSkins = WebCraftSkins;
