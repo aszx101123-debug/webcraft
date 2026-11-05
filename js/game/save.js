@@ -233,6 +233,20 @@ const SaveSystem = (() => {
           !Number.isInteger(s.id) || !getItemDef(s.id) ||
           !Number.isInteger(s.count) || (s.count !== -1 && (s.count < 1 || s.count > 64))
         )))) return null;
+    if (data.crafting) {
+      const craft = data.crafting;
+      if ((craft.size !== 2 && craft.size !== 3) ||
+          !Array.isArray(craft.grid) || craft.grid.length !== 9) return null;
+      for (const id of craft.grid) {
+        if (id !== null && id !== 0 && (!Number.isInteger(id) || !getItemDef(id) ||
+            getToolDef(id) || getArmorDef(id))) return null;
+      }
+    }
+    if (data.inventoryCursor) {
+      const stack = data.inventoryCursor;
+      if (!Number.isInteger(stack.id) || !getItemDef(stack.id) ||
+          !Number.isInteger(stack.count) || stack.count < 1 || stack.count > 64) return null;
+    }
     if (data.player) {
       for (const n of [data.player.x, data.player.y, data.player.z])
         if (!Number.isFinite(n) || Math.abs(n) > 1000000) return null;
