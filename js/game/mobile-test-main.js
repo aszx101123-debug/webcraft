@@ -379,13 +379,11 @@
     keys[e.code] = true;
     if (e.code === 'Space') e.preventDefault();
     if (e.code === 'Escape' && UI.isInventoryOpen()) {
-      UI.closeInventory();
-      resumeInput();
+      if (UI.closeInventory()) resumeInput();
       return;
     }
     if (e.code === 'Escape' && UI.isCraftingOpen()) {
-      UI.closeCrafting();
-      resumeInput();
+      if (UI.closeCrafting()) resumeInput();
       return;
     }
     if (e.code === 'F3') { e.preventDefault(); const h = document.getElementById('hud-info'); h.style.display = h.style.display === 'none' ? '' : 'none'; }
@@ -559,9 +557,10 @@
   }
 
   function openWorldMenu() {
+    if (UI.isInventoryOpen() && !UI.closeInventory()) return;
+    if (UI.isCraftingOpen() && !UI.closeCrafting()) return;
     disableTouchInput();
     state.suppressPause = true;
-    UI.closeInventory();
     state.started = false;
     Interact.cancelBreak();
     UI.setMiningProgress(0);
@@ -599,7 +598,7 @@
   });
 
   document.getElementById('inventory-close').addEventListener('click', () => {
-    UI.closeInventory();
+    if (!UI.closeInventory()) return;
     state.paused = false;
     state.suppressPause = true;
     resumeInput();
@@ -617,7 +616,7 @@
   });
   document.getElementById('btn-worlds').addEventListener('click', openWorldMenu);
   document.getElementById('crafting-close').addEventListener('click', () => {
-    UI.closeCrafting();
+    if (!UI.closeCrafting()) return;
     state.paused = false;
     state.suppressPause = true;
     resumeInput();
