@@ -399,7 +399,7 @@
       UI.showToast(labels[state.thirdPersonView] + ' ON');
       return;
     }
-    if (e.code === 'Escape' && state.started && !state.locked && !UI.isInventoryOpen() && !UI.isCraftingOpen()) {
+    if (e.code === 'Escape' && state.started && !state.locked && !UI.isInventoryOpen() && !UI.isCraftingOpen() && !UI.isFurnaceOpen()) {
       disableTouchInput();
       state.paused = true;
       UI.showOverlay('pause');
@@ -705,7 +705,7 @@
         UI.setStartEnabled(true);
       }
     } else {
-      const active = state.started && !state.paused && !Player.dead && !UI.isInventoryOpen() && !UI.isCraftingOpen();
+      const active = state.started && !state.paused && !Player.dead && !UI.isInventoryOpen() && !UI.isCraftingOpen() && !UI.isFurnaceOpen();
       if (active) {
         Player.update(dt, keys);
         Interact.update();
