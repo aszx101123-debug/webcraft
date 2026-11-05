@@ -13,6 +13,7 @@ const World = (() => {
   let waterSources = new Set();
   let matSolid = null, matWater = null, matTorch = null;
   let torchLights = [], torchLightTick = 0;
+  const blockChangeListeners = new Set();
 
   const key = (cx, cz) => cx + ',' + cz;
 
@@ -106,7 +107,8 @@ const World = (() => {
     if (!ch) return false;
     const lx = x & 15, lz = z & 15;
     const li = Terrain.idx(lx, y, lz);
-    if (ch.data[li] === id) return false;
+    const previous = ch.data[li];
+    if (previous === id || (id !== BLOCK.AIR && !BLOCKS[id])) return false;
     const kCell = x + ',' + y + ',' + z;
     if (id === BLOCK.WATER) { fluidLevels.set(kCell, 8); if (record) waterSources.add(kCell); }
     else if (id === BLOCK.WATER_FLOW) {
@@ -123,7 +125,14 @@ const World = (() => {
     if (lx === 15) markDirty(cx + 1, cz);
     if (lz === 0) markDirty(cx, cz - 1);
     if (lz === 15) markDirty(cx, cz + 1);
+    blockChangeListeners.forEach(listener => listener(x,y,z,id,previous));
     return true;
+  }
+
+  function onBlockChanged(listener) {
+    if (typeof listener !== 'function') return () => {};
+    blockChangeListeners.add(listener);
+    return () => blockChangeListeners.delete(listener);
   }
 
   function ensureArea(pcx, pcz, r) {
@@ -321,7 +330,7 @@ const World = (() => {
   }
 
   return {
-    init, update, getBlock, setBlock, getChunk, getEdits,
+    init, update, getBlock, setBlock, getChunk, getEdits, onBlockChanged,
     heightAt: (x, z) => gen ? gen.heightAt(x, z) : 0,
     pendingCount: () => pending.length,
     dirtyCount: () => dirtySet.size,
