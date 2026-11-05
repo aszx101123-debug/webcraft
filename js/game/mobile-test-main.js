@@ -288,8 +288,10 @@
 
   const keys = {};
   let touchActive = false;
+  let resetTouchPad = () => {};
   function disableTouchInput() {
     touchActive = false;
+    resetTouchPad();
     document.body.classList.remove('touch-playing');
     for (const k of ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space', 'ShiftLeft']) keys[k] = false;
   }
@@ -303,6 +305,7 @@
     const knob = touchControls.querySelector('#touch-knob');
     const moveKeys = ['KeyW','KeyA','KeyS','KeyD'];
     const resetPad = () => { moveKeys.forEach(k => keys[k] = false); knob.style.transform = ''; };
+    resetTouchPad = resetPad;
     pad.addEventListener('pointerdown', e => { pad.setPointerCapture(e.pointerId); movePad(e); });
     pad.addEventListener('pointermove', e => { if (pad.hasPointerCapture(e.pointerId)) movePad(e); });
     pad.addEventListener('pointerup', resetPad);
@@ -454,7 +457,8 @@
   });
 
   document.addEventListener('mousedown', e => {
-    if (!(state.locked || (isTouch && touchActive)) || Player.dead) return;
+    if (e.target?.closest?.('#touch-controls, #hotbar, .overlay, #picker, button, input')) return;
+    if (!(state.locked || (isTouch && touchActive)) || Player.dead || state.paused) return;
     if (e.button === 0) {
       const dir = new THREE.Vector3();
       camera.getWorldDirection(dir);
