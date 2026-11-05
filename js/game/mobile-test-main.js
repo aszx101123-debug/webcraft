@@ -69,7 +69,7 @@
       ? Math.max(0, Math.min(2, saved.thirdPersonView | 0))
       : (saved && saved.thirdPerson ? 1 : 0),
     time: saved ? saved.time : .22,
-    renderDist: saved ? saved.renderDist : CONFIG.RENDER_DIST,
+    renderDist: saved && Number.isFinite(saved.renderDist) ? Math.max(2, Math.min(5, saved.renderDist | 0)) : (isTouch ? 2 : CONFIG.RENDER_DIST),
     sound: saved ? saved.sound !== false : true,
     suppressPause: false,
     paused: false,
@@ -85,6 +85,15 @@
     ? saved.inventory.map(s => (typeof s === 'number' && s > 0) ? { id: s, count: -1 } : s)
     : savedHotbar;
   Inventory.init(state.mode, savedInventory, saved && saved.equipment ? saved.equipment : null);
+  // Restore ingredients held in the crafting grid, not only the inventory slots.
+  if (saved?.crafting && Array.isArray(saved.crafting.grid) && saved.crafting.grid.length === 9) {
+    Crafting.resetGrid(saved.crafting.size === 3 ? 3 : 2);
+    saved.crafting.grid.forEach((id, index) => {
+      if (Number.isInteger(id) && id > 0 && getItemDef(id) && !getToolDef(id) && !getArmorDef(id))
+        Crafting.setCell(index, id);
+    });
+  }
+  if (saved?.inventoryCursor) UI.restoreInventoryCursor(saved.inventoryCursor);
 
   if (saved && saved.player) {
     const p = saved.player;
@@ -221,7 +230,7 @@
 
   function doSave(silent) {
     const ok = SaveSystem.save(worldId, {
-      version: 5,
+      version: 6,
       savedAt: Date.now(),
       worldId,
       worldName: worldMeta.name,
@@ -236,6 +245,8 @@
       hotbar: Inventory.serialize().slice(0, Inventory.HOTBAR_SIZE),
       inventory: Inventory.serialize(),
       equipment: Inventory.serializeEquipment(),
+      crafting: { size: Crafting.getGridSize(), grid: Crafting.getGrid() },
+      inventoryCursor: UI.getInventoryCursor(),
       thirdPerson: state.thirdPersonView > 0,
       thirdPersonView: state.thirdPersonView,
       player: {
