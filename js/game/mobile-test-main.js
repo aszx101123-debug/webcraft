@@ -53,7 +53,17 @@
   World.init(scene, seed, saved ? saved.edits : null);
   Fluids.init();
   PlayerModel.init(scene,camera);
-  PlayerModel.setAppearance(saved && saved.appearance ? saved.appearance : null);
+  // Homepage edits override older world cosmetics, without disturbing world blocks.
+  const homepageSkin = WebCraftSkins.load();
+  const worldAppearanceAt = saved && Number.isFinite(saved.appearanceUpdatedAt)
+    ? saved.appearanceUpdatedAt : 0;
+  let appearanceUpdatedAt = worldAppearanceAt;
+  if (homepageSkin && (!saved?.appearance || homepageSkin.updatedAt > worldAppearanceAt)) {
+    PlayerModel.setAppearance(homepageSkin.appearance);
+    appearanceUpdatedAt = homepageSkin.updatedAt;
+  } else {
+    PlayerModel.setAppearance(saved && saved.appearance ? saved.appearance : null);
+  }
   Mobs.init(scene);
   Drops.init(scene, (id, n) => {
     UI.showToast(`${getItemName(id)} +${n}`);
@@ -247,6 +257,7 @@
       inventory: Inventory.serialize(),
       equipment: Inventory.serializeEquipment(),
       appearance: PlayerModel.getAppearance(),
+      appearanceUpdatedAt,
       crafting: { size: Crafting.getGridSize(), grid: Crafting.getGrid() },
       inventoryCursor: UI.getInventoryCursor(),
       thirdPerson: state.thirdPersonView > 0,
@@ -690,6 +701,8 @@
     createWorldAndOpen(name, rawSeed);
   });
   document.addEventListener('webcraft-appearance-changed', () => {
+    const record = WebCraftSkins.save(PlayerModel.getAppearance());
+    appearanceUpdatedAt = record ? record.updatedAt : Date.now();
     if (state.started) doSave(true);
   });
   document.getElementById('btn-save').addEventListener('click', () => doSave(false));
