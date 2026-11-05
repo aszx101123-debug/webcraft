@@ -913,6 +913,7 @@
   // Save as soon as the user switches apps; browser page suspension can skip unload.
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && state.started) {
+      WorldJournal.close(false);
       disableTouchInput();
       state.paused = true;
       UI.showOverlay('pause');
