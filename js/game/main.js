@@ -332,7 +332,7 @@
         if(act==='mine')canvas.dispatchEvent(new MouseEvent('mousedown',{button:0,bubbles:true}));
         if(act==='place')canvas.dispatchEvent(new MouseEvent('mousedown',{button:2,bubbles:true}));
         if(act==='inventory') { state.suppressPause=true; UI.openInventory(); }
-        if(act==='pause') { state.paused=true; touchActive=false; UI.showOverlay('pause'); doSave(true); }
+        if(act==='pause') { state.paused=true; touchActive=false; resetPad(); keys.Space=false; UI.showOverlay('pause'); doSave(true); }
       });
       button.addEventListener('pointerup',stop);
       button.addEventListener('pointercancel',stop);
@@ -340,6 +340,7 @@
   }
   let miningHeld = false;
   const canvas = renderer.domElement;
+  function resumeInput() { if (isTouch) touchActive = true; else { try { canvas.requestPointerLock(); } catch (_) {} } }
 
   function beginGameplay(mode) {
     state.mode = mode;
@@ -351,7 +352,7 @@
     state.suppressPause = true;
     UI.renderHotbar();
     UI.showOverlay(null);
-    if (isTouch) { touchActive = true; } else { try { canvas.requestPointerLock(); } catch (e) { } }
+    resumeInput();
   }
 
   document.addEventListener('keydown', e => {
@@ -381,7 +382,7 @@
       doSave(true);
       return;
     }
-    if (!state.locked) return;
+    if (!(state.locked || (isTouch && touchActive))) return;
     if (e.code.startsWith('Digit')) {
       const n = +e.code[5];
       if (n >= 1 && n <= 9) { UI.setSelected(n - 1); blip(300, .04, 'square', .02); }
@@ -575,14 +576,13 @@
     UI.closeInventory();
     state.paused = false;
     state.suppressPause = true;
-    try { canvas.requestPointerLock(); } catch (e) { }
+    resumeInput();
   });
   document.getElementById('btn-resume').addEventListener('click', () => {
     state.paused = false;
     state.suppressPause = true;
     UI.showOverlay(null);
-    if(isTouch) touchActive=true;
-    else try { canvas.requestPointerLock(); } catch (e) { }
+    resumeInput();
   });
   document.getElementById('btn-crafting').addEventListener('click', () => {
     state.suppressPause = true;
@@ -594,7 +594,7 @@
     UI.closeCrafting();
     state.paused = false;
     state.suppressPause = true;
-    try { canvas.requestPointerLock(); } catch (e) { }
+    resumeInput();
   });
   document.getElementById('btn-create-world').addEventListener('click', () => {
     const name = document.getElementById('world-name-input').value.trim();
@@ -609,9 +609,9 @@
     UI.setMiningProgress(0);
     Player.respawn();
     UI.hideDeath();
-    canvas.requestPointerLock();
+    resumeInput();
   });
-  document.getElementById('picker-close').addEventListener('click', () => { UI.closePicker(); canvas.requestPointerLock(); });
+  document.getElementById('picker-close').addEventListener('click', () => { UI.closePicker(); resumeInput(); });
   document.getElementById('btn-newworld').addEventListener('click', () => {
     if (!confirm('현재 월드는 저장된 상태로 남기고 새 월드를 만들까요?')) return;
     const v = document.getElementById('seed-input').value.trim();
