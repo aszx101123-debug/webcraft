@@ -11,11 +11,11 @@
 <link rel="apple-touch-icon" href="img/icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri/dist/galmuri.css">
 <link rel="stylesheet" href="css/game.css">
-<link rel="stylesheet" href="css/mobile-test.css?v=pcmobile2">
+<link rel="stylesheet" href="css/mobile-test.css?v=pcmobile3">
 </head>
 <body>
 
-<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.2.7 · PC/모바일 호환 패치</div>
+<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.2.7 · PC·모바일 + 화로/제련 추가</div>
 <div id="boot-error" class="boot-error hidden" role="alert">
   <div class="boot-error-panel">
     <div class="boot-error-icon">!</div>
@@ -193,6 +193,17 @@
   </div>
 </div>
 
+<div id="overlay-furnace" class="overlay hidden">
+  <div class="panel furnace-panel">
+    <h2>화로 · 광석 제련</h2>
+    <p class="sub">조약돌 8개로 화로를 제작할 수 있어요. 화로에 광석과 연료를 넣어 주괴를 만듭니다.</p>
+    <p class="sub" id="furnace-fuel">연료 확인 중…</p>
+    <div id="furnace-recipes" class="furnace-recipes"></div>
+    <p class="sub">간편 제련 방식: 제련 버튼을 누르면 광석 1개와 연료를 소비합니다.</p>
+    <button id="furnace-close" class="btn ghost">닫기</button>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script>
 (() => {
@@ -207,22 +218,22 @@
   });
 })();
 </script>
-<script src="js/game/config.js"></script>
+<script src="js/game/config.js?v=furnace1"></script>
 <script src="js/game/noise.js"></script>
 <script src="js/game/terrain.js?v=ruinfix1"></script>
-<script src="js/game/mobile-test-textures.js?v=pcmobile2"></script>
+<script src="js/game/mobile-test-textures.js?v=pcmobile3"></script>
 <script src="js/game/world.js"></script>
 <script src="js/game/player.js"></script>
-<script src="js/game/mobile-test-player-model.js?v=pcmobile2"></script>
+<script src="js/game/mobile-test-player-model.js?v=pcmobile3"></script>
 <script src="js/game/fluids.js"></script>
 <script src="js/game/interaction.js"></script>
 <script src="js/game/items.js"></script>
 <script src="js/game/drops.js"></script>
 <script src="js/game/mobs.js"></script>
 <script src="js/game/save.js"></script>
-<script src="js/game/mobile-test-crafting.js?v=pcmobile2"></script>
-<script src="js/game/mobile-test-ui.js?v=pcmobile2"></script>
-<script src="js/game/mobile-test-main.js?v=pcmobile2"></script>
+<script src="js/game/mobile-test-crafting.js?v=pcmobile3"></script>
+<script src="js/game/mobile-test-ui.js?v=pcmobile3"></script>
+<script src="js/game/mobile-test-main.js?v=pcmobile3"></script>
 <script>
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(() => {}));
