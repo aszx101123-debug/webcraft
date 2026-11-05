@@ -8,6 +8,7 @@ class El{
     this.classList={add:c=>this.classes.add(c),remove:c=>this.classes.delete(c),contains:c=>this.classes.has(c)};}
   replaceChildren(...arr){this.children=arr}
   append(...arr){this.children.push(...arr)}
+  appendChild(child){this.children.push(child)}
 }
 const document={
   getElementById:id=>children[id]||(children[id]=new El()),
