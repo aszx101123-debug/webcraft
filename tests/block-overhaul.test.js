@@ -12,11 +12,14 @@ const {CONFIG,BLOCK,BLOCKS,ITEM,PLACEABLE_IDS,isFallingBlock,isPlaceable,getBloc
 check('all original block IDs are preserved and 14 new IDs appended',()=>{
   assert.equal(BLOCK.TORCH,26);assert.equal(BLOCK.WATER_FLOW,23);
   assert.equal(BLOCK.GRAVEL,27);assert.equal(BLOCK.BOOKSHELF,40);
-  assert.equal(BLOCKS.length,41);
+  assert.equal(BLOCKS.length,46);
   for(let id=1;id<=40;id++)assert.ok(BLOCKS[id]?.tiles,'Missing block '+id);
+  for(let id=41;id<=45;id++)assert.ok(BLOCKS[id]?.tiles,'Missing building block '+id);
+
 });
 check('every new block is accessible from creative selection',()=>{
-  for(let id=27;id<=40;id++)assert.ok(PLACEABLE_IDS.includes(id),id);
+  for(let id=27;id<=44;id++)assert.ok(PLACEABLE_IDS.includes(id),id);
+  assert.equal(PLACEABLE_IDS.includes(BLOCK.WOOD_DOOR_TOP),false);
   assert.equal(isPlaceable(BLOCK.WATER_FLOW),false);
   assert.equal(isPlaceable(BLOCK.BEDROCK),false);
 });
@@ -120,9 +123,9 @@ const Textures=new Function('document','THREE','Noise','BLOCKS','ITEMS',
 check('upgraded 12x12 atlas paints every new block tile',()=>{
   Textures.init();
   assert.equal(Textures.getAtlas().width,192);
-  for(const [col,row] of [[10,0],[11,0],[10,1],[11,1],[10,2],[11,2],[10,3],[11,3],[10,4],[11,4],[10,5],[11,5],[10,6],[11,6],[10,7],[11,7],[10,8],[11,8]])
+  for(const [col,row] of [[10,0],[11,0],[10,1],[11,1],[10,2],[11,2],[10,3],[11,3],[10,4],[11,4],[10,5],[11,5],[10,6],[11,6],[10,7],[11,7],[10,8],[11,8],[0,10],[1,10],[2,10],[3,10],[4,10],[5,10],[6,10]])
     assert.ok(cells.has(col+','+row),'Missing pixel art tile '+col+','+row);
-  for(let id=27;id<=40;id++) {
+  for(let id=27;id<=45;id++) {
     const uv=Textures.tileFor(id,'side');
     assert.ok(uv.u0>=0&&uv.u1<=1&&uv.v0>=0&&uv.v1<=1);
     assert.ok(uv.u1>uv.u0&&uv.v1>uv.v0);
