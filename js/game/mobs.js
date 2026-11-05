@@ -468,15 +468,10 @@ const Mobs = (() => {
       if (t !== null && t < reach && t < bestT) { bestT = t; best = m; }
     }
     if (best) {
-      // Java-style recharge: impatient clicks are weaker, not full-strength strikes.
-      const now = performance.now();
-      const elapsed = (now - lastPlayerAttackAt) / 1000;
-      const selected=Inventory.selectedSlot();
-      const tool=Inventory.selectedTool();
-      const stats=getAttackStats(selected?.id || 0);
-      const charge=attackCharge(elapsed,stats.speed);
-      // A small animation gate and entity hurt grace prevent impossible click spam.
-      if(elapsed < .16){
+      // Consistent, visible cooldown instead of applying damage on every click.
+      const now=performance.now();
+      const charge=Math.max(0,Math.min(1,(now-lastPlayerAttackAt)/450));
+      if(now-lastPlayerAttackAt<450){
         lastAttackResult={target:best,landed:false,reason:'recharge',charge,damage:0};
         return best;
       }
@@ -485,15 +480,16 @@ const Mobs = (() => {
         return null;
       }
       lastPlayerAttackAt=now;
-      const critical=charge>.9&&!Player.onGround&&!Player.inWater&&Player.vel?.y<-.1;
-      const damage=chargedAttackDamage(stats.damage,charge,critical);
+      const tool=Inventory.selectedTool();
+      const damage=tool&&Number.isFinite(tool.attackDamage)
+        ? tool.attackDamage:SURVIVAL.FIST_DMG;
       const landed=hurtMob(best,damage,Player.pos);
       if(landed&&tool){
         Inventory.damageSelectedTool(1);
         UI.renderHotbar();
       }
-      lastAttackResult={target:best,landed,reason:landed?'hit':'hurt-grace',
-        charge,damage:landed?damage:0,critical:landed&&critical};
+      lastAttackResult={target:best,landed,
+        reason:landed?'hit':'hurt-grace',charge,damage:landed?damage:0};
       return best;
     }
     return null;
@@ -767,9 +763,7 @@ const Mobs = (() => {
   }
 
   function getAttackCharge() {
-    const selected=Inventory.selectedSlot();
-    const stats=getAttackStats(selected?.id||0);
-    return attackCharge((performance.now()-lastPlayerAttackAt)/1000,stats.speed);
+    return Math.max(0,Math.min(1,(performance.now()-lastPlayerAttackAt)/450));
   }
   function getLastAttackResult(){return lastAttackResult;}
 
