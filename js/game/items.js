@@ -85,7 +85,8 @@ const Inventory = (() => {
     if (!id || !count || count <= 0) return false;
     const def = getItemDef(id);
     if (!def) return false;
-    if (mode === GAME_MODE.CREATIVE) return true;
+    // A creative infinite stack already covers this item; otherwise require free space.
+    if (mode === GAME_MODE.CREATIVE && slots.some(s => s && s.id === id && s.count === Infinity)) return true;
     if (def.toolType) return slots.filter(s => !s).length >= count;
     let remaining = count;
     for (const s of slots) {
@@ -112,7 +113,8 @@ const Inventory = (() => {
       }
       return added;
     }
-    if (mode === GAME_MODE.CREATIVE) return count;
+    // Crafted items must actually appear in creative inventory, not just report success.
+    if (mode === GAME_MODE.CREATIVE && slots.some(s => s && s.id === id && s.count === Infinity)) return count;
     let left = count;
     for (let i = 0; i < SIZE && left > 0; i++) {
       const s = slots[i];
