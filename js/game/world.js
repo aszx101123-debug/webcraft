@@ -11,7 +11,8 @@ const World = (() => {
   let pendingSet = new Set();
   let fluidLevels = new Map();
   let waterSources = new Set();
-  let matSolid = null, matWater = null;
+  let matSolid = null, matWater = null, matTorch = null;
+  let torchLights = [], torchLightTick = 0;
 
   const key = (cx, cz) => cx + ',' + cz;
 
@@ -30,6 +31,7 @@ const World = (() => {
     const NB = BLOCKS[nb];
     if (NB.liquid) return !BLOCKS[id].liquid;
     if (NB.cutout) return id !== nb;
+    if (NB.nonSolid) return true;
     return false;
   }
 
@@ -60,10 +62,19 @@ const World = (() => {
     gen = Terrain.makeGen(seed);
     if (!matSolid) {
       matSolid = new THREE.MeshLambertMaterial({ map: Textures.getTexture(), vertexColors: true, alphaTest: .5 });
+      matTorch = new THREE.MeshBasicMaterial({ map: Textures.getTexture(), vertexColors: true, alphaTest: .5 });
       matWater = new THREE.MeshLambertMaterial({
         map: Textures.getTexture(), vertexColors: true, transparent: true,
         opacity: .72, depthWrite: false, side: THREE.DoubleSide
       });
+    }
+    if (!torchLights.length) {
+      for (let i = 0; i < 4; i++) {
+        const light = new THREE.PointLight(0xffaa66, 0.85, 9, 2);
+        light.visible = false;
+        group.add(light);
+        torchLights.push(light);
+      }
     }
     scene.add(group);
   }
@@ -71,6 +82,7 @@ const World = (() => {
   function disposeChunk(ch) {
     if (ch.mesh) { group.remove(ch.mesh); ch.mesh.geometry.dispose(); ch.mesh = null; }
     if (ch.waterMesh) { group.remove(ch.waterMesh); ch.waterMesh.geometry.dispose(); ch.waterMesh = null; }
+    if (ch.torchMesh) { group.remove(ch.torchMesh); ch.torchMesh.geometry.dispose(); ch.torchMesh = null; }
   }
 
   function getChunk(cx, cz) { return chunks.get(key(cx, cz)); }
