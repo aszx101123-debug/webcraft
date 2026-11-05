@@ -1,13 +1,13 @@
 'use strict';
 
-const VERSION = 'webcraft-cross-platform-furnace-20261105-v3';
+const VERSION = 'webcraft-cross-platform-furnace-torches-20261105-v4';
 const CORE = [
   './',
   './index.html',
   './play.html',
   './css/style.css',
   './css/game.css',
-  './css/mobile-test.css?v=pcmobile3',
+  './css/mobile-test.css?v=pcmobile4',
   './manifest.webmanifest',
   './img/icon-192.png',
   './img/icon-512.png',
@@ -19,22 +19,24 @@ const CORE = [
   './js/game/drops.js',
   './js/game/mobs.js',
   './js/game/config.js',
-  './js/game/config.js?v=furnace1',
+  './js/game/config.js?v=furnace-torch1',
   './js/game/noise.js',
   './js/game/terrain.js',
   './js/game/textures.js',
   './js/game/world.js',
+  './js/game/world.js?v=torch1',
   './js/game/player.js',
   './js/game/interaction.js',
+  './js/game/interaction.js?v=torch1',
   './js/game/save.js',
   './js/game/crafting.js',
   './js/game/ui.js',
   './js/game/main.js',
-  './js/game/mobile-test-main.js?v=pcmobile3',
-  './js/game/mobile-test-ui.js?v=pcmobile3',
-  './js/game/mobile-test-crafting.js?v=pcmobile3',
-  './js/game/mobile-test-textures.js?v=pcmobile3',
-  './js/game/mobile-test-player-model.js?v=pcmobile3',
+  './js/game/mobile-test-main.js?v=pcmobile4',
+  './js/game/mobile-test-ui.js?v=pcmobile4',
+  './js/game/mobile-test-crafting.js?v=pcmobile4',
+  './js/game/mobile-test-textures.js?v=pcmobile4',
+  './js/game/mobile-test-player-model.js?v=pcmobile4',
   './js/game/player-model.js',
   './js/game/fluids.js'
 ];
