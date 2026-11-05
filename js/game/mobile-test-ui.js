@@ -57,7 +57,7 @@ const UI = (() => {
   }
 
   function showOverlay(name) {
-    ['overlay-start', 'overlay-pause', 'overlay-death', 'overlay-inventory', 'overlay-crafting'].forEach(id => $(id)?.classList.add('hidden'));
+    ['overlay-start', 'overlay-pause', 'overlay-death', 'overlay-inventory', 'overlay-crafting', 'overlay-furnace'].forEach(id => $(id)?.classList.add('hidden'));
     if (name !== 'inventory') inventoryCursorReturn();
     if (name === 'start') $('overlay-start').classList.remove('hidden');
     else if (name === 'pause') $('overlay-pause').classList.remove('hidden');
@@ -468,6 +468,88 @@ const UI = (() => {
 
   function isCraftingOpen() { return !$('overlay-crafting').classList.contains('hidden'); }
 
+  const furnaceRecipes = [
+    { input: BLOCK.IRON_ORE, output: ITEM.IRON_INGOT },
+    { input: BLOCK.GOLD_ORE, output: ITEM.GOLD_INGOT },
+    { input: BLOCK.COPPER_ORE, output: ITEM.COPPER_INGOT }
+  ];
+
+  function furnaceFuel() {
+    if (Inventory.countItem(ITEM.COAL) >= 1) return { id: ITEM.COAL, count: 1 };
+    if (Inventory.countItem(BLOCK.PLANK) >= 2) return { id: BLOCK.PLANK, count: 2 };
+    return null;
+  }
+
+  function renderFurnace() {
+    const list = $('furnace-recipes');
+    if (!list) return;
+    list.innerHTML = '';
+    const fuel = furnaceFuel();
+    const supply = $('furnace-fuel');
+    if (supply) supply.textContent = fuel
+      ? '사용할 연료: ' + getItemName(fuel.id) + ' ×' + fuel.count
+      : '연료 부족: 석탄 1개 또는 판자 2개 필요';
+    for (const recipe of furnaceRecipes) {
+      const available = Inventory.countItem(recipe.input) >= 1 && !!fuel &&
+        Inventory.canAdd(recipe.output, 1) && !Inventory.isCreative();
+      const row = document.createElement('div');
+      row.className = 'furnace-recipe';
+      const icon = document.createElement('img');
+      icon.src = Textures.blockIcon(recipe.input);
+      icon.alt = '';
+      const label = document.createElement('span');
+      label.textContent = getItemName(recipe.input) + ' → ' + getItemName(recipe.output);
+      const button = document.createElement('button');
+      button.className = 'btn small';
+      button.textContent = '제련';
+      button.disabled = !available;
+      button.addEventListener('click', () => {
+        const chosenFuel = furnaceFuel();
+        if (!chosenFuel || Inventory.countItem(recipe.input) < 1 ||
+            !Inventory.canAdd(recipe.output, 1)) {
+          showToast('광석·연료 또는 인벤토리 공간을 확인해 주세요');
+          renderFurnace();
+          return;
+        }
+        if (!Inventory.removeItem(recipe.input, 1)) return;
+        if (!Inventory.removeItem(chosenFuel.id, chosenFuel.count)) {
+          Inventory.add(recipe.input, 1);
+          renderFurnace();
+          return;
+        }
+        const made = Inventory.add(recipe.output, 1);
+        if (made !== 1) {
+          Inventory.add(recipe.input, 1);
+          Inventory.add(chosenFuel.id, chosenFuel.count);
+          showToast('결과물을 보관할 공간이 없습니다');
+        } else {
+          renderHotbar();
+          showToast(getItemName(recipe.output) + ' 제련 완료');
+        }
+        renderFurnace();
+      });
+      row.append(icon, label, button);
+      list.appendChild(row);
+    }
+  }
+
+  function openFurnace() {
+    const overlay = $('overlay-furnace');
+    if (!overlay) { showToast('화로 화면을 불러올 수 없습니다'); return; }
+    renderFurnace();
+    overlay.classList.remove('hidden');
+  }
+
+  function closeFurnace() {
+    $('overlay-furnace')?.classList.add('hidden');
+    return true;
+  }
+
+  function isFurnaceOpen() {
+    const overlay = $('overlay-furnace');
+    return !!overlay && !overlay.classList.contains('hidden');
+  }
+
   function setMiningProgress(progress) {
     const wrap = $('mine-progress');
     const fill = $('mine-progress-fill');
@@ -586,7 +668,8 @@ const UI = (() => {
   return {
     renderHotbar, setSelected, showItemName, showOverlay, showToast, setHUD, setTime, setMiningProgress,
     setModeLabel, renderWorlds, renderCrafting, openCrafting, closeCrafting, isCraftingOpen,
-    renderInventory, openInventory, closeInventory, isInventoryOpen, dropSelected, updateInventoryCursor,
+    renderInventory, openInventory, closeInventory, isInventoryOpen,
+    renderFurnace, openFurnace, closeFurnace, isFurnaceOpen, dropSelected, updateInventoryCursor,
     updateSurvival, showDeath, hideDeath, openPicker, closePicker, isPickerOpen, setStartEnabled, flashVignette
   };
 })();
