@@ -177,6 +177,20 @@ const Textures = (() => {
       return vary(130, 134, 140, 10);
     });
 
+    // Original torch textures: warm flame over a dark wooden shaft.
+    fill(8, 2, (x, y) => {
+      const d = Math.abs(x - 7.5) + Math.abs(y - 7.5);
+      if (d < 4.5) return vary(255, 218, 103, 12);
+      if (d < 7) return vary(240, 123, 35, 12);
+      return vary(80, 56, 35, 7);
+    });
+    fill(9, 1, (x, y) => {
+      const flame = y < 6 && x >= 5 && x <= 10;
+      if (flame) return (x >= 7 && x <= 8 && y >= 2) ? vary(255, 236, 128, 7) : vary(242, 145, 50, 12);
+      if (x >= 5 && x <= 10) return (x === 5 || x === 10) ? vary(86, 53, 33, 6) : vary(142, 98, 58, 9);
+      return vary(36, 35, 33, 7);
+    });
+
     const armorColors=[[150,105,75],[120,125,135],[190,195,205],[220,180,55],[95,220,245]];let ac=0;const armorTile=(r,g,b)=>(x,y)=>vary(r,g,b,10);for(let row=8;row<10;row++)for(let col=0;col<10;col++){const q=armorColors[Math.min(4,Math.floor(ac/4))];fill(col,row,armorTile(...q));ac++;}
 
     function hashCell(cx, cy) { return (cx * 7 + cy * 13) % 5 / 5; }
