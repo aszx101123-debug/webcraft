@@ -244,6 +244,13 @@ function getBlockBoxes(id, state = null) {
   return [[0,0,0,1,1,1]];
 }
 
+function getBlockVisualBoxes(id,state=null) {
+  if((id===BLOCK.WOOD_DOOR||id===BLOCK.WOOD_DOOR_TOP)&&state?.open)
+    return (state.facing==='east'||state.facing==='west')
+      ? [[0,0,.405,1,1,.595]] : [[.405,0,0,.595,1,1]];
+  return getBlockBoxes(id,state);
+}
+
 function isSolidBlock(id) {
   return id !== BLOCK.AIR && !!BLOCKS[id] && !BLOCKS[id].liquid && !BLOCKS[id].nonSolid;
 }
