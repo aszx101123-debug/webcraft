@@ -30,7 +30,8 @@ const Crafting = (() => {
       id, name, outputId, count,
       shapeless: !!opts.shapeless,
       ingredients: opts.ingredients || [],
-      pattern: opts.pattern || null,
+      // Accept one 3x3 shape or multiple variants; armor used to supply a flat array.
+      pattern: opts.pattern ? (Array.isArray(opts.pattern[0]) ? opts.pattern : [opts.pattern]) : null,
       note: opts.note || ''
     });
   }
@@ -209,9 +210,10 @@ const Crafting = (() => {
       .join(';');
   }
 
-  function patternForRecipe(recipe, materialId) {
+  function patternForRecipe(recipe) {
+    const ids = recipe.ingredients.map(i=>i.id);
     return recipe.pattern.map(shape =>
-      normalizedPattern(shape.map(v => v === 1 ? materialId : v === 2 ? ITEM.STICK : 0))
+      normalizedPattern(shape.map(v => v > 0 ? (ids[v-1] || 0) : 0))
     );
   }
 
@@ -228,9 +230,7 @@ const Crafting = (() => {
       want.sort((a,b)=>a-b); got.sort((a,b)=>a-b);
       return want.length === got.length && want.every((v,i)=>v===got[i]);
     }
-    const materialId = recipe.ingredients.find(i => i.id !== ITEM.STICK)?.id;
-    if (!materialId) return false;
-    const allowed = patternForRecipe(recipe, materialId);
+    const allowed = patternForRecipe(recipe);
     const sig = normalizedPattern(grid);
     return allowed.includes(sig);
   }
@@ -270,7 +270,6 @@ const Crafting = (() => {
     // Never clear a player's existing crafting materials when autofill is unaffordable.
     if (activeIndices().some(i => grid[i])) return false;
     if (!recipe.ingredients.every(i => Inventory.countItem(i.id) >= i.count)) return false;
-    const materialId = recipe.ingredients.find(i => i.id !== ITEM.STICK)?.id || 0;
     const removed = [];
     for (const ing of recipe.ingredients) {
       if (!Inventory.removeItem(ing.id, ing.count)) {
@@ -287,9 +286,10 @@ const Crafting = (() => {
       return true;
     }
     const shape = recipe.pattern[0];
+    const ids = recipe.ingredients.map(x=>x.id);
     for (let i = 0; i < 9; i++) {
       const v = shape[i];
-      grid[i] = v === 1 ? materialId : v === 2 ? ITEM.STICK : null;
+      grid[i] = v ? (ids[v-1] || null) : null;
     }
     return true;
   }
