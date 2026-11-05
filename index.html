@@ -50,7 +50,6 @@
 </nav>
 
 <header class="hero" id="top">
-  <canvas id="hero-canvas" aria-hidden="true"></canvas>
   <div class="wrap">
     <div class="hero-layout">
       <div class="hero-content">
@@ -276,33 +275,32 @@
 <section class="alt" id="history">
   <div class="wrap">
     <div class="sec-head reveal">
-      <h2>소박하게 시작해, 프로젝트로 자라나다</h2>
-      <p>WebCraft는 한 페이지짜리 프로토타입에서 시작했습니다</p>
+      <span class="section-kicker">DEVELOPMENT JOURNEY</span>
+      <h2>계속 성장하는 WebCraft</h2>
+      <p>처음에는 작은 웹 게임이었지만, 플레이 피드백을 바탕으로 꾸준히 발전하고 있어요.</p>
     </div>
     <div class="timeline">
       <div class="tl-item reveal">
-        <div class="ver">v0.1 <span class="date">1일차</span></div>
-        <h3>단일 파일 프로토타입</h3>
-        <p>HTML 파일 하나에 전부 들어간 미니 샌드박스. 48×48 고정 월드, 색상 블록 7종, 이동·점프·채굴·설치만 있는 최소 버전.</p>
-        <a href="prototype.html">→ prototype.html 직접 실행해 보기</a>
+        <div class="ver">v0.1 <span class="date">첫 프로토타입</span></div>
+        <h3>블록 세계의 시작</h3>
+        <p>브라우저에서 이동하고 블록을 채굴·설치하는 최소한의 플레이 기능부터 시작했습니다.</p>
+        <a href="prototype.html">프로토타입 살펴보기</a>
       </div>
       <div class="tl-item reveal">
-        <div class="ver">v1.0 <span class="date">모듈 10개 · 프로젝트 구조</span></div>
-        <h3>엔진 구조화 + 콘텐츠 확장</h3>
-        <p>청크 기반 무한 월드, 절차적 픽셀 텍스처, 나무·바다·동굴 지형, 낮밤 사이클, 블록 상자, localStorage 저장 시스템, 비행 모드, 로직 테스트 자동화까지.</p>
-        <a href="play.html?v=20260920-v122">→ play.html?v=20260920-v122에서 플레이</a>
+        <div class="ver">v1.2 <span class="date">게임 시스템 확장</span></div>
+        <h3>서바이벌 · 제작 · 월드 저장</h3>
+        <p>청크 기반 월드와 다양한 지형, 인벤토리, 낮과 밤, 제작·제련, 몬스터 및 백업 기능을 발전시켰습니다.</p>
       </div>
       <div class="tl-item reveal">
-        <div class="ver">v1.2.1 <span class="date">이전 버전</span> <span class="date">버그 수정 업데이트</span></div>
-        <h3>업데이트 완료: 안정화</h3>
-        <p>v1.2에서 추가된 물 흐름·풍부한 동굴·광석·3×3 제작·3인칭 캐릭터를 안정화하고, v1.2.2에서 시작 오류 복구 화면과 업데이트 표시를 추가했습니다.</p>
-        <a href="play.html?v=20260920-v122">→ 서바이벌로 시작하기</a>
+        <div class="ver">v1.3.1 <span class="date">캐릭터 & 스킨</span></div>
+        <h3>나만의 블록형 모험가</h3>
+        <p>홈페이지 스킨 스튜디오, 헤어스타일과 의상 디테일, 1인칭 손에 든 도구 표시를 추가했습니다.</p>
       </div>
       <div class="tl-item reveal" id="roadmap">
-        <div class="ver">v1.2.5 <span class="date">이전 버전</span></div>
-        <h3>정밀 버그 수정 & 채굴 디테일</h3>
-        <p>휠 입력으로 인한 화면 동작 문제를 막고, 물이 수원에서만 제한적으로 퍼지도록 안정화했습니다. 광석은 특정 높이 구간 중심으로 희소하게 재배치했습니다.</p>
-        <div class="roadmap-pills"><span>휠 버그 ✓</span><span>물 흐름 ✓</span><span>광석 희소화 ✓</span><span>높이별 광맥 ✓</span></div>
+        <div class="ver">v1.3.3 <span class="date">현재 버전</span></div>
+        <h3>더 자유로운 건축과 새 홈페이지</h3>
+        <p>계단·반 블록·여닫는 문·저장 상자를 추가하고, 모바일에서도 사용하기 편한 새 게임 런처 디자인을 적용했습니다.</p>
+        <div class="roadmap-pills"><span>건축 블록 ✓</span><span>보관 상자 ✓</span><span>스킨 스튜디오 ✓</span><span>월드 백업 ✓</span></div>
       </div>
     </div>
   </div>
@@ -430,13 +428,6 @@
   document.querySelectorAll('.reveal').forEach(el => io.observe(el));
 })();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-<script src="js/game/config.js"></script>
-<script src="js/game/noise.js"></script>
-<script src="js/game/terrain.js"></script>
-<script src="js/game/textures.js"></script>
-<script src="js/game/world.js"></script>
-<script src="js/hero.js"></script>
 <script src="js/v133-home.js?v=v133"></script>
 <script src="js/skin-studio.js?v=v131"></script>
 <script src="js/skin-studio-page.js?v=v131"></script>
