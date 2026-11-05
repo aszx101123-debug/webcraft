@@ -67,7 +67,7 @@ const Mobs = (() => {
 
   function buildMob(type) {
     const g = new THREE.Group();
-    const parts = { legs: [], arms: [], extraLegs: [], head: null, healthBar: null, detailGroup: null };
+    const parts = { legs: [], arms: [], extraLegs: [], eyes: [], head: null, healthBar: null, detailGroup: null };
     const limb = (w, h, d, color, x, y, z) => {
       const l = box(w, h, d, color, x, y, z);
       parts.legs.push(l);
@@ -86,7 +86,9 @@ const Mobs = (() => {
       return m;
     };
     const eye = (x, y, z, color = 0x1b1b1b, w = .08, h = .08) => {
-      g.add(box(w, h, .035, color, x, y, z));
+      const pupil=box(w,h,.035,color,x,y,z);
+      g.add(pupil);
+      parts.eyes.push(pupil);
     };
 
     if (type === 'pig') {
@@ -347,7 +349,9 @@ const Mobs = (() => {
       mesh: built.mesh, parts: built.parts,
       dir: new THREE.Vector3(0, 0, 1),
       moving: false, onGround: false,
-      wanderT: Math.random() * 2, wanderMoving: false, attackT: 0, shootT: 1 + Math.random() * 2,
+      wanderT: Math.random() * 2, wanderMoving: false, grazeT: 2+Math.random()*6,
+      blinkT: 2+Math.random()*4, blinkDuration: 0,
+      attackT: 0, shootT: 1 + Math.random() * 2,
       strafeT: 2, strafeDir: 1, hurtT: 0, flashed: false,
       hurtGrace: 0, healthVisibleT: 0, provokedT: 0,
       burnT: 0, fleeT: 0, animT: 0, jumpT: 0, pathT: 0,
@@ -405,7 +409,7 @@ const Mobs = (() => {
     });
   }
 
-  function hurtMob(m, dmg, knockFrom, force=1) {
+  function hurtMob(m, dmg, knockFrom) {
     if (m.dead || m.hurtGrace > 0) return false;
     m.hurtGrace = .33;
     m.healthVisibleT = 1.8;
@@ -415,9 +419,9 @@ const Mobs = (() => {
     if (knockFrom) {
       const dx = m.pos.x - knockFrom.x, dz = m.pos.z - knockFrom.z;
       const l = Math.hypot(dx, dz) || 1;
-      m.vel.x += dx / l * 5 * force;
-      m.vel.z += dz / l * 5 * force;
-      m.vel.y = Math.max(m.vel.y, 3.8 * force);
+      m.vel.x += dx / l * 6;
+      m.vel.z += dz / l * 6;
+      m.vel.y = Math.max(m.vel.y, 4.5);
     }
     if (!m.def.hostile) m.fleeT = 4;
     if (m.type==='spider')m.provokedT=7;
@@ -468,12 +472,10 @@ const Mobs = (() => {
       if (t !== null && t < reach && t < bestT) { bestT = t; best = m; }
     }
     if (best) {
+      // Consistent, visible cooldown instead of applying damage on every click.
       const now=performance.now();
-      const selectedId=Inventory.selectedSlot()?.id||0;
-      const elapsed=now-lastPlayerAttackAt;
-      const charge=Combat.charge(selectedId,elapsed);
-      // Avoid input repeats on the exact same frame, while allowing weak swings.
-      if(elapsed<120){
+      const charge=Math.max(0,Math.min(1,(now-lastPlayerAttackAt)/450));
+      if(now-lastPlayerAttackAt<450){
         lastAttackResult={target:best,landed:false,reason:'recharge',charge,damage:0};
         return best;
       }
@@ -482,20 +484,16 @@ const Mobs = (() => {
         return null;
       }
       lastPlayerAttackAt=now;
-      const critical=Combat.canCritical(Player,charge);
-      const damage=Combat.damage(selectedId,charge,critical);
-      const force=Combat.knockback(selectedId,charge,critical);
-      const landed=hurtMob(best,damage,Player.pos,force);
-      if(landed&&Inventory.selectedTool()){
+      const tool=Inventory.selectedTool();
+      const damage=tool&&Number.isFinite(tool.attackDamage)
+        ? tool.attackDamage:SURVIVAL.FIST_DMG;
+      const landed=hurtMob(best,damage,Player.pos);
+      if(landed&&tool){
         Inventory.damageSelectedTool(1);
         UI.renderHotbar();
       }
-      lastAttackResult={
-        target:best,landed,reason:landed?'hit':'hurt-grace',charge,
-        damage:landed?Math.round(damage*10)/10:0,critical:landed&&critical,
-        stat:Combat.statsFor(selectedId)
-      };
-      if(landed&&critical&&onEvent)onEvent('critical',best);
+      lastAttackResult={target:best,landed,
+        reason:landed?'hit':'hurt-grace',charge,damage:landed?damage:0};
       return best;
     }
     return null;
@@ -600,6 +598,16 @@ const Mobs = (() => {
 
       if (dist > 64) { removeMob(i); continue; }
       if(m.parts.detailGroup)m.parts.detailGroup.visible=dist<28;
+      if(!m.def.hostile){
+        m.blinkT-=dt;
+        if(m.blinkT<=0){m.blinkDuration=.11;m.blinkT=2+Math.random()*4;}
+        m.blinkDuration=Math.max(0,m.blinkDuration-dt);
+        for(const eye of m.parts.eyes)eye.visible=m.blinkDuration<=0;
+        if(!m.moving && m.fleeT<=0){
+          m.grazeT-=dt;
+          if(m.grazeT<0){m.grazeT=4+Math.random()*5;}
+        }
+      }
 
       m.attackT -= dt;
       m.hurtT -= dt;
@@ -624,8 +632,8 @@ const Mobs = (() => {
           if (m.wanderT <= 0) {
             m.wanderT = 1.5 + Math.random() * 3;
             m.wanderMoving=Math.random()>=.45;
-            if(m.wanderMoving){
-              const a = Math.random() * Math.PI * 2;
+            if(m.wanderMoving) {
+              const a=Math.random()*Math.PI*2;
               m.dir.set(Math.cos(a),0,Math.sin(a));
             }
           }
@@ -650,7 +658,9 @@ const Mobs = (() => {
               m.shootT = 2.2 + Math.random();
               shootArrow(m);
             }
-          } else if (distXZ < (m.def.width / 2 + .55) && Math.abs(pp.y - m.pos.y) < 1.8 && m.attackT <= 0) {
+          } else if (distXZ < (m.def.width / 2 + .55) && Math.abs(pp.y - m.pos.y) < 1.8 && m.attackT <= 0 &&
+              hasLineOfSight({x:m.pos.x,y:m.pos.y+m.def.height*.75,z:m.pos.z},
+                {x:pp.x,y:pp.y+1.1,z:pp.z})) {
             m.attackT = 1.2;
             Player.damage(m.def.dmg, m.def.name + '에게 당했다', m.pos);
           }
@@ -769,7 +779,7 @@ const Mobs = (() => {
   }
 
   function getAttackCharge() {
-    return Combat.charge(Inventory.selectedSlot()?.id||0,performance.now()-lastPlayerAttackAt);
+    return Math.max(0,Math.min(1,(performance.now()-lastPlayerAttackAt)/450));
   }
   function getLastAttackResult(){return lastAttackResult;}
 
