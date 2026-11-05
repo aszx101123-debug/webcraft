@@ -191,6 +191,26 @@ const Textures = (() => {
       return vary(36, 35, 33, 7);
     });
 
+    // Original five-tier 16px sword silhouettes (no borrowed game assets).
+    const swordColors = [
+      [157,116,70], [137,145,151], [208,221,229], [245,197,76], [89,218,232]
+    ];
+    swordColors.forEach((metal, col) => {
+      fill(col, 7, (x, y) => {
+        const diagonal = Math.abs(x + y - 14);
+        if (x >= 7 && y <= 7 && diagonal <= 1) {
+          if (x === 14 && y <= 1) return vary(239,240,242,3);
+          return vary(metal[0], metal[1], metal[2], 12);
+        }
+        if (x >= 4 && x <= 9 && y >= 7 && y <= 12 && Math.abs(x - y + 2) <= 1)
+          return vary(74, 53, 36, 7);
+        if ((x === 4 && y === 10) || (x === 5 && y === 11) || (x === 9 && y === 7))
+          return vary(184, 154, 88, 9);
+        if ((x === 2 || x === 3) && (y === 13 || y === 14)) return vary(110, 79, 51, 8);
+        return null;
+      });
+    });
+
     const armorColors=[[150,105,75],[120,125,135],[190,195,205],[220,180,55],[95,220,245]];let ac=0;const armorTile=(r,g,b)=>(x,y)=>vary(r,g,b,10);for(let row=8;row<10;row++)for(let col=0;col<10;col++){const q=armorColors[Math.min(4,Math.floor(ac/4))];fill(col,row,armorTile(...q));ac++;}
 
     function hashCell(cx, cy) { return (cx * 7 + cy * 13) % 5 / 5; }
