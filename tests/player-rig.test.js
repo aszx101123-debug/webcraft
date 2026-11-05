@@ -3,6 +3,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const code = fs.readFileSync(path.join(__dirname, '..', 'js/game/mobile-test-player-model.js'), 'utf8');
+const shared = fs.readFileSync(path.join(__dirname, '..', 'js/skin-studio.js'), 'utf8');
+const WebCraftSkins = new Function(shared + '\nreturn WebCraftSkins;')();
 class Vector {
   constructor(){ this.set(0,0,0); }
   set(x,y,z){ Object.assign(this,{x,y,z}); return this; }
@@ -56,8 +58,8 @@ const Textures={
 };
 const getItemDef=id=>id>0?{name:'test'}:null;
 const PlayerModel=new Function(
-  'THREE','Inventory','CONFIG','BLOCKS','Textures','getItemDef',code+'\nreturn PlayerModel;'
-)(THREE,Inventory,{SPEED:4.4},BLOCKS,Textures,getItemDef);
+  'THREE','Inventory','CONFIG','BLOCKS','Textures','getItemDef','WebCraftSkins',code+'\nreturn PlayerModel;'
+)(THREE,Inventory,{SPEED:4.4},BLOCKS,Textures,getItemDef,WebCraftSkins);
 let checks=0;
 function check(label,condition){
   assert.ok(condition,label);console.log('PASS',label);checks++;
@@ -108,13 +110,15 @@ check('empty hand removes equipped sprites',right.children.length===3);
 const updated=PlayerModel.setAppearance({skin:2,hair:3,shirt:4,pants:1,boots:2,hairStyle:'long'});
 check('customization colors and hairstyles update together',
   updated.skin===2 && updated.shirt===4 && updated.hairStyle==='long');
+check('new accessories and clothing textures validate correctly',
+  PlayerModel.setAppearance({...updated,shirtStyle:'hoodie',accessory:'glasses',eyes:'blue'}).accessory === 'glasses');
 check('world model material changes when shirt color changes',
   world.children[0].material.color.hex===PlayerModel.getPalettes().shirt[4].value);
 const invalid=PlayerModel.setAppearance({skin:100,shirt:-7,hairStyle:'unknown'});
 check('invalid appearance choices revert to stable defaults',
   invalid.skin===1 && invalid.shirt===0 && invalid.hairStyle==='short');
 let drawCount=0;
-const ctx={clearRect(){},fillRect(){drawCount++},set fillStyle(value){}};
+const ctx={clearRect(){},fillRect(){drawCount++},save(){},restore(){},scale(){},set fillStyle(value){}};
 PlayerModel.drawPreview({width:164,height:224,getContext:()=>ctx});
 check('E inventory avatar preview renders blocky character',drawCount>15);
 console.log('All '+checks+' character-rig tests passed.');
