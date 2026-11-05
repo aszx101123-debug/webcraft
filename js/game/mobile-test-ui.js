@@ -362,6 +362,7 @@ const UI = (() => {
     });
     renderInventory();
     $('overlay-inventory').classList.remove('hidden');
+    return true;
   }
 
   function closeInventory() {
@@ -513,6 +514,7 @@ const UI = (() => {
       renderCrafting();
     };
     $('overlay-crafting').classList.remove('hidden');
+    return true;
   }
 
   function closeCrafting() {
