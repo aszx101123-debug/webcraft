@@ -611,12 +611,17 @@ const UI = (() => {
   const furnaceRecipes = [
     { input: BLOCK.IRON_ORE, output: ITEM.IRON_INGOT },
     { input: BLOCK.GOLD_ORE, output: ITEM.GOLD_INGOT },
-    { input: BLOCK.COPPER_ORE, output: ITEM.COPPER_INGOT }
+    { input: BLOCK.COPPER_ORE, output: ITEM.COPPER_INGOT },
+    { input: BLOCK.SAND, output: BLOCK.GLASS },
+    { input: BLOCK.COBBLE, output: BLOCK.STONE },
+    { input: BLOCK.CLAY, output: BLOCK.BRICK }
   ];
 
   function furnaceFuel() {
     if (Inventory.countItem(ITEM.COAL) >= 1) return { id: ITEM.COAL, count: 1 };
-    if (Inventory.countItem(BLOCK.PLANK) >= 2) return { id: BLOCK.PLANK, count: 2 };
+    for(const id of [BLOCK.PLANK,BLOCK.BIRCH_PLANKS,BLOCK.SPRUCE_PLANKS]) {
+      if (Inventory.countItem(id) >= 2) return { id, count: 2 };
+    }
     return null;
   }
 
@@ -628,7 +633,7 @@ const UI = (() => {
     const supply = $('furnace-fuel');
     if (supply) supply.textContent = fuel
       ? '사용할 연료: ' + getItemName(fuel.id) + ' ×' + fuel.count
-      : '연료 부족: 석탄 1개 또는 판자 2개 필요';
+      : '연료 부족: 석탄 1개 또는 같은 종류 판자 2개 필요';
     for (const recipe of furnaceRecipes) {
       const available = Inventory.countItem(recipe.input) >= 1 && !!fuel &&
         Inventory.canAdd(recipe.output, 1) && !Inventory.isCreative();
@@ -647,7 +652,7 @@ const UI = (() => {
         const chosenFuel = furnaceFuel();
         if (!chosenFuel || Inventory.countItem(recipe.input) < 1 ||
             !Inventory.canAdd(recipe.output, 1)) {
-          showToast('광석·연료 또는 인벤토리 공간을 확인해 주세요');
+          showToast('재료·연료 또는 인벤토리 공간을 확인해 주세요');
           renderFurnace();
           return;
         }
@@ -762,15 +767,47 @@ const UI = (() => {
   function openPicker(onPick) {
     pickerOpen = true;
     const grid = $('picker-grid');
-    grid.innerHTML = '';
-    PLACEABLE_IDS.forEach(id => {
-      const b = document.createElement('button');
-      b.className = 'pick';
-      b.innerHTML = `<img src="${Textures.blockIcon(id)}" alt=""><span>${BLOCKS[id].name}</span>`;
-      b.addEventListener('click', () => { closePicker(); onPick(id); });
-      grid.appendChild(b);
-    });
+    const search = $('picker-search');
+    const category = $('picker-category');
+    const count = $('picker-count');
+    if (search) search.value = '';
+    if (category) category.value = '전체';
+
+    const render = () => {
+      const needle = (search?.value || '').trim().toLocaleLowerCase('ko-KR');
+      const group = category?.value || '전체';
+      const visible = PLACEABLE_IDS.filter(id =>
+        (group === '전체' || getBlockCategory(id) === group) &&
+        (!needle || BLOCKS[id].name.toLocaleLowerCase('ko-KR').includes(needle))
+      );
+      grid.replaceChildren();
+      if(count)count.textContent = visible.length + '개 블록';
+      for(const id of visible) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'pick';
+        const icon = document.createElement('img');
+        icon.src = Textures.blockIcon(id);
+        icon.alt = '';
+        const label = document.createElement('span');
+        label.textContent = BLOCKS[id].name;
+        b.title = BLOCKS[id].name + ' · ' + getBlockCategory(id);
+        b.append(icon, label);
+        b.addEventListener('click', () => { closePicker(); onPick(id); });
+        grid.appendChild(b);
+      }
+      if(!visible.length) {
+        const empty = document.createElement('p');
+        empty.className = 'picker-empty';
+        empty.textContent = '찾는 블록이 없습니다. 다른 이름이나 분류를 선택해 주세요.';
+        grid.appendChild(empty);
+      }
+    };
+    if(search) search.oninput = render;
+    if(category) category.onchange = render;
+    render();
     $('picker').classList.remove('hidden');
+    search?.focus?.();
   }
 
   function closePicker() {
