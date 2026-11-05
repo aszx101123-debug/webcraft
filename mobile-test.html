@@ -42,6 +42,7 @@
 </div>
 <div id="target-block-name" aria-live="off"></div>
 <div id="hud-info"></div>
+<div id="save-indicator" role="status" aria-live="polite"></div>
 <div id="debug-panel" class="hidden" aria-live="off"></div>
 <div id="journal-discovery" role="status" aria-live="polite"></div>
 <div id="hud-time"></div>
@@ -257,6 +258,9 @@
       <button type="button" id="journal-close" class="btn ghost">돌아가기 (Esc)</button>
     </div>
     <div id="journal-summary" class="journal-summary">탐험 기록을 불러오는 중...</div>
+    <div class="journal-home-bar"><span id="journal-home">집 좌표가 아직 없습니다.</span>
+      <button id="journal-set-home" type="button" class="btn">현재 위치를 집으로 지정</button>
+    </div>
     <div id="journal-biomes" class="journal-biome-grid" aria-label="발견한 바이옴"></div>
     <p class="journal-note">실제 위치가 아닌 게임 안의 블록 좌표만 기록됩니다.</p>
   </section>
