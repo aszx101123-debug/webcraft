@@ -173,7 +173,7 @@ check('flowing water does not rebuild unchanged and clears after source removal'
   assert.equal([...blocks.values()].filter(id => id === BLOCK.WATER_FLOW).length, 0);
 });
 
-check('PC/mobile pages include v1.2.9 scripts and world backup controls', () => {
+check('PC/mobile pages include v1.3.0 avatar editor, held items and world backup controls', () => {
   for (const page of ['play.html', 'mobile-test.html']) {
     const html = src(page);
     assert.ok(html.includes('mobile-test-main.js?v=v130'));
