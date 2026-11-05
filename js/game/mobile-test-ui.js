@@ -267,10 +267,13 @@ const UI = (() => {
   }
 
   function returnCraftingMaterials() {
+    let complete = true;
     for (const cell of Crafting.getVisibleCells()) {
       if (!cell.id) continue;
       if (Inventory.add(cell.id, 1) === 1) Crafting.removeCell(cell.index);
+      else complete = false;
     }
+    return complete;
   }
 
   function renderInventoryCrafting() {
@@ -336,7 +339,7 @@ const UI = (() => {
   }
 
   function closeInventory() {
-    returnCraftingMaterials();
+    if (!returnCraftingMaterials()) { showToast('재료를 돌려줄 공간이 부족합니다'); return; }
     inventoryCursorReturn();
     inventoryOpen = false;
     $('overlay-inventory').classList.add('hidden');
@@ -363,8 +366,12 @@ const UI = (() => {
       btn.title = s ? getItemName(s.id) : '빈 슬롯';
       btn.addEventListener('click', () => {
         if (!s) return;
-        const taken=Inventory.takeFromSlot(i,1);if(taken&&Crafting.addToFirstEmpty(taken.id)>=0)renderCrafting();
-        else showToast('제작 격자가 가득 찼습니다');
+        const taken=Inventory.takeFromSlot(i,1);
+        if (taken && Crafting.addToFirstEmpty(taken.id) >= 0) renderCrafting();
+        else {
+          if (taken) Inventory.add(taken.id, 1);
+          showToast('제작 격자가 가득 찼습니다');
+        }
       });
       el.appendChild(btn);
     });
@@ -387,7 +394,8 @@ const UI = (() => {
         cell.innerHTML = `<img src="${Textures.blockIcon(id)}" alt=""><span>${getItemName(id)}</span>`;
         cell.title = '클릭하여 빼기';
         cell.addEventListener('click', () => {
-          Crafting.removeCell(i);
+          if (Inventory.add(id, 1) === 1) Crafting.removeCell(i);
+          else showToast('인벤토리에 빈 칸이 없습니다');
           renderCrafting();
         });
       } else {
@@ -428,7 +436,8 @@ const UI = (() => {
       btn.textContent = '배치';
       btn.disabled = !ready;
       btn.addEventListener('click', () => {
-        Crafting.autofill(recipe.id);
+        if (!returnCraftingMaterials()) { showToast('재료를 되돌릴 공간이 없습니다'); return; }
+        if (!Crafting.autofill(recipe.id)) showToast('재료가 부족합니다');
         renderCrafting();
       });
       card.appendChild(btn);
@@ -442,10 +451,16 @@ const UI = (() => {
     Crafting.setGridSize(3);
     Crafting.resetGrid(3);
     renderCrafting();
+    const clear = $('craft-clear');
+    if (clear) clear.onclick = () => {
+      if (!returnCraftingMaterials()) showToast('재료를 되돌릴 공간이 없습니다');
+      renderCrafting();
+    };
     $('overlay-crafting').classList.remove('hidden');
   }
 
   function closeCrafting() {
+    if (!returnCraftingMaterials()) { showToast('재료를 돌려줄 공간이 부족합니다'); return; }
     $('overlay-crafting').classList.add('hidden');
   }
 
