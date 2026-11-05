@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-cross-platform-furnace-torches-20261105-v4';
+const VERSION = 'webcraft-v1.2.8-pc-mobile-crafting-v5';
 const CORE = [
   './',
   './index.html',
@@ -16,10 +16,11 @@ const CORE = [
   './img/shot-forest.png',
   './img/shot-night.png',
   './js/game/items.js',
+  './js/game/items.js?v=craftfix128',
   './js/game/drops.js',
   './js/game/mobs.js',
   './js/game/config.js',
-  './js/game/config.js?v=furnace-torch1',
+  './js/game/config.js?v=v128',
   './js/game/noise.js',
   './js/game/terrain.js',
   './js/game/textures.js',
@@ -33,7 +34,7 @@ const CORE = [
   './js/game/ui.js',
   './js/game/main.js',
   './js/game/mobile-test-main.js?v=pcmobile4',
-  './js/game/mobile-test-ui.js?v=pcmobile4',
+  './js/game/mobile-test-ui.js?v=pcmobile5',
   './js/game/mobile-test-crafting.js?v=pcmobile4',
   './js/game/mobile-test-textures.js?v=pcmobile4',
   './js/game/mobile-test-player-model.js?v=pcmobile4',
