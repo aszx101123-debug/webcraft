@@ -28,7 +28,7 @@
   const seed = saved?.seed ?? worldMeta.seed;
 
   const renderer = new THREE.WebGLRenderer({ antialias: false });
-  const isTouch = matchMedia('(pointer: coarse)').matches;
+  const isTouch = params.get('controls') === 'touch' || (params.get('controls') !== 'desktop' && (matchMedia('(pointer: coarse)').matches || (navigator.maxTouchPoints > 0 && matchMedia('(max-width: 800px)').matches)));
   const hardwareScale = isTouch ? 1 : ((navigator.hardwareConcurrency || 4) <= 4 ? 1.25 : 1.5);
   renderer.setPixelRatio(Math.min(devicePixelRatio, hardwareScale));
   renderer.setSize(innerWidth, innerHeight);
@@ -109,7 +109,7 @@
   };
   Player.onDeath = cause => {
     state.suppressPause = true;
-    document.exitPointerLock();
+    document.exitPointerLock?.();
     UI.showDeath(cause);
     doSave(true);
   };
@@ -288,10 +288,15 @@
 
   const keys = {};
   let touchActive = false;
+  function disableTouchInput() {
+    touchActive = false;
+    document.body.classList.remove('touch-playing');
+    for (const k of ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space', 'ShiftLeft']) keys[k] = false;
+  }
   const touchControls = document.createElement('div');
   touchControls.id = 'touch-controls';
   if (isTouch) {
-    touchControls.innerHTML = '<div id="touch-pad" aria-label="이동 조이스틱"><div id="touch-knob"></div></div><div id="touch-actions"><button data-act="jump">점프</button><button data-act="mine">채굴</button><button data-act="place">놓기</button><button data-act="inventory">가방</button><button data-act="pause">메뉴</button></div>';
+    touchControls.innerHTML = '<div id="touch-pad" aria-label="이동 조이스틱"><div id="touch-knob"></div></div><div id="touch-actions"><button data-act="jump">점프</button><button data-act="mine">채굴</button><button data-act="place">놓기</button><button data-act="inventory">가방</button><button data-act="camera">시점</button><button data-act="pause">메뉴</button></div>';
     document.body.append(touchControls);
     document.body.classList.add('touch-device');
     const pad = touchControls.querySelector('#touch-pad');
@@ -310,7 +315,7 @@
     }
     let lookId = null, lastX = 0, lastY = 0;
     document.addEventListener('pointerdown', e => {
-      if (!touchActive || e.pointerType === 'mouse' || e.target.closest('#touch-controls, .overlay, #hotbar')) return;
+      if (!touchActive || e.pointerType === 'mouse' || e.target.closest('#touch-controls, .overlay, #hotbar, #picker')) return;
       if (e.clientX < innerWidth * .38) return;
       lookId = e.pointerId; lastX=e.clientX; lastY=e.clientY;
     });
@@ -331,8 +336,9 @@
         if(act==='jump')keys.Space=true;
         if(act==='mine')canvas.dispatchEvent(new MouseEvent('mousedown',{button:0,bubbles:true}));
         if(act==='place')canvas.dispatchEvent(new MouseEvent('mousedown',{button:2,bubbles:true}));
-        if(act==='inventory') { state.suppressPause=true; UI.openInventory(); }
-        if(act==='pause') { state.paused=true; touchActive=false; resetPad(); keys.Space=false; UI.showOverlay('pause'); doSave(true); }
+        if(act==='inventory') { state.suppressPause=true; disableTouchInput(); resetPad(); UI.openInventory(); }
+        if(act==='camera') { state.thirdPersonView = (state.thirdPersonView + 1) % 3; UI.showToast(['1인칭','3인칭 뒤','3인칭 앞'][state.thirdPersonView]); }
+        if(act==='pause') { state.paused=true; disableTouchInput(); resetPad(); UI.showOverlay('pause'); doSave(true); }
       });
       button.addEventListener('pointerup',stop);
       button.addEventListener('pointercancel',stop);
@@ -340,7 +346,18 @@
   }
   let miningHeld = false;
   const canvas = renderer.domElement;
-  function resumeInput() { if (isTouch) touchActive = true; else { try { canvas.requestPointerLock(); } catch (_) {} } }
+  function resumeInput() {
+    if (isTouch) {
+      touchActive = true;
+      state.paused = false;
+      document.body.classList.add('touch-playing');
+    } else {
+      try {
+        const request = canvas.requestPointerLock?.();
+        if (request?.catch) request.catch(() => UI.showToast('마우스 잠금을 허용해 주세요'));
+      } catch (_) { UI.showToast('마우스 잠금을 시작할 수 없습니다'); }
+    }
+  }
 
   function beginGameplay(mode) {
     state.mode = mode;
@@ -377,6 +394,7 @@
       return;
     }
     if (e.code === 'Escape' && state.started && !state.locked && !UI.isInventoryOpen() && !UI.isCraftingOpen()) {
+      disableTouchInput();
       state.paused = true;
       UI.showOverlay('pause');
       doSave(true);
@@ -404,8 +422,9 @@
       blip(Player.flying ? 520 : 260, .09, 'triangle', .04);
     }
     if (e.code === 'KeyE') {
+      disableTouchInput();
       state.suppressPause = true;
-      document.exitPointerLock();
+      document.exitPointerLock?.();
       UI.openInventory();
       return;
     }
@@ -415,8 +434,9 @@
     }
     if (e.code === 'KeyB') {
       if (state.mode !== GAME_MODE.CREATIVE) { UI.showToast('서바이벌에서는 블록을 직접 캐서 얻으세요'); return; }
+      disableTouchInput();
       state.suppressPause = true;
-      document.exitPointerLock();
+      document.exitPointerLock?.();
       UI.openPicker(id => {
         Inventory.setSlot(Inventory.getSelected(), id);
         UI.renderHotbar();
@@ -452,8 +472,9 @@
     } else if (e.button === 2) {
       const target = Interact.getTarget();
       if (target && target.id === BLOCK.CRAFTING_TABLE) {
+        disableTouchInput();
         state.suppressPause = true;
-        document.exitPointerLock();
+        document.exitPointerLock?.();
         UI.openCrafting();
         return;
       }
@@ -534,12 +555,13 @@
   }
 
   function openWorldMenu() {
+    disableTouchInput();
     state.suppressPause = true;
     UI.closeInventory();
     state.started = false;
     Interact.cancelBreak();
     UI.setMiningProgress(0);
-    document.exitPointerLock();
+    document.exitPointerLock?.();
     UI.closeCrafting();
     UI.showOverlay('start');
     UI.setStartEnabled(state.ready);
@@ -586,7 +608,7 @@
   });
   document.getElementById('btn-crafting').addEventListener('click', () => {
     state.suppressPause = true;
-    document.exitPointerLock();
+    document.exitPointerLock?.();
     UI.openInventory();
   });
   document.getElementById('btn-worlds').addEventListener('click', openWorldMenu);
