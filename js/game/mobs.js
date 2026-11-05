@@ -225,6 +225,7 @@ const Mobs = (() => {
       const pivot=new THREE.Group();
       pivot.position.set(x,y,z);
       pivot.rotation.x=raised;
+      pivot.userData.baseX=raised;
       const sleeve=box(.17,.29,.20,sleeveColor,0,-.16,0);
       const arm=box(.16,.37,.18,color,0,-.48,0);
       const cuff=box(.18,.045,.20,0x303c46,0,-.34,.004);
@@ -347,7 +348,7 @@ const Mobs = (() => {
       moving: false, onGround: false,
       wanderT: Math.random() * 2, attackT: 0, shootT: 1 + Math.random() * 2,
       strafeT: 2, strafeDir: 1, hurtT: 0, flashed: false,
-      hurtGrace: 0, healthVisibleT: 0,
+      hurtGrace: 0, healthVisibleT: 0, provokedT: 0,
       burnT: 0, fleeT: 0, animT: 0, jumpT: 0, pathT: 0,
       dead: false, deadT: 0
     };
@@ -412,6 +413,7 @@ const Mobs = (() => {
       m.vel.y = Math.max(m.vel.y, 4.5);
     }
     if (!m.def.hostile) m.fleeT = 4;
+    if (m.type==='spider')m.provokedT=7;
     if (onEvent) onEvent('hurt', m);
     if (m.hp <= 0) {
       m.dead = true;
@@ -593,6 +595,7 @@ const Mobs = (() => {
       m.hurtT -= dt;
       m.hurtGrace = Math.max(0,m.hurtGrace-dt);
       m.healthVisibleT = Math.max(0,m.healthVisibleT-dt);
+      m.provokedT = Math.max(0,m.provokedT-dt);
       m.jumpT -= dt;
       m.pathT -= dt;
       if (m.hurtT <= 0 && m.flashed) flash(m, false);
@@ -619,7 +622,8 @@ const Mobs = (() => {
           } else m.moving = m.wanderT > 0 && m.dir.lengthSq() > 0;
         }
       } else {
-        const aggro = survival && !Player.dead && m.def.aggro && dist < m.def.aggro;
+        const aggro = survival && !Player.dead && m.def.aggro && dist < m.def.aggro &&
+          (m.type!=='spider'||env.night||m.provokedT>0);
         if (aggro) {
           m.dir.set(dx, 0, dz).normalize();
           m.moving = true;
@@ -653,7 +657,7 @@ const Mobs = (() => {
           } else m.moving = m.dir.lengthSq() > 0;
         }
 
-        if (!env.night && skyExposed(m)) {
+        if (!env.night && (m.type==='zombie'||m.type==='skeleton') && skyExposed(m)) {
           m.burnT += dt;
           if (m.burnT >= 1) {
             m.burnT = 0;
@@ -685,11 +689,34 @@ const Mobs = (() => {
 
       if (m.moving) m.yaw = lerpAngle(m.yaw, Math.atan2(m.dir.x, m.dir.z), Math.min(1, dt * 8));
       m.mesh.rotation.y = m.yaw;
+      m.animT += dt * (m.moving ? speed * 3.2 : .25);
       m.mesh.position.copy(m.pos);
-      m.animT += dt * (m.moving ? speed * 3.2 : 0);
+      m.mesh.position.y += m.moving
+        ? Math.sin(m.animT*2)*.025 : Math.sin(m.animT*.8)*.008;
+      m.mesh.rotation.z = m.moving
+        ? Math.sin(m.animT)*.014 : Math.sin(m.animT*.45)*.006;
       m.parts.legs.forEach((l, li) => {
-        l.rotation.x = m.moving ? Math.sin(m.animT + (li % 2) * Math.PI) * .55 : l.rotation.x * .8;
+        l.rotation.x = m.moving ? Math.sin(m.animT + (li % 2) * Math.PI) * .50
+          : l.rotation.x * Math.max(0,1-dt*5);
       });
+      m.parts.arms.forEach((arm,i)=>{
+        const base=arm.userData.baseX||0;
+        arm.rotation.x=base+(m.moving?Math.sin(m.animT+Math.PI*(i+1))*.34
+          :Math.sin(m.animT*.38+i)*.025);
+      });
+      m.parts.extraLegs.forEach((limb,i)=>{
+        limb.rotation.z=Math.sin(m.animT+i*Math.PI*.5)*.13;
+      });
+      if(m.parts.healthBar){
+        const {group:bar,fill}=m.parts.healthBar;
+        bar.visible=m.healthVisibleT>0;
+        if(bar.visible){
+          const ratio=Math.max(.015,Math.min(1,m.hp/m.def.hp));
+          fill.scale.x=ratio;
+          fill.position.x=-.36*(1-ratio);
+          bar.rotation.y=Math.atan2(pp.x-m.pos.x,pp.z-m.pos.z)-m.yaw;
+        }
+      }
     }
 
     for (let i = arrows.length - 1; i >= 0; i--) {
