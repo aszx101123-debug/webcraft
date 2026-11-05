@@ -357,7 +357,7 @@
         if(act==='run')keys.ShiftLeft=true;
         if(act==='mine')canvas.dispatchEvent(new MouseEvent('mousedown',{button:0,bubbles:true}));
         if(act==='place')canvas.dispatchEvent(new MouseEvent('mousedown',{button:2,bubbles:true}));
-        if(act==='inventory') { state.suppressPause=true; disableTouchInput(); resetPad(); UI.openInventory(); }
+        if(act==='inventory') { state.suppressPause=true; disableTouchInput(); resetPad(); if (UI.openInventory() === false) resumeInput(); }
         if(act==='camera') { state.thirdPersonView = (state.thirdPersonView + 1) % 3; UI.showToast(['1인칭','3인칭 뒤','3인칭 앞'][state.thirdPersonView]); }
         if(act==='blocks') {
           if (state.mode !== GAME_MODE.CREATIVE) UI.showToast('크리에이티브에서 블록 선택을 사용할 수 있어요');
@@ -476,7 +476,7 @@
       disableTouchInput();
       state.suppressPause = true;
       document.exitPointerLock?.();
-      UI.openInventory();
+      if (UI.openInventory() === false) resumeInput();
       return;
     }
     if (e.code === 'KeyC') {
@@ -529,7 +529,7 @@
         state.suppressPause = true;
         document.exitPointerLock?.();
         if (target.id === BLOCK.FURNACE) UI.openFurnace();
-        else UI.openCrafting();
+        else if (UI.openCrafting() === false) resumeInput();
         return;
       }
       const s = Inventory.selectedSlot();
