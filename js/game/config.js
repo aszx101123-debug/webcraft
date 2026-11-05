@@ -218,6 +218,32 @@ const MOB_DEFS = {
   spider:   { name: '거미',    hostile: true,  hp: 12, speed: 3.2, height: .75, width: 1.0,  dmg: 2.5, aggro: 18, drops: [] }
 };
 
+// Local voxel AABBs, used consistently by world meshing, player movement and placement.
+// Each box is [minX,minY,minZ,maxX,maxY,maxZ] within its owning voxel.
+function getBlockBoxes(id, state = null) {
+  const s=state||{};
+  if(id===BLOCK.STONE_SLAB)
+    return [s.half==='top'?[0,.5,0,1,1,1]:[0,0,0,1,.5,1]];
+  if(id===BLOCK.WOOD_STAIRS) {
+    const base=[0,0,0,1,.5,1];
+    const step={
+      north:[0,.5,0,1,1,.5],
+      south:[0,.5,.5,1,1,1],
+      east:[.5,.5,0,1,1,1],
+      west:[0,.5,0,.5,1,1]
+    };
+    return [base,step[s.facing]||step.north];
+  }
+  if(id===BLOCK.WOOD_DOOR||id===BLOCK.WOOD_DOOR_TOP) {
+    if(s.open)return [];
+    return (s.facing==='east'||s.facing==='west')
+      ? [[.405,0,0,.595,1,1]]
+      : [[0,0,.405,1,1,.595]];
+  }
+  if(id===BLOCK.CHEST)return [[.08,0,.08,.92,.85,.92]];
+  return [[0,0,0,1,1,1]];
+}
+
 function isSolidBlock(id) {
   return id !== BLOCK.AIR && !!BLOCKS[id] && !BLOCKS[id].liquid && !BLOCKS[id].nonSolid;
 }
