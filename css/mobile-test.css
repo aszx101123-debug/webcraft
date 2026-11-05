@@ -1,27 +1,39 @@
-/* Mobile prototype: isolated from desktop UI */
+/* Shared PC / touch controls. PC remains mouse-and-keyboard only. */
 #touch-controls{display:none}
-@media(pointer:coarse){
- html,body{touch-action:none;overscroll-behavior:none}
- .touch-device #touch-controls{display:block;position:fixed;inset:0;z-index:27;pointer-events:none}
- #touch-pad{position:absolute;bottom:max(78px,env(safe-area-inset-bottom));left:20px;width:116px;height:116px;border-radius:50%;border:2px solid #ffffff65;background:#101d2ab5;pointer-events:auto;touch-action:none}
- #touch-knob{position:absolute;left:35px;top:35px;width:42px;height:42px;border-radius:50%;background:#d9f0ffb9;border:2px solid #fff9;pointer-events:none}
- #touch-actions{position:absolute;bottom:max(80px,env(safe-area-inset-bottom));right:14px;display:grid;grid-template-columns:repeat(3,54px);gap:8px;pointer-events:auto}
- #touch-actions button{min-height:54px;border:1px solid #ffffff78;border-radius:13px;background:#162638d9;color:white;font:700 12px sans-serif;touch-action:none;box-shadow:0 3px 12px #0008}
- #touch-actions button:active{background:#417b9c}
- #hud-hint{display:none}
- #hotbar{bottom:max(5px,env(safe-area-inset-bottom));gap:2px;padding:3px}
- #hotbar .slot{width:min(9.7vw,39px);height:min(9.7vw,39px)}
- #hotbar .slot img{width:85%;height:85%}
- #survival-hud{width:min(90vw,420px);bottom:53px}
- #hearts img,#foods img{width:15px;height:15px}
- .overlay .panel{max-height:90dvh;max-width:96vw;overflow:auto}
- .inventory-layout,.craft-layout{max-width:100%;overflow:auto}
- #hud-info{font-size:10px;max-width:42vw}
-}
-@media(pointer:coarse) and (max-width:560px){
- #touch-pad{width:96px;height:96px;bottom:100px;left:10px}
- #touch-knob{left:27px;top:27px}
- #touch-actions{grid-template-columns:repeat(3,44px);gap:5px;bottom:100px;right:6px}
+.touch-device.touch-playing #touch-controls{display:block;position:fixed;inset:0;z-index:27;pointer-events:none}
+.touch-device{overscroll-behavior:none}
+.touch-device canvas{touch-action:none}
+.touch-device .overlay{z-index:65}
+.touch-device #picker{z-index:66}
+.touch-device .overlay .panel,.touch-device #picker{max-height:92dvh;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y}
+.touch-device .inventory-panel{min-width:0;width:min(96vw,960px)}
+.touch-device .inventory-layout,.touch-device .craft-layout{max-width:100%;overflow:auto}
+.touch-device .inventory-grid{grid-template-columns:repeat(9,minmax(27px,1fr))}
+.touch-device .craft-inventory{grid-template-columns:repeat(9,minmax(27px,1fr))}
+.touch-device .inventory-slot{min-width:27px}
+.touch-device #hud-hint{display:none}
+.touch-device #hotbar{bottom:max(4px,env(safe-area-inset-bottom));gap:2px;padding:3px}
+.touch-device #hotbar .slot{width:min(9.7vw,43px);height:min(9.7vw,43px);min-width:28px;min-height:28px}
+.touch-device #hotbar .slot img{width:85%;height:85%}
+.touch-device #survival-hud{width:min(90vw,420px);bottom:57px}
+.touch-device #hearts img,.touch-device #foods img{width:15px;height:15px}
+.touch-device #hud-info{font-size:10px;max-width:43vw}
+#touch-pad{position:absolute;bottom:max(76px,env(safe-area-inset-bottom));left:20px;width:116px;height:116px;border-radius:50%;border:2px solid #ffffff65;background:#101d2ab5;pointer-events:auto;touch-action:none}
+#touch-knob{position:absolute;left:50%;top:50%;width:42px;height:42px;transform:translate(-50%,-50%);border-radius:50%;background:#d9f0ffb9;border:2px solid #fff9;pointer-events:none}
+#touch-actions{position:absolute;bottom:max(78px,env(safe-area-inset-bottom));right:14px;display:grid;grid-template-columns:repeat(3,54px);gap:8px;pointer-events:none}
+#touch-actions button{min-height:54px;border:1px solid #ffffff78;border-radius:13px;background:#162638e8;color:white;font:700 12px sans-serif;touch-action:none;box-shadow:0 3px 12px #0008;pointer-events:auto;user-select:none;-webkit-user-select:none}
+#touch-actions button:active{background:#417b9c}
+@media(max-width:560px){
+ #touch-pad{width:96px;height:96px;bottom:94px;left:10px}
+ #touch-knob{width:38px;height:38px}
+ #touch-actions{grid-template-columns:repeat(3,45px);gap:5px;bottom:92px;right:6px}
  #touch-actions button{min-height:44px;font-size:10px}
- .update-badge{font-size:9px}
+ .touch-device .update-badge{font-size:9px}
+ .touch-device .inventory-grid,.touch-device .craft-inventory{grid-template-columns:repeat(9,minmax(24px,1fr))}
+}
+@media(max-height:480px) and (orientation:landscape){
+ #touch-pad{width:88px;height:88px;bottom:56px}
+ #touch-actions{bottom:55px}
+ #touch-actions button{min-height:38px}
+ .touch-device #survival-hud{bottom:45px}
 }
