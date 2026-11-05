@@ -28,7 +28,8 @@
   const seed = saved?.seed ?? worldMeta.seed;
 
   const renderer = new THREE.WebGLRenderer({ antialias: false });
-  const hardwareScale = (navigator.hardwareConcurrency || 4) <= 4 ? 1.25 : 1.5;
+  const isTouch = matchMedia('(pointer: coarse)').matches;
+  const hardwareScale = isTouch ? 1 : ((navigator.hardwareConcurrency || 4) <= 4 ? 1.25 : 1.5);
   renderer.setPixelRatio(Math.min(devicePixelRatio, hardwareScale));
   renderer.setSize(innerWidth, innerHeight);
   document.body.prepend(renderer.domElement);
@@ -283,6 +284,57 @@
   }
 
   const keys = {};
+  let touchActive = false;
+  const touchControls = document.createElement('div');
+  touchControls.id = 'touch-controls';
+  if (isTouch) {
+    touchControls.innerHTML = '<div id="touch-pad" aria-label="이동 조이스틱"><div id="touch-knob"></div></div><div id="touch-actions"><button data-act="jump">점프</button><button data-act="mine">채굴</button><button data-act="place">놓기</button><button data-act="inventory">가방</button><button data-act="pause">메뉴</button></div>';
+    document.body.append(touchControls);
+    document.body.classList.add('touch-device');
+    const pad = touchControls.querySelector('#touch-pad');
+    const knob = touchControls.querySelector('#touch-knob');
+    const moveKeys = ['KeyW','KeyA','KeyS','KeyD'];
+    const resetPad = () => { moveKeys.forEach(k => keys[k] = false); knob.style.transform = ''; };
+    pad.addEventListener('pointerdown', e => { pad.setPointerCapture(e.pointerId); movePad(e); });
+    pad.addEventListener('pointermove', e => { if (pad.hasPointerCapture(e.pointerId)) movePad(e); });
+    pad.addEventListener('pointerup', resetPad);
+    pad.addEventListener('pointercancel', resetPad);
+    function movePad(e) {
+      const r = pad.getBoundingClientRect(), dx = (e.clientX-r.left-r.width/2)/(r.width/2), dy = (e.clientY-r.top-r.height/2)/(r.height/2);
+      const x = Math.max(-1,Math.min(1,dx)), y = Math.max(-1,Math.min(1,dy));
+      keys.KeyA = x < -.28; keys.KeyD = x > .28; keys.KeyW = y < -.28; keys.KeyS = y > .28;
+      knob.style.transform = 'translate('+x*36+'px,'+y*36+'px)';
+    }
+    let lookId = null, lastX = 0, lastY = 0;
+    document.addEventListener('pointerdown', e => {
+      if (!touchActive || e.pointerType === 'mouse' || e.target.closest('#touch-controls, .overlay, #hotbar')) return;
+      if (e.clientX < innerWidth * .38) return;
+      lookId = e.pointerId; lastX=e.clientX; lastY=e.clientY;
+    });
+    document.addEventListener('pointermove', e => {
+      if (!touchActive || e.pointerId !== lookId) return;
+      Player.yaw -= (e.clientX-lastX)*.006;
+      Player.pitch = Math.max(-1.55,Math.min(1.55,Player.pitch-(e.clientY-lastY)*.006));
+      lastX=e.clientX; lastY=e.clientY;
+    });
+    document.addEventListener('pointerup', e => { if(e.pointerId===lookId) lookId=null; });
+    document.addEventListener('pointercancel', e => { if(e.pointerId===lookId) lookId=null; });
+    for (const button of touchControls.querySelectorAll('button')) {
+      const act = button.dataset.act;
+      const stop = () => { if(act==='jump')keys.Space=false; if(act==='mine')canvas.dispatchEvent(new MouseEvent('mouseup',{button:0,bubbles:true})); };
+      button.addEventListener('pointerdown', e => {
+        e.preventDefault(); e.stopPropagation();
+        if(!touchActive)return;
+        if(act==='jump')keys.Space=true;
+        if(act==='mine')canvas.dispatchEvent(new MouseEvent('mousedown',{button:0,bubbles:true}));
+        if(act==='place')canvas.dispatchEvent(new MouseEvent('mousedown',{button:2,bubbles:true}));
+        if(act==='inventory') { state.suppressPause=true; UI.openInventory(); }
+        if(act==='pause') { state.paused=true; touchActive=false; UI.showOverlay('pause'); doSave(true); }
+      });
+      button.addEventListener('pointerup',stop);
+      button.addEventListener('pointercancel',stop);
+    }
+  }
   let miningHeld = false;
   const canvas = renderer.domElement;
 
@@ -296,7 +348,7 @@
     state.suppressPause = true;
     UI.renderHotbar();
     UI.showOverlay(null);
-    try { canvas.requestPointerLock(); } catch (e) { }
+    if (isTouch) { touchActive = true; } else { try { canvas.requestPointerLock(); } catch (e) { } }
   }
 
   document.addEventListener('keydown', e => {
@@ -378,7 +430,7 @@
   });
 
   document.addEventListener('mousedown', e => {
-    if (!state.locked || Player.dead) return;
+    if (!(state.locked || (isTouch && touchActive)) || Player.dead) return;
     if (e.button === 0) {
       const dir = new THREE.Vector3();
       camera.getWorldDirection(dir);
@@ -526,7 +578,8 @@
     state.paused = false;
     state.suppressPause = true;
     UI.showOverlay(null);
-    try { canvas.requestPointerLock(); } catch (e) { }
+    if(isTouch) touchActive=true;
+    else try { canvas.requestPointerLock(); } catch (e) { }
   });
   document.getElementById('btn-crafting').addEventListener('click', () => {
     state.suppressPause = true;
