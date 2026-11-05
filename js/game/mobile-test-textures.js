@@ -390,6 +390,48 @@ const Textures = (() => {
       return vary(...rgb,9);
     }); // bookshelf book spines
 
+    // v1.3.3 · construction shapes: original 16px pixel-art thumbnails.
+    fill(0,10,(x,y)=>{
+      const edge=x===0||x===15||y===0||y===15;
+      const grain=(x*13+y*7)%19===0;
+      return edge?vary(86,92,96,5):grain?vary(177,183,188,8):vary(139,148,153,7);
+    }); // slab stone
+    fill(1,10,(x,y)=>{
+      const plank=y%5===0||x===((Math.floor(y/5)%2)*6+4);
+      if(plank)return vary(81,58,39,6);
+      return (x*11+y*3)%23===0?vary(195,154,95,6):vary(158,116,73,7);
+    }); // stair timber
+    fill(2,10,(x,y)=>{
+      const frame=x<2||x>13||y<2||y>13;
+      const seam=x===7||x===8;
+      const window=x>=4&&x<=6&&y>=3&&y<=6;
+      if(frame)return vary(72,48,29,7);
+      if(window)return vary(124,188,203,6);
+      if(seam)return vary(94,65,38,5);
+      if((x===11||x===12)&&y>=8&&y<=10)return vary(213,180,96,5);
+      return (y%5===0)?vary(140,100,59,7):vary(170,127,76,7);
+    }); // door face
+    fill(3,10,(x,y)=>{
+      const edge=x<2||x>13||y<2||y>13;
+      return edge?vary(74,49,29,5):vary(151,111,66,7);
+    }); // door edge
+    fill(4,10,(x,y)=>{
+      const lip=y<3||y>13||x<2||x>13;
+      if(lip)return vary(70,45,28,6);
+      if(y===7||y===8)return vary(106,72,44,6);
+      if(x%6===0)return vary(116,78,46,5);
+      return vary(164,115,63,7);
+    }); // chest sides
+    fill(5,10,(x,y)=>{
+      const border=x<2||x>13||y<2||y>13;
+      const seam=(x===7||y===7);
+      return border?vary(71,50,31,6):seam?vary(118,76,45,6):vary(180,132,73,7);
+    }); // chest lid
+    fill(6,10,(x,y)=>{
+      if(x<2||y<2||x>13||y>13)return vary(84,56,35,6);
+      if(x>=6&&x<=9&&y>=5&&y<=10)return vary(217,180,88,8);
+      return vary(158,109,66,7);
+    }); // chest clasp
     const armorColors=[[150,105,75],[120,125,135],[190,195,205],[220,180,55],[95,220,245]];let ac=0;const armorTile=(r,g,b)=>(x,y)=>vary(r,g,b,10);for(let row=8;row<10;row++)for(let col=0;col<10;col++){const q=armorColors[Math.min(4,Math.floor(ac/4))];fill(col,row,armorTile(...q));ac++;}
 
     function hashCell(cx, cy) { return (cx * 7 + cy * 13) % 5 / 5; }
@@ -432,6 +474,24 @@ const Textures = (() => {
     const B = BLOCKS[id];
     const topTile = B.tiles.top || B.tiles.all;
     const sideTile = B.tiles.side || B.tiles.all;
+    if(B.shape==='slab'||B.shape==='stair'||B.shape==='door'||B.shape==='doorTop'){
+      const drawTile=(tile,x,y,w,h)=>{
+        g.drawImage(canvas,tile[0]*TS,tile[1]*TS,TS,TS,x,y,w,h);
+      };
+      if(B.shape==='slab'){
+        drawTile(sideTile,5,24,38,15);
+        g.fillStyle='rgba(23,28,34,.25)';g.fillRect(5,35,38,4);
+        drawTile(B.tiles.top||sideTile,8,19,33,8);
+      }else if(B.shape==='stair'){
+        drawTile(sideTile,5,28,37,12);
+        drawTile(sideTile,22,15,20,14);
+        g.fillStyle='rgba(17,23,26,.30)';g.fillRect(5,36,37,4);
+      }else{
+        drawTile(sideTile,14,3,20,42);
+        g.fillStyle='rgba(16,24,28,.40)';g.fillRect(14,42,20,3);
+      }
+      iconCache[id]=c.toDataURL();return iconCache[id];
+    }
     const draw = (tile, m, dark) => {
       g.save();
       g.setTransform(m[0], m[1], m[2], m[3], m[4], m[5]);

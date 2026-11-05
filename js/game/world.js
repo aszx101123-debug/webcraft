@@ -32,7 +32,7 @@ const World = (() => {
     const NB = BLOCKS[nb];
     if (NB.liquid) return !BLOCKS[id].liquid;
     if (NB.cutout) return id !== nb;
-    if (NB.nonSolid) return true;
+    if (NB.nonSolid || NB.shape) return true;
     return false;
   }
 
@@ -129,6 +129,15 @@ const World = (() => {
     return true;
   }
 
+  function invalidateAt(x,y,z) {
+    const cx=x>>4,cz=z>>4;
+    markDirty(cx,cz);
+    if((x&15)===0)markDirty(cx-1,cz);
+    if((x&15)===15)markDirty(cx+1,cz);
+    if((z&15)===0)markDirty(cx,cz-1);
+    if((z&15)===15)markDirty(cx,cz+1);
+  }
+
   function onBlockChanged(listener) {
     if (typeof listener !== 'function') return () => {};
     blockChangeListeners.add(listener);
@@ -205,6 +214,37 @@ const World = (() => {
       const liquid = !!B.liquid;
       const torch = id === BLOCK.TORCH;
       if (torch) ch.torches.push([ox + x + .5, y + .55, oz + z + .5]);
+      if (B.shape) {
+        // Multi-box mesh for stairs, half blocks, opened doors and chests.
+        // These shapes share the original texture atlas and chunk vertex buffer.
+        const shapes=getBlockVisualBoxes(id,BlockFurniture.stateAt(ox+x,y,oz+z));
+        for(const box of shapes)for(const face of FACES){
+          const n=face.n;
+          const onBoundary=(n[0]===1&&box[3]===1)||
+            (n[0]===-1&&box[0]===0)||(n[1]===1&&box[4]===1)||
+            (n[1]===-1&&box[1]===0)||(n[2]===1&&box[5]===1)||
+            (n[2]===-1&&box[2]===0);
+          if(onBoundary){
+            const nb=getNb(x+n[0],y+n[1],z+n[2]);
+            if(nb>=0 && BLOCKS[nb] && !BLOCKS[nb].shape && isSolidBlock(nb))
+              continue;
+          }
+          const tile=Textures.tileFor(id,face.key);
+          const vi=pos.length/3;
+          for(let j=0;j<4;j++){
+            const corner=face.c[j],u=face.uv[j];
+            pos.push(ox+x+box[0]+corner[0]*(box[3]-box[0]),
+              y+box[1]+corner[1]*(box[4]-box[1]),
+              oz+z+box[2]+corner[2]*(box[5]-box[2]));
+            nor.push(n[0],n[1],n[2]);
+            uv.push(u[0]?tile.u1:tile.u0,u[1]?tile.v1:tile.v0);
+            col.push(face.shade,face.shade,face.shade);
+          }
+          ind.push(vi,vi+1,vi+2,vi,vi+2,vi+3);
+        }
+        continue;
+      }
+
       for (const f of FACES) {
         const nb = getNb(x + f.n[0], y + f.n[1], z + f.n[2]);
         if (!torch && !faceVisible(id, nb)) continue;
@@ -330,7 +370,7 @@ const World = (() => {
   }
 
   return {
-    init, update, getBlock, setBlock, getChunk, getEdits, onBlockChanged,
+    init, update, getBlock, setBlock, getChunk, getEdits, onBlockChanged, invalidateAt,
     heightAt: (x, z) => gen ? gen.heightAt(x, z) : 0,
     pendingCount: () => pending.length,
     dirtyCount: () => dirtySet.size,

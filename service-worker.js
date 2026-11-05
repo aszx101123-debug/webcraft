@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.3.2-blocks-20261105';
+const VERSION = 'webcraft-v1.3.3-build-home-20261105';
 const CORE = [
   "./",
   "./index.html",
@@ -18,31 +18,30 @@ const CORE = [
   "./css/v129-polish.css?v=v129",
   "./css/v130-character.css?v=v131",
   "./css/v132-blocks.css?v=v132",
-  "./js/game/config.js?v=v132",
+  "./css/v133-build.css?v=v133",
+  "./js/game/config.js?v=v133",
   "./js/game/noise.js",
   "./js/game/terrain.js?v=v132",
-  "./js/game/mobile-test-textures.js?v=v132",
-  "./js/game/world.js?v=v132",
+  "./js/game/mobile-test-textures.js?v=v133",
+  "./js/game/world.js?v=v133",
+  "./js/game/block-furniture.js?v=v133",
   "./js/game/block-physics.js?v=v132",
-  "./js/game/player.js?v=v129",
+  "./js/game/player.js?v=v133",
   "./js/skin-studio.js?v=v131",
   "./js/game/mobile-test-player-model.js?v=v131",
   "./js/game/fluids.js?v=v129",
-  "./js/game/interaction.js?v=v132",
+  "./js/game/interaction.js?v=v133",
   "./js/game/items.js?v=v129",
   "./js/game/drops.js",
   "./js/game/mobs.js?v=v129",
   "./js/game/save.js?v=v129",
-  "./js/game/mobile-test-crafting.js?v=v132",
+  "./js/game/mobile-test-crafting.js?v=v133",
   "./js/game/mobile-test-ui.js?v=v132",
-  "./js/game/mobile-test-main.js?v=v132",
+  "./js/game/mobile-test-main.js?v=v133",
   "./css/style.css",
   "./css/skin-studio.css?v=v131",
-  "./js/game/config.js",
-  "./js/game/terrain.js",
-  "./js/game/textures.js",
-  "./js/game/world.js",
-  "./js/hero.js",
+  "./css/v133-home.css?v=v133",
+  "./js/v133-home.js?v=v133",
   "./js/skin-studio-page.js?v=v131"
 ];
 

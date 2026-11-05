@@ -1,0 +1,42 @@
+/* WebCraft v1.3.3 · chest storage and building block presentation */
+#overlay-chest{z-index:93}
+#overlay-chest .chest-panel{
+  width:min(690px,96vw);max-height:92dvh;overflow:auto;padding:22px;
+  background:linear-gradient(145deg,#26323c,#111c26);
+  border:3px solid #73808a;
+  box-shadow:0 24px 70px #000a,inset 2px 2px 0 #ffffff20;
+}
+.chest-title{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}
+.chest-title h2{font-size:21px;margin-bottom:2px}
+.chest-title .sub{font-size:12px;line-height:1.5}
+.chest-section-title{
+  padding:12px 0 7px;color:#b9caD2;font-size:12px;
+  font-weight:800;letter-spacing:.04em;
+}
+.chest-slots{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:5px}
+.chest-slots .storage-slot{
+  min-width:0;min-height:49px;aspect-ratio:1;
+  display:flex;align-items:center;justify-content:center;position:relative;
+  border:2px solid #485965;border-radius:4px;background:#17242e;
+  box-shadow:inset 2px 2px 0 #101720,inset -1px -1px 0 #60727b55;
+  padding:3px;cursor:pointer;
+}
+.chest-slots .storage-slot:hover,.chest-slots .storage-slot:focus-visible{
+  background:#344653;border-color:#c1dabc;outline:1px solid #83bf80;
+}
+.chest-slots .storage-slot img{width:100%;height:100%;object-fit:contain;image-rendering:pixelated}
+.chest-slots .storage-count{
+  position:absolute;right:2px;bottom:0;color:#fff;font:800 11px monospace;
+  text-shadow:1px 1px 1px #000,-1px -1px 1px #000;pointer-events:none;
+}
+@media(max-width:680px){
+ #overlay-chest .chest-panel{padding:11px}
+ .chest-title h2{font-size:18px}
+ .chest-slots{gap:3px}
+ .chest-slots .storage-slot{min-height:32px;padding:1px}
+ .chest-slots .storage-count{font-size:9px}
+}
+@media(max-height:480px) and (orientation:landscape) {
+ #overlay-chest .chest-panel{max-height:94dvh}
+ .chest-slots .storage-slot{min-height:27px}
+}

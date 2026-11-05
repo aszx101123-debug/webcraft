@@ -1,7 +1,7 @@
 'use strict';
 
 const CONFIG = {
-  VERSION: '1.3.2',
+  VERSION: '1.3.3',
   CHUNK: 16,
   HEIGHT: 64,
   SEA: 23,
@@ -28,7 +28,8 @@ const BLOCK = Object.freeze({
   REDSTONE_ORE: 19, LAPIS_ORE: 20, DIAMOND_ORE: 21, EMERALD_ORE: 22, WATER_FLOW: 23, SNOW: 24, FURNACE: 25, TORCH: 26,
   GRAVEL: 27, CLAY: 28, SANDSTONE: 29, STONE_BRICKS: 30, POLISHED_STONE: 31,
   MOSSY_COBBLE: 32, BIRCH_LOG: 33, BIRCH_LEAVES: 34, BIRCH_PLANKS: 35,
-  SPRUCE_LOG: 36, SPRUCE_LEAVES: 37, SPRUCE_PLANKS: 38, CACTUS: 39, BOOKSHELF: 40
+  SPRUCE_LOG: 36, SPRUCE_LEAVES: 37, SPRUCE_PLANKS: 38, CACTUS: 39, BOOKSHELF: 40,
+  STONE_SLAB: 41, WOOD_STAIRS: 42, WOOD_DOOR: 43, CHEST: 44, WOOD_DOOR_TOP: 45
 });
 
 const BLOCKS = [
@@ -73,7 +74,14 @@ const BLOCKS = [
   { name: '가문비나무 잎', tiles: { all: [11,6] }, cutout: true, miningTime: .16, tool: 'hoe', category: '자연' },
   { name: '가문비나무 판자', tiles: { all: [10,7] }, miningTime: .62, tool: 'cutter', category: '목재' },
   { name: '선인장', tiles: { top: [10,8], bottom: [10,8], side: [11,7] }, miningTime: .38, category: '자연' },
-  { name: '책장', tiles: { top: [10,5], bottom: [10,5], side: [11,8] }, miningTime: .7, tool: 'cutter', category: '장식' }
+  { name: '책장', tiles: { top: [10,5], bottom: [10,5], side: [11,8] }, miningTime: .7, tool: 'cutter', category: '장식' },
+  // Append-only ID policy: slab/stair/door/chest never renumber existing worlds.
+  { name: '돌 반 블록', tiles: { all: [0,10] }, miningTime: .68, tool: 'pickaxe', minTier: 1, category: '석재', shape: 'slab' },
+  { name: '나무 계단', tiles: { top: [1,1], side: [1,1], bottom: [1,1] }, miningTime: .58, tool: 'cutter', category: '목재', shape: 'stair' },
+  { name: '나무 문', tiles: { top: [3,10], side: [2,10], bottom: [3,10] }, miningTime: .55, tool: 'cutter', category: '목재', shape: 'door' },
+  { name: '상자', tiles: { top: [5,10], side: [4,10], bottom: [5,10] }, miningTime: .7, tool: 'cutter', category: '장식', shape: 'chest' },
+  { name: '나무 문 윗부분', tiles: { top: [3,10], side: [2,10], bottom: [3,10] },
+    miningTime: .55, tool: 'cutter', category: '목재', shape: 'doorTop', hidden: true }
 ];
 
 const ITEM = Object.freeze({
@@ -145,7 +153,8 @@ const PLACEABLE_IDS = [
   BLOCK.CRAFTING_TABLE, BLOCK.FURNACE, BLOCK.TORCH, BLOCK.WATER,
   BLOCK.GRAVEL, BLOCK.CLAY, BLOCK.SANDSTONE, BLOCK.STONE_BRICKS, BLOCK.POLISHED_STONE,
   BLOCK.MOSSY_COBBLE, BLOCK.BIRCH_LOG, BLOCK.BIRCH_LEAVES, BLOCK.BIRCH_PLANKS,
-  BLOCK.SPRUCE_LOG, BLOCK.SPRUCE_LEAVES, BLOCK.SPRUCE_PLANKS, BLOCK.CACTUS, BLOCK.BOOKSHELF, BLOCK.COAL_ORE, BLOCK.IRON_ORE, BLOCK.GOLD_ORE,
+  BLOCK.SPRUCE_LOG, BLOCK.SPRUCE_LEAVES, BLOCK.SPRUCE_PLANKS, BLOCK.CACTUS, BLOCK.BOOKSHELF,
+  BLOCK.STONE_SLAB, BLOCK.WOOD_STAIRS, BLOCK.WOOD_DOOR, BLOCK.CHEST, BLOCK.COAL_ORE, BLOCK.IRON_ORE, BLOCK.GOLD_ORE,
   BLOCK.COPPER_ORE, BLOCK.REDSTONE_ORE, BLOCK.LAPIS_ORE, BLOCK.DIAMOND_ORE, BLOCK.EMERALD_ORE, BLOCK.SNOW
 ];
 
@@ -153,6 +162,7 @@ const BLOCK_DROPS = {
   [BLOCK.GRASS]: BLOCK.DIRT,
   [BLOCK.STONE]: BLOCK.COBBLE,
   [BLOCK.GLASS]: 0,
+  [BLOCK.WOOD_DOOR_TOP]: 0,
   [BLOCK.COAL_ORE]: ITEM.COAL,
   // Metallic ores are smelted in the furnace rather than dropping finished ingots.
   [BLOCK.IRON_ORE]: BLOCK.IRON_ORE,
@@ -208,12 +218,45 @@ const MOB_DEFS = {
   spider:   { name: '거미',    hostile: true,  hp: 12, speed: 3.2, height: .75, width: 1.0,  dmg: 2.5, aggro: 18, drops: [] }
 };
 
+// Local voxel AABBs, used consistently by world meshing, player movement and placement.
+// Each box is [minX,minY,minZ,maxX,maxY,maxZ] within its owning voxel.
+function getBlockBoxes(id, state = null) {
+  const s=state||{};
+  if(id===BLOCK.STONE_SLAB)
+    return [s.half==='top'?[0,.5,0,1,1,1]:[0,0,0,1,.5,1]];
+  if(id===BLOCK.WOOD_STAIRS) {
+    const base=[0,0,0,1,.5,1];
+    const step={
+      north:[0,.5,0,1,1,.5],
+      south:[0,.5,.5,1,1,1],
+      east:[.5,.5,0,1,1,1],
+      west:[0,.5,0,.5,1,1]
+    };
+    return [base,step[s.facing]||step.north];
+  }
+  if(id===BLOCK.WOOD_DOOR||id===BLOCK.WOOD_DOOR_TOP) {
+    if(s.open)return [];
+    return (s.facing==='east'||s.facing==='west')
+      ? [[.405,0,0,.595,1,1]]
+      : [[0,0,.405,1,1,.595]];
+  }
+  if(id===BLOCK.CHEST)return [[.08,0,.08,.92,.85,.92]];
+  return [[0,0,0,1,1,1]];
+}
+
+function getBlockVisualBoxes(id,state=null) {
+  if((id===BLOCK.WOOD_DOOR||id===BLOCK.WOOD_DOOR_TOP)&&state?.open)
+    return (state.facing==='east'||state.facing==='west')
+      ? [[0,0,.405,1,1,.595]] : [[.405,0,0,.595,1,1]];
+  return getBlockBoxes(id,state);
+}
+
 function isSolidBlock(id) {
   return id !== BLOCK.AIR && !!BLOCKS[id] && !BLOCKS[id].liquid && !BLOCKS[id].nonSolid;
 }
 
 function isPlaceable(id) {
-  return isBlockId(id) && id !== BLOCK.BEDROCK && id !== BLOCK.WATER_FLOW;
+  return isBlockId(id) && !BLOCKS[id].hidden && id !== BLOCK.BEDROCK && id !== BLOCK.WATER_FLOW;
 }
 
 function isFallingBlock(id) { return !!BLOCKS[id]?.gravity || id === BLOCK.SAND; }
@@ -225,7 +268,7 @@ function getBlockCategory(id) {
   if ([BLOCK.STONE, BLOCK.COBBLE, BLOCK.BRICK, BLOCK.FURNACE].includes(id)) return '석재';
   if ([BLOCK.COAL_ORE,BLOCK.IRON_ORE,BLOCK.GOLD_ORE,BLOCK.COPPER_ORE,BLOCK.REDSTONE_ORE,
        BLOCK.LAPIS_ORE,BLOCK.DIAMOND_ORE,BLOCK.EMERALD_ORE].includes(id)) return '광석';
-  if ([BLOCK.GLASS,BLOCK.GLOWSTONE,BLOCK.TORCH].includes(id)) return '장식';
+  if ([BLOCK.GLASS,BLOCK.GLOWSTONE,BLOCK.TORCH,BLOCK.CHEST].includes(id)) return '장식';
   return '자연';
 }
 
