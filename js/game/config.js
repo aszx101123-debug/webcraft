@@ -131,15 +131,15 @@ const ITEMS = {
   [ITEM.IRON_HOE]: toolItem(ITEM.IRON_HOE, '철 괭이', 'hoe', 3, 6, 250, [2, 6]),
   [ITEM.GOLD_HOE]: toolItem(ITEM.GOLD_HOE, '금 괭이', 'hoe', 4, 10, 33, [3, 6]),
   [ITEM.DIAMOND_HOE]:toolItem(ITEM.DIAMOND_HOE,'다이아몬드 괭이','hoe',5,8,1562,[4,6]),[ITEM.LEATHER_HELMET]:armorItem(ITEM.LEATHER_HELMET,'가죽 투구','head',1,55,[0,8]),[ITEM.LEATHER_CHESTPLATE]:armorItem(ITEM.LEATHER_CHESTPLATE,'가죽 흉갑','chest',3,80,[1,8]),[ITEM.LEATHER_LEGGINGS]:armorItem(ITEM.LEATHER_LEGGINGS,'가죽 레깅스','legs',2,75,[2,8]),[ITEM.LEATHER_BOOTS]:armorItem(ITEM.LEATHER_BOOTS,'가죽 부츠','feet',1,65,[3,8]),[ITEM.STONE_HELMET]:armorItem(ITEM.STONE_HELMET,'돌 투구','head',1,100,[4,8]),[ITEM.STONE_CHESTPLATE]:armorItem(ITEM.STONE_CHESTPLATE,'돌 흉갑','chest',4,130,[5,8]),[ITEM.STONE_LEGGINGS]:armorItem(ITEM.STONE_LEGGINGS,'돌 레깅스','legs',3,120,[6,8]),[ITEM.STONE_BOOTS]:armorItem(ITEM.STONE_BOOTS,'돌 부츠','feet',1,110,[7,8]),[ITEM.IRON_HELMET]:armorItem(ITEM.IRON_HELMET,'철 투구','head',2,165,[8,8]),[ITEM.IRON_CHESTPLATE]:armorItem(ITEM.IRON_CHESTPLATE,'철 흉갑','chest',6,240,[9,8]),[ITEM.IRON_LEGGINGS]:armorItem(ITEM.IRON_LEGGINGS,'철 레깅스','legs',5,225,[0,9]),[ITEM.IRON_BOOTS]:armorItem(ITEM.IRON_BOOTS,'철 부츠','feet',2,195,[1,9]),[ITEM.GOLD_HELMET]:armorItem(ITEM.GOLD_HELMET,'금 투구','head',2,77,[2,9]),[ITEM.GOLD_CHESTPLATE]:armorItem(ITEM.GOLD_CHESTPLATE,'금 흉갑','chest',5,112,[3,9]),[ITEM.GOLD_LEGGINGS]:armorItem(ITEM.GOLD_LEGGINGS,'금 레깅스','legs',3,105,[4,9]),[ITEM.GOLD_BOOTS]:armorItem(ITEM.GOLD_BOOTS,'금 부츠','feet',1,91,[5,9]),[ITEM.DIAMOND_HELMET]:armorItem(ITEM.DIAMOND_HELMET,'다이아몬드 투구','head',3,363,[6,9]),[ITEM.DIAMOND_CHESTPLATE]:armorItem(ITEM.DIAMOND_CHESTPLATE,'다이아몬드 흉갑','chest',8,528,[7,9]),[ITEM.DIAMOND_LEGGINGS]:armorItem(ITEM.DIAMOND_LEGGINGS,'다이아몬드 레깅스','legs',6,495,[8,9]),[ITEM.DIAMOND_BOOTS]:armorItem(ITEM.DIAMOND_BOOTS,'다이아몬드 부츠','feet',3,429,[9,9])
-  , [ITEM.WOODEN_SWORD]: swordItem('나무 검', 4, 60, [0, 7]),
-  [ITEM.STONE_SWORD]: swordItem('돌 검', 5, 132, [1, 7]),
-  [ITEM.IRON_SWORD]: swordItem('철 검', 6, 250, [2, 7]),
-  [ITEM.GOLD_SWORD]: swordItem('금 검', 4, 33, [3, 7]),
-  [ITEM.DIAMOND_SWORD]: swordItem('다이아몬드 검', 7, 1562, [4, 7])
+  , [ITEM.WOODEN_SWORD]: swordItem('나무 검', 5, 60, [0, 7]),
+  [ITEM.STONE_SWORD]: swordItem('돌 검', 6, 132, [1, 7]),
+  [ITEM.IRON_SWORD]: swordItem('철 검', 7, 250, [2, 7]),
+  [ITEM.GOLD_SWORD]: swordItem('금 검', 5, 33, [3, 7]),
+  [ITEM.DIAMOND_SWORD]: swordItem('다이아몬드 검', 8, 1562, [4, 7])
 };
 
 function swordItem(name, attackDamage, maxDurability, tile) {
-  return { name, toolType: 'sword', tier: 1, speed: 1, attackDamage, attackSpeed: 1.6, maxDurability, tiles: { all: tile } };
+  return { name, toolType: 'sword', tier: 1, speed: 1, attackDamage, maxDurability, tiles: { all: tile } };
 }
 
 const DEFAULT_HOTBAR = [
@@ -195,16 +195,7 @@ function isFoodId(id) { return id >= 100 && !!ITEMS[id] && typeof ITEMS[id].food
 
 function armorItem(id,n,t,d,m,tile){return{name:n,armorType:t,defense:d,maxDurability:m,tiles:{all:tile}};}
 function toolItem(id, name, type, tier, speed, maxDurability, tile) {
-  // Combat uses Java-style base item attributes; mining speed remains independent.
-  const category = tier===4 ? 0 : (tier===5?4:tier-1);
-  const stats = {
-    cutter:{damage:[7,9,9,7,9][category], rate:[.8,.8,.9,1,1][category]},
-    pickaxe:{damage:[2,3,4,2,5][category],rate:1.2},
-    shovel:{damage:[2.5,3.5,4.5,2.5,5.5][category],rate:1.0},
-    hoe:{damage:1,rate:[1,2,3,3,4][category]}
-  }[type]||{damage:1,rate:1};
-  return { name, toolType: type, tier, speed, maxDurability,
-    attackDamage:stats.damage,attackSpeed:stats.rate,tiles: { all: tile } };
+  return { name, toolType: type, tier, speed, maxDurability, tiles: { all: tile } };
 }
 
 const SURVIVAL = {
@@ -226,24 +217,6 @@ const MOB_DEFS = {
   skeleton: { name: '스켈레톤', hostile: true, hp: 20, speed: 2.15, height: 1.9, width: .56, dmg: 3, aggro: 26, ranged: true, drops: [] },
   spider:   { name: '거미',    hostile: true,  hp: 16, speed: 3.2, height: .75, width: 1.0,  dmg: 2.5, aggro: 18, drops: [] }
 };
-
-// Independent combat attributes: damage points, attacks per second, and charge curve.
-// Holding the same mining tool does not change its block-breaking speed.
-function getAttackStats(id) {
-  const def=getToolDef(id);
-  return def && Number.isFinite(def.attackDamage)
-    ? {damage:def.attackDamage,speed:def.attackSpeed||1}
-    : {damage:SURVIVAL.FIST_DMG,speed:4};
-}
-function attackCharge(elapsedSeconds, attacksPerSecond) {
-  if(!Number.isFinite(elapsedSeconds)||elapsedSeconds===Infinity)return 1;
-  return Math.max(0,Math.min(1,elapsedSeconds*Math.max(.1,attacksPerSecond)));
-}
-function chargedAttackDamage(baseDamage, charge, critical=false) {
-  const fraction=Math.max(0,Math.min(1,charge));
-  const scaled=baseDamage*(.2+.8*fraction*fraction);
-  return Math.max(.2,critical?scaled*1.5:scaled);
-}
 
 // Local voxel AABBs, used consistently by world meshing, player movement and placement.
 // Each box is [minX,minY,minZ,maxX,maxY,maxZ] within its owning voxel.
