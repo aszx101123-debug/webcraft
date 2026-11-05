@@ -65,6 +65,39 @@ const Crafting = (() => {
     note: '제작대 3×3 · 조약돌 8개'
   });
 
+  // New v1.3.2 building and wood recipes (existing 2x2 and 3x3 systems).
+  add('birch-planks','자작나무 판자',BLOCK.BIRCH_PLANKS,4,{
+    shapeless:true,ingredients:[{id:BLOCK.BIRCH_LOG,count:1}],
+    note:'자작나무 원목 1개 → 밝은 판자 4개'
+  });
+  add('spruce-planks','가문비나무 판자',BLOCK.SPRUCE_PLANKS,4,{
+    shapeless:true,ingredients:[{id:BLOCK.SPRUCE_LOG,count:1}],
+    note:'가문비나무 원목 1개 → 짙은 판자 4개'
+  });
+  const square=[1,1,0,1,1,0,0,0,0];
+  add('sandstone','사암 만들기',BLOCK.SANDSTONE,1,{
+    pattern:[square],ingredients:[{id:BLOCK.SAND,count:4}],note:'모래 4개를 2×2로 배치'
+  });
+  add('polished-stone','매끄러운 돌',BLOCK.POLISHED_STONE,4,{
+    pattern:[square],ingredients:[{id:BLOCK.COBBLE,count:4}],note:'조약돌 4개 → 매끄러운 돌 4개'
+  });
+  add('stone-bricks','석재 벽돌',BLOCK.STONE_BRICKS,4,{
+    pattern:[square],ingredients:[{id:BLOCK.STONE,count:4}],note:'돌 4개 → 석재 벽돌 4개'
+  });
+  for(const [name,leafId] of [
+    ['oak',BLOCK.LEAVES],['birch',BLOCK.BIRCH_LEAVES],['spruce',BLOCK.SPRUCE_LEAVES]
+  ]){
+    add('mossy-cobble-'+name,'이끼 낀 조약돌',BLOCK.MOSSY_COBBLE,1,{
+      shapeless:true,ingredients:[{id:BLOCK.COBBLE,count:1},{id:leafId,count:1}],
+      note:'조약돌과 잎 블록 1개씩'
+    });
+  }
+  add('bookshelf','책장',BLOCK.BOOKSHELF,1,{
+    pattern:[[1,1,1,2,2,2,1,1,1]],
+    ingredients:[{id:BLOCK.PLANK,count:6},{id:ITEM.LEATHER,count:3}],
+    note:'판자 6개와 가죽 3개를 사용한 간편 책장 제작'
+  });
+
   const armorTiers=[{key:'leather',name:'가죽',material:ITEM.LEATHER,helmet:ITEM.LEATHER_HELMET,chest:ITEM.LEATHER_CHESTPLATE,legs:ITEM.LEATHER_LEGGINGS,boots:ITEM.LEATHER_BOOTS},{key:'stone',name:'돌',material:BLOCK.COBBLE,helmet:ITEM.STONE_HELMET,chest:ITEM.STONE_CHESTPLATE,legs:ITEM.STONE_LEGGINGS,boots:ITEM.STONE_BOOTS},{key:'iron',name:'철',material:ITEM.IRON_INGOT,helmet:ITEM.IRON_HELMET,chest:ITEM.IRON_CHESTPLATE,legs:ITEM.IRON_LEGGINGS,boots:ITEM.IRON_BOOTS},{key:'gold',name:'금',material:ITEM.GOLD_INGOT,helmet:ITEM.GOLD_HELMET,chest:ITEM.GOLD_CHESTPLATE,legs:ITEM.GOLD_LEGGINGS,boots:ITEM.GOLD_BOOTS},{key:'diamond',name:'다이아몬드',material:ITEM.DIAMOND,helmet:ITEM.DIAMOND_HELMET,chest:ITEM.DIAMOND_CHESTPLATE,legs:ITEM.DIAMOND_LEGGINGS,boots:ITEM.DIAMOND_BOOTS}];const armorShapes={helmet:[1,1,1,1,0,1,0,0,0],chest:[1,0,1,1,1,1,1,1,1],legs:[1,1,1,1,0,1,1,0,1],boots:[0,0,0,1,0,1,1,0,1]};for(const t of armorTiers){add(t.key+'-helmet',t.name+' 투구',t.helmet,1,{pattern:armorShapes.helmet,ingredients:[{id:t.material,count:5}]});add(t.key+'-chest',t.name+' 흉갑',t.chest,1,{pattern:armorShapes.chest,ingredients:[{id:t.material,count:8}]});add(t.key+'-legs',t.name+' 레깅스',t.legs,1,{pattern:armorShapes.legs,ingredients:[{id:t.material,count:7}]});add(t.key+'-boots',t.name+' 부츠',t.boots,1,{pattern:armorShapes.boots,ingredients:[{id:t.material,count:4}]});}
   const tiers = [
     { key: 'wood', name: '나무', material: BLOCK.PLANK, pick: ITEM.WOODEN_PICKAXE, cutter: ITEM.WOODEN_CUTTER, shovel: ITEM.WOODEN_SHOVEL, hoe: ITEM.WOODEN_HOE },
