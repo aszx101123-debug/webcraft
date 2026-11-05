@@ -13,11 +13,11 @@
 <link rel="stylesheet" href="css/game.css">
 <link rel="stylesheet" href="css/mobile-test.css?v=v129">
 <link rel="stylesheet" href="css/v129-polish.css?v=v129">
-<link rel="stylesheet" href="css/v130-character.css?v=v130">
+<link rel="stylesheet" href="css/v130-character.css?v=v131">
 </head>
 <body>
 
-<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.3.0 · 손에 든 도구·블록 표시와 캐릭터 꾸미기 추가</div>
+<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.3.1 · 홈페이지 스킨 스튜디오 · 머리/눈/옷 무늬/액세서리 추가</div>
 <div id="boot-error" class="boot-error hidden" role="alert">
   <div class="boot-error-panel">
     <div class="boot-error-icon">!</div>
@@ -238,13 +238,14 @@
   });
 })();
 </script>
-<script src="js/game/config.js?v=v130"></script>
+<script src="js/game/config.js?v=v131"></script>
 <script src="js/game/noise.js"></script>
 <script src="js/game/terrain.js?v=v129"></script>
 <script src="js/game/mobile-test-textures.js?v=v129"></script>
 <script src="js/game/world.js?v=torch1"></script>
 <script src="js/game/player.js?v=v129"></script>
-<script src="js/game/mobile-test-player-model.js?v=v130"></script>
+<script src="js/skin-studio.js?v=v131"></script>
+<script src="js/game/mobile-test-player-model.js?v=v131"></script>
 <script src="js/game/fluids.js?v=v129"></script>
 <script src="js/game/interaction.js?v=torch1"></script>
 <script src="js/game/items.js?v=v129"></script>
@@ -252,8 +253,8 @@
 <script src="js/game/mobs.js?v=v129"></script>
 <script src="js/game/save.js?v=v129"></script>
 <script src="js/game/mobile-test-crafting.js?v=v129"></script>
-<script src="js/game/mobile-test-ui.js?v=v130"></script>
-<script src="js/game/mobile-test-main.js?v=v130"></script>
+<script src="js/game/mobile-test-ui.js?v=v131"></script>
+<script src="js/game/mobile-test-main.js?v=v131"></script>
 <script>
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(() => {}));
