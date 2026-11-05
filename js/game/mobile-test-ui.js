@@ -258,8 +258,9 @@ const UI = (() => {
   }
 
   const characterFields = [
-    ['skin', '피부 색상'], ['hair', '머리 색상'], ['shirt', '상의'],
-    ['pants', '바지'], ['boots', '신발'], ['hairStyle', '머리 스타일']
+    ['skin', '피부 색상'], ['hair', '머리 색상'], ['hairStyle', '헤어스타일'],
+    ['eyes', '눈 색상'], ['shirt', '상의'], ['shirtStyle', '옷 디테일'],
+    ['pants', '바지'], ['boots', '신발'], ['accessory', '액세서리']
   ];
   function updateCharacterPreview() {
     const canvas = $('character-preview');
@@ -306,21 +307,22 @@ const UI = (() => {
       caption.className = 'character-option-label';
       caption.textContent = label;
       const buttons = document.createElement('div');
-      buttons.className = field === 'hairStyle' ? 'character-hair-options' : 'character-swatches';
+      const stringChoices = typeof palette[field][0].value === 'string';
+      buttons.className = stringChoices ? 'character-hair-options' : 'character-swatches';
       palette[field].forEach((choice, index) => {
         const button = document.createElement('button');
         button.type = 'button';
-        button.className = field === 'hairStyle' ? 'character-hair-button' : 'character-swatch';
-        const selected = appearance[field] === (field === 'hairStyle' ? choice.value : index);
+        button.className = stringChoices ? 'character-hair-button' : 'character-swatch';
+        const selected = appearance[field] === (stringChoices ? choice.value : index);
         button.setAttribute('aria-pressed', String(selected));
         button.setAttribute('aria-label', label + ': ' + choice.label);
         button.title = choice.label;
-        if (field === 'hairStyle') button.textContent = choice.label;
+        if (stringChoices) button.textContent = choice.label;
         else button.style.backgroundColor = '#' + choice.value.toString(16).padStart(6, '0');
         button.addEventListener('click', () => {
           PlayerModel.setAppearance({
             ...PlayerModel.getAppearance(),
-            [field]: field === 'hairStyle' ? choice.value : index
+            [field]: stringChoices ? choice.value : index
           });
           renderCharacterEditor();
           document.dispatchEvent(new Event('webcraft-appearance-changed'));
