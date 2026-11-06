@@ -379,6 +379,36 @@ const UI = (() => {
     updateCharacterPreview();
   }
 
+  function renderCreativeCatalog(){
+    const panel=$('inventory-creative-panel'),list=$('inventory-creative-grid');
+    if(!panel||!list || panel.classList.contains('hidden') || !Inventory.isCreative())return;
+    const needle=($('inventory-creative-search')?.value||'').trim().toLocaleLowerCase('ko-KR');
+    list.replaceChildren();
+    const ids=[...new Set([...PLACEABLE_IDS,...Object.keys(ITEMS).map(Number)])]
+      .filter(id=>getItemDef(id)&&(!needle||getItemName(id).toLocaleLowerCase('ko-KR').includes(needle)));
+    for(const id of ids){
+      const def=getItemDef(id);
+      const btn=document.createElement('button');
+      btn.type='button';btn.className='java-creative-item';
+      btn.title=getItemName(id);
+      const img=document.createElement('img');img.src=Textures.blockIcon(id);img.alt='';
+      const name=document.createElement('small');name.textContent=getItemName(id);
+      btn.append(img,name);
+      btn.addEventListener('click',()=>{
+        if(inventoryCursor){
+          showToast('손에 든 아이템을 먼저 빈 슬롯에 내려놓으세요');
+          return;
+        }
+        const gear=!!(def.toolType||def.armorType);
+        inventoryCursor={id,count:gear?1:64};
+        if(gear)inventoryCursor.durability=def.maxDurability||1;
+        renderInventory();
+        updateInventoryCursor(innerWidth/2,innerHeight/2);
+      });
+      list.appendChild(btn);
+    }
+  }
+
   function renderInventory() {
     const grid = $('inventory-grid');
     const hotbar = $('inventory-hotbar-grid');
@@ -390,6 +420,7 @@ const UI = (() => {
     renderEquipment();
     renderInventoryCrafting();
     renderInventoryRecipes();
+    renderCreativeCatalog();
     updateCharacterPreview();
     const hand=$('java-mainhand-display');
     if(hand)hand.innerHTML=Inventory.selectedId()
@@ -542,6 +573,13 @@ const UI = (() => {
     }
     if(Crafting.getGridSize()!==2)Crafting.resetGrid(2);
     inventoryOpen=true;
+    const creativeButton=$('inventory-creative-toggle');
+    const creativePanel=$('inventory-creative-panel');
+    if(creativeButton){
+      creativeButton.hidden=!Inventory.isCreative();
+      creativeButton.setAttribute('aria-expanded','false');
+    }
+    creativePanel?.classList.add('hidden');
     hoveredInventorySlot=null;
     mobileSplitMode=false;
     selectedInventoryMaterial=null;
@@ -561,6 +599,23 @@ const UI = (() => {
       });
       btn.addEventListener('contextmenu',e=>e.preventDefault());
     });
+    const openCreative=$('inventory-creative-toggle');
+    if(openCreative && !openCreative.dataset.bound){
+      openCreative.dataset.bound='1';
+      openCreative.addEventListener('click',()=>{
+        const panel=$('inventory-creative-panel');
+        if(!Inventory.isCreative()||!panel)return;
+        const expanded=openCreative.getAttribute('aria-expanded')==='true';
+        openCreative.setAttribute('aria-expanded',String(!expanded));
+        panel.classList.toggle('hidden',expanded);
+        if(!expanded)renderCreativeCatalog();
+      });
+    }
+    const creativeSearch=$('inventory-creative-search');
+    if(creativeSearch && !creativeSearch.dataset.bound){
+      creativeSearch.dataset.bound='1';
+      creativeSearch.addEventListener('input',renderCreativeCatalog);
+    }
     const book=$('inventory-recipe-toggle'),panel=$('inventory-recipe-panel');
     if(book && !recipeBookBound){
       recipeBookBound=true;
