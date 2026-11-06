@@ -17,7 +17,7 @@ function check(name, fn) {
 const compiledModules = [
   'config', 'items', 'mobile-test-crafting', 'mobile-test-ui',
   'mobile-test-main', 'save', 'noise', 'terrain', 'fluids', 'world',
-  'block-physics', 'block-furniture', 'world-journal',
+  'block-physics', 'block-furniture', 'world-journal', 'world-milestones',
   'player', 'mobs', 'interaction', 'mobile-test-textures', 'mobile-test-player-model'
 ];
 check('all game JavaScript files parse', () => {
@@ -195,10 +195,10 @@ check('flowing water does not rebuild unchanged and clears after source removal'
   assert.equal([...blocks.values()].filter(id => id === BLOCK.WATER_FLOW).length, 0);
 });
 
-check('PC/mobile pages include v1.3.5 journal, improved mobs and skin editor', () => {
+check('PC/mobile pages include v1.3.6 achievements, journal and skin editor', () => {
   for (const page of ['play.html', 'mobile-test.html']) {
     const html = src(page);
-    assert.ok(html.includes('mobile-test-main.js?v=v135'));
+    assert.ok(html.includes('mobile-test-main.js?v=v136'));
     assert.ok(html.includes('v129-polish.css?v=v129'));
     assert.ok(html.includes('btn-export-world'));
     assert.ok(html.includes('btn-import-world'));
@@ -214,7 +214,11 @@ check('PC/mobile pages include v1.3.5 journal, improved mobs and skin editor', (
     assert.ok(html.includes('css/v133-build.css?v=v133'));
     assert.ok(html.includes('js/game/mobs.js?v=v135'));
     assert.ok(html.includes('css/v134-combat.css?v=v134'));
-    assert.ok(html.includes('js/game/world-journal.js?v=v135'));
+    assert.ok(html.includes('js/game/world-journal.js?v=v136'));
+    assert.ok(html.includes('js/game/world-milestones.js?v=v136'));
+    assert.ok(html.includes('css/v136-progress.css?v=v136'));
+    assert.ok(html.includes('id="journal-bookmarks"'));
+    assert.ok(html.includes('id="journal-milestones"'));
     assert.ok(html.includes('css/v135-adventure.css?v=v135'));
     assert.ok(html.includes('id="overlay-journal"'));
     assert.ok(html.includes('id="debug-panel"'));
@@ -225,7 +229,7 @@ check('PC/mobile pages include v1.3.5 journal, improved mobs and skin editor', (
     assert.ok(html.indexOf('js/skin-studio.js?v=v131') < html.indexOf('js/game/mobile-test-player-model.js?v=v131'));
 
   }
-  assert.ok(src('index.html').includes('v1.3.5'));
+  assert.ok(src('index.html').includes('v1.3.6'));
   assert.ok(src('index.html').includes('id="skin-studio"'));
   assert.ok(src('index.html').includes('js/skin-studio-page.js?v=v131'));
 });

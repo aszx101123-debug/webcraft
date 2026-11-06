@@ -8,13 +8,23 @@ const WorldJournal = (() => {
     taiga:'침엽수림',snowy:'설산',desert:'사막',highland:'고지대'
   };
   const keys=Object.keys(NAMES);
-  const MAX_DISTANCE=10;
+  const MAX_DISTANCE=10,MAX_BOOKMARKS=5;
   let visited=[],distance=0,lastPosition=null,open=false,discovered=null,onClose=null,home=null;
+  let bookmarks=[],onChange=null;
+  function coordinate(pos){
+    if(!pos||!['x','y','z'].every(k=>Number.isFinite(pos[k])&&Math.abs(pos[k])<10000000))return null;
+    return {x:Math.floor(pos.x),y:Math.floor(pos.y),z:Math.floor(pos.z)};
+  }
   function init(saved) {
-    visited=[];distance=0;lastPosition=null;open=false;discovered=null;home=null;
+    visited=[];distance=0;lastPosition=null;open=false;discovered=null;home=null;bookmarks=[];
     if(saved && typeof saved==='object') {
-      if(saved.home&&['x','y','z'].every(k=>Number.isFinite(saved.home[k])&&Math.abs(saved.home[k])<10000000))
-        home={x:Math.floor(saved.home.x),y:Math.floor(saved.home.y),z:Math.floor(saved.home.z)};
+      if(saved.home)home=coordinate(saved.home);
+      if(Array.isArray(saved.bookmarks))for(const point of saved.bookmarks.slice(0,MAX_BOOKMARKS)){
+        const coords=coordinate(point);
+        if(!coords||bookmarks.some(b=>b.x===coords.x&&b.y===coords.y&&b.z===coords.z))continue;
+        const name=typeof point.name==='string'?point.name.trim().slice(0,18):'';
+        bookmarks.push({...coords,name:name||'거점 '+(bookmarks.length+1)});
+      }
       if(Number.isFinite(saved.distance))distance=Math.max(0,Math.min(100000000,saved.distance));
       if(Array.isArray(saved.visited))for(const v of saved.visited.slice(0,keys.length)){
         if(!v||!keys.includes(v.biome)||visited.some(x=>x.biome===v.biome))continue;
@@ -44,21 +54,46 @@ const WorldJournal = (() => {
     return false;
   }
   function serialize() {
-    return {version:2,distance:Math.round(distance*10)/10,
-      home:home?{...home}:null,visited:visited.map(v=>({...v}))};
+    return {version:3,distance:Math.round(distance*10)/10,
+      home:home?{...home}:null,bookmarks:bookmarks.map(v=>({...v})),
+      visited:visited.map(v=>({...v}))};
   }
   function setHome(pos){
     if(!pos || !['x','y','z'].every(k=>Number.isFinite(pos[k])))return false;
-    home={x:Math.floor(pos.x),y:Math.floor(pos.y),z:Math.floor(pos.z)};
+    home=coordinate(pos);
+    if(!home)return false;
     if(open)render();
+    onChange?.();
     return true;
   }
+  function addBookmark(pos,rawName){
+    const coords=coordinate(pos);
+    if(!coords||bookmarks.length>=MAX_BOOKMARKS)return false;
+    if(bookmarks.some(b=>b.x===coords.x&&b.y===coords.y&&b.z===coords.z))return false;
+    const name=typeof rawName==='string'?rawName.trim().slice(0,18):'';
+    const mark={...coords,name:name||'거점 '+(bookmarks.length+1)};
+    bookmarks.push(mark);
+    if(open)render();
+    onChange?.();
+    return {...mark};
+  }
+  function removeBookmark(index){
+    if(!Number.isInteger(index)||index<0||index>=bookmarks.length)return false;
+    bookmarks.splice(index,1);
+    if(open)render();
+    onChange?.();
+    return true;
+  }
+  function setOnChange(fn){onChange=typeof fn==='function'?fn:null;}
   function homeDistance(pos){
     return home && pos ? Math.round(Math.hypot(pos.x-home.x,pos.z-home.z)) : null;
   }
   function getStats(){return {distance:Math.floor(distance),found:visited.length,
     total:keys.length,home:home?{...home}:null,
-    homeDistance:homeDistance(lastPosition),visited:visited.map(v=>({...v}))};}
+    homeDistance:homeDistance(lastPosition),
+    bookmarks:bookmarks.map(b=>({...b,distance:lastPosition?Math.round(
+      Math.hypot(lastPosition.x-b.x,lastPosition.z-b.z)):null})),
+    visited:visited.map(v=>({...v}))};}
   function biomeName(id){return NAMES[id]||id||'알 수 없음';}
   function render(){
     const list=document.getElementById('journal-biomes');
@@ -71,6 +106,34 @@ const WorldJournal = (() => {
       ? '집 위치 · X '+home.x+' / Y '+home.y+' / Z '+home.z+
         (lastPosition?' · 현재 '+homeDistance(lastPosition)+'블록 거리':'')
       : '아직 집으로 지정한 장소가 없습니다.';
+    const bookmarkList=document.getElementById('journal-bookmarks');
+    if(bookmarkList){
+      bookmarkList.replaceChildren();
+      bookmarks.forEach((entry,index)=>{
+        const row=document.createElement('div');row.className='journal-bookmark';
+        const info=document.createElement('div');
+        const name=document.createElement('strong');name.textContent='⌖ '+entry.name;
+        const details=document.createElement('small');
+        const km=lastPosition?' · '+Math.round(Math.hypot(
+          lastPosition.x-entry.x,lastPosition.z-entry.z))+'블록 거리':'';
+        details.textContent='X '+entry.x+' / Y '+entry.y+' / Z '+entry.z+km;
+        info.append(name,details);
+        const remove=document.createElement('button');
+        remove.type='button';remove.textContent='삭제';
+        remove.className='btn ghost journal-remove';
+        remove.setAttribute('aria-label',entry.name+' 거점 삭제');
+        remove.addEventListener('click',()=>removeBookmark(index));
+        row.append(info,remove);bookmarkList.appendChild(row);
+      });
+      if(!bookmarks.length){
+        const empty=document.createElement('p');
+        empty.className='journal-bookmark-empty';
+        empty.textContent='등록한 거점이 없습니다. 현재 위치를 기록해 보세요.';
+        bookmarkList.appendChild(empty);
+      }
+    }
+    const bookmarkCount=document.getElementById('journal-bookmark-count');
+    if(bookmarkCount)bookmarkCount.textContent=bookmarks.length+'/'+MAX_BOOKMARKS;
     list.replaceChildren();
     for(const biome of keys){
       const found=entries.includes(biome);
@@ -98,5 +161,6 @@ const WorldJournal = (() => {
   }
   function isOpen(){return open;}
   function setOnClose(fn){onClose=typeof fn==='function'?fn:null;}
-  return {init,update,serialize,getStats,biomeName,show,close,isOpen,setOnClose,setHome,homeDistance,render};
+  return {init,update,serialize,getStats,biomeName,show,close,isOpen,setOnClose,setOnChange,
+    setHome,homeDistance,addBookmark,removeBookmark,render};
 })();

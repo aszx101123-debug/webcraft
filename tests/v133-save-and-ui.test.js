@@ -19,7 +19,9 @@ const snapshot={
  version:6,seed:123456,player:{x:2,y:5,z:3},
  edits:[['0,0',[[65,conf.BLOCK.CHEST],[66,conf.BLOCK.WOOD_DOOR],[67,conf.BLOCK.WOOD_DOOR_TOP]]]],
  blockObjects:[['1,1,1',{facing:'north',chest}],['2,1,2',{facing:'west',open:true}]],
- journal:{version:2,distance:48.5,home:{x:2,y:5,z:3},visited:[{biome:'forest',x:2,z:3}]}
+ journal:{version:3,distance:48.5,home:{x:2,y:5,z:3},bookmarks:[{name:'나무집',x:4,y:6,z:7}],
+  visited:[{biome:'forest',x:2,z:3}]},
+ milestones:{version:1,counts:{wood:2,placed:15},travelled:48,biomes:1,completed:['wood']}
 };
 check('furniture data survives save and reload',()=>{
  const meta=SaveSystem.create('Furniture backup',123456);assert.ok(meta);
@@ -29,6 +31,9 @@ check('furniture data survives save and reload',()=>{
  assert.equal(reloaded.blockObjects[1][1].open,true);
  assert.equal(reloaded.journal.visited[0].biome,'forest');
  assert.equal(reloaded.journal.home.y,5);
+ assert.equal(reloaded.journal.bookmarks[0].name,'나무집');
+ assert.equal(reloaded.milestones.counts.placed,15);
+ assert.equal(reloaded.milestones.completed[0],'wood');
  const exported=SaveSystem.exportWorld(meta.id);
  assert.ok(exported);snapshot._exported=exported;
 });
@@ -38,6 +43,8 @@ check('portable backups retain chest contents in separate imported world',()=>{
  assert.equal(SaveSystem.load(imported.id).blockObjects[0][1].chest[0].id,conf.BLOCK.COBBLE);
  assert.equal(SaveSystem.load(imported.id).blockObjects[1][1].facing,'west');
  assert.equal(SaveSystem.load(imported.id).journal.distance,48.5);
+ assert.equal(SaveSystem.load(imported.id).journal.bookmarks[0].z,7);
+ assert.equal(SaveSystem.load(imported.id).milestones.travelled,48);
 });
 check('invalid imported furniture position and oversized stacks are rejected',()=>{
  const invalid=JSON.parse(JSON.stringify(snapshot._exported));

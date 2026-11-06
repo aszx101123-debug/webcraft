@@ -98,6 +98,7 @@ const Interact = (() => {
       ? BLOCK.WOOD_DOOR : getBlockDrop(target.id,Math.random,tool)) : 0;
     if (target.id===BLOCK.CHEST)BlockFurniture.releaseContents(target.x,target.y,target.z);
     const ok = World.setBlock(target.x, target.y, target.z, BLOCK.AIR);
+    if(ok && survival && typeof WorldMilestones!=='undefined')WorldMilestones.record('mine',target.id,'survival');
     if (ok && survival) {
       if (dropId) Drops.spawn(dropId, 1, target.x + .5, target.y + .5, target.z + .5);
       Player.addExhaustion(SURVIVAL.MINE_COST);
@@ -177,9 +178,12 @@ const Interact = (() => {
       if(py>=CONFIG.HEIGHT-1||World.getBlock(px,py+1,pz)!==BLOCK.AIR||
          overlapsPlayer(px,py+1,pz,BLOCK.WOOD_DOOR_TOP,meta))return false;
     }
-    return special
+    const placed=special
       ? BlockFurniture.place(px,py,pz,blockId,facing,half)
       : World.setBlock(px,py,pz,blockId);
+    if(placed && typeof WorldMilestones!=='undefined')
+      WorldMilestones.record('place',blockId,Inventory.isCreative()?'creative':'survival');
+    return placed;
   }
 
   function pickBlock() {

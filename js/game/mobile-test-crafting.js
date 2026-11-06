@@ -283,6 +283,8 @@ const Crafting = (() => {
     const made = Inventory.add(recipe.outputId, recipe.count);
     if (made !== recipe.count) return false;
     resetGrid();
+    if(typeof WorldMilestones!=='undefined')
+      WorldMilestones.record('craft',recipe.outputId,Inventory.isCreative()?'creative':'survival');
     return true;
   }
 

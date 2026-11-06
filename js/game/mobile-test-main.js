@@ -52,6 +52,8 @@
   Textures.init();
   World.init(scene, seed, saved ? saved.edits : null);
   WorldJournal.init(saved?.journal);
+  WorldMilestones.init(saved?.milestones);
+  WorldMilestones.syncExploration(WorldJournal.getStats());
   BlockFurniture.init(saved?.blockObjects);
   BlockPhysics.init();
   Fluids.init();
@@ -272,7 +274,8 @@
       },
       edits: World.getEdits(),
       blockObjects: BlockFurniture.serialize(),
-      journal: WorldJournal.serialize()
+      journal: WorldJournal.serialize(),
+      milestones: WorldMilestones.serialize()
     });
     const badge=document.getElementById('save-indicator');
     if(badge && state.started){
@@ -385,7 +388,7 @@
         if(act==='mine')canvas.dispatchEvent(new MouseEvent('mousedown',{button:0,bubbles:true}));
         if(act==='place')canvas.dispatchEvent(new MouseEvent('mousedown',{button:2,bubbles:true}));
         if(act==='inventory') { state.suppressPause=true; disableTouchInput(); resetPad(); if (UI.openInventory() === false) resumeInput(); }
-        if(act==='journal') { disableTouchInput();resetPad();WorldJournal.show(); }
+        if(act==='journal') { disableTouchInput();resetPad();WorldJournal.show();WorldMilestones.render(); }
         if(act==='camera') { state.thirdPersonView = (state.thirdPersonView + 1) % 3; UI.showToast(['1인칭','3인칭 뒤','3인칭 앞'][state.thirdPersonView]); }
         if(act==='blocks') {
           if (state.mode !== GAME_MODE.CREATIVE) UI.showToast('크리에이티브에서 블록 선택을 사용할 수 있어요');
@@ -463,10 +466,35 @@
     resumeInput();
   });
   document.getElementById('journal-close')?.addEventListener('click',()=>WorldJournal.close());
+  WorldJournal.setOnChange(()=>doSave(true));
+  document.getElementById('journal-bookmark-add')?.addEventListener('click',()=>{
+    const input=document.getElementById('journal-bookmark-name');
+    const added=WorldJournal.addBookmark(Player.pos,input?.value||'');
+    if(!added){
+      UI.showToast('이미 기록한 위치이거나 거점 5개가 모두 찼습니다');
+      return;
+    }
+    if(input)input.value='';
+    UI.showToast('새 거점 기록: '+added.name);
+  });
+  WorldMilestones.onUnlock(goal=>{
+    UI.showToast('모험 목표 달성: '+goal.title);
+    const popup=document.getElementById('milestone-unlock');
+    if(popup){
+      popup.textContent='✦ 모험 목표 완료 · '+goal.title;
+      popup.classList.add('show');
+      clearTimeout(milestonePopupTimer);
+      milestonePopupTimer=setTimeout(()=>popup.classList.remove('show'),3100);
+    }
+    blip(740,.08,'triangle',.025);
+    // Save after the current crafting/placing action has committed its inventory change.
+    clearTimeout(milestoneSaveTimer);
+    milestoneSaveTimer=setTimeout(()=>doSave(true),220);
+  });
+  let milestonePopupTimer=null;
+  let milestoneSaveTimer=null;
   document.getElementById('journal-set-home')?.addEventListener('click',()=>{
     if(WorldJournal.setHome(Player.pos)){
-      WorldJournal.render();
-      doSave(true);
       UI.showToast('현재 위치를 집으로 기록했습니다');
     }
   });
@@ -488,7 +516,7 @@
       return;
     }
     if (WorldJournal.isOpen()) {
-      if(e.code==='Escape'||e.code==='KeyJ'){
+      if(e.code==='Escape'||(e.code==='KeyJ' && !e.target?.closest?.('input,textarea,select'))){
         e.preventDefault();
         WorldJournal.close();
       }
@@ -536,7 +564,7 @@
       disableTouchInput();
       state.suppressPause=true;
       document.exitPointerLock?.();
-      WorldJournal.show();
+      WorldJournal.show();WorldMilestones.render();
       return;
     }
     if (e.code === 'F5') {
@@ -927,6 +955,7 @@
   let frames = 0, fpsTime = 0, fps = 0;
   const clock = new THREE.Clock();
   let hudTick = 0;
+  let milestoneTick = 0;
 
   function loop() {
     requestAnimationFrame(loop);
@@ -944,6 +973,7 @@
         Player.update(dt, keys);
         const discovery=WorldJournal.update(dt,Player.pos,World.biomeAt(Player.pos.x,Player.pos.z));
         if(discovery)announceDiscovery(discovery);
+        if(discovery || ++milestoneTick%12===0)WorldMilestones.syncExploration(WorldJournal.getStats());
         Interact.update();
         const aimed=Interact.getTarget();
         const targetLabel=document.getElementById('target-block-name');
