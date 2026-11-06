@@ -3,8 +3,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const src=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 const core=new Function(src('js/game/config.js')+'\n'+src('js/game/items.js')+
  '\n'+src('js/game/mobile-test-crafting.js')+
- '\nreturn {BLOCK,ITEM,GAME_MODE,Inventory,Crafting,getToolDef,getItemName};')();
-const {BLOCK,ITEM,GAME_MODE,Inventory,Crafting}=core;
+ '\nreturn {BLOCK,ITEM,GAME_MODE,Inventory,Crafting,getToolDef,getArmorDef,getItemName};')();
+const {BLOCK,ITEM,GAME_MODE,Inventory,Crafting,getArmorDef}=core;
 let passed=0;const test=(label,fn)=>{fn();passed++;console.log('PASS',label)};
 Inventory.init(GAME_MODE.SURVIVAL);
 const item=(id,count)=>({id,count});
@@ -21,6 +21,7 @@ test('shift quick move transfers full stacks backpack to hotbar',()=>{
  assert.equal(Inventory.getSlots()[0].count,40);
 });
 test('shift quick move merges stacks without losing remainder',()=>{
+ Inventory.init(GAME_MODE.SURVIVAL);
  Inventory.putIntoSlot(0,item(BLOCK.PLANK,55));
  Inventory.putIntoSlot(9,item(BLOCK.PLANK,30));
  assert.equal(Inventory.quickMove(9),true);
@@ -29,6 +30,7 @@ test('shift quick move merges stacks without losing remainder',()=>{
  assert.equal(Inventory.getSlots()[9],null);
 });
 test('hotbar number swaps preserve item counts',()=>{
+ Inventory.init(GAME_MODE.SURVIVAL);
  Inventory.putIntoSlot(10,item(BLOCK.STONE,17));
  assert.equal(Inventory.swapSlots(10,2),true);
  assert.equal(Inventory.getSlots()[2].id,BLOCK.STONE);
@@ -36,6 +38,7 @@ test('hotbar number swaps preserve item counts',()=>{
  assert.equal(Inventory.getSlots()[10],null);
 });
 test('cursor swaps distinct stacks without deleting them',()=>{
+ Inventory.init(GAME_MODE.SURVIVAL);
  Inventory.putIntoSlot(12,item(BLOCK.DIRT,22));
  const cursor=item(BLOCK.SAND,13);
  const old=Inventory.swapWithSlot(12,cursor);
@@ -45,6 +48,7 @@ test('cursor swaps distinct stacks without deleting them',()=>{
  assert.equal(Inventory.getSlots()[12].count,13);
 });
 test('right-click one-item placements respect maximum stack size',()=>{
+ Inventory.init(GAME_MODE.SURVIVAL);
  Inventory.putIntoSlot(13,item(BLOCK.PLANK,63));
  assert.equal(Inventory.putIntoSlot(13,item(BLOCK.PLANK,1)),null);
  assert.equal(Inventory.getSlots()[13].count,64);
@@ -52,6 +56,7 @@ test('right-click one-item placements respect maximum stack size',()=>{
  assert.equal(remainder.count,1);
 });
 test('armor auto equips into the correct equipment slot',()=>{
+ Inventory.init(GAME_MODE.SURVIVAL);
  const armorId=Object.keys(ITEM).map(x=>ITEM[x]).find(id=>{
   const d=getArmorDef(id);return d&&d.armorType==='head';
  });
