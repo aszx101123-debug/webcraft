@@ -121,6 +121,7 @@
 #overlay-inventory .hotbar-grid .inventory-slot.java-selected-hotbar{outline:2px solid #caeeaa;outline-offset:-1px}
 .java-inventory-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 0 0}
 .java-inventory-tips{font-size:10px;color:#a8c5bb;line-height:1.65;margin:0}
+.java-held-readout{flex:1;font:800 10px Galmuri,system-ui,sans-serif;color:#c0e0cb;line-height:1.5}
 .java-split-button{flex:none;display:none;font-size:10px!important;padding:7px 9px!important}
 .touch-device .java-split-button{display:block}
 .java-split-button[aria-pressed=true]{background:#416e4e!important;border-color:#bce6a3!important;color:#fff!important}
