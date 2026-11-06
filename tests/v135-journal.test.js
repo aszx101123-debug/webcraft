@@ -82,7 +82,8 @@ check('PC/mobile pages load journal and helpful controls',()=>{
   assert.ok(main.includes('WorldJournal.serialize()'));
   assert.ok(main.includes("e.code === 'KeyJ'"));
   assert.ok(main.includes("e.code === 'F3'"));
-  assert.ok(main.includes("data-act=\"journal\""));
+  assert.ok(main.includes("data-mobile-act=\"journal\"") ||
+    source('play.html').includes('data-mobile-act="journal"'));
   const world=source('js/game/world.js');
   assert.ok(world.includes('biomeAt: (x, z)'));
 });
