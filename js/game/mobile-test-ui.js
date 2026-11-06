@@ -389,7 +389,16 @@ const UI = (() => {
     for (let i = 0; i < Inventory.HOTBAR_SIZE; i++) renderInventorySlot(i, hotbar);
     renderEquipment();
     renderInventoryCrafting();
-    renderCharacterEditor();
+    renderInventoryRecipes();
+    updateCharacterPreview();
+    const hand=$('java-mainhand-display');
+    if(hand)hand.innerHTML=Inventory.selectedId()
+      ? '<img src="'+Textures.blockIcon(Inventory.selectedId())+'" alt="">':'<span>비어 있음</span>';
+    const split=$('inventory-touch-split');
+    if(split){
+      split.setAttribute('aria-pressed',String(mobileSplitMode));
+      split.textContent='한 개씩 놓기: '+(mobileSplitMode?'켬':'끔');
+    }
   }
 
   function returnCraftingMaterials() {
@@ -402,67 +411,122 @@ const UI = (() => {
     return complete;
   }
 
-  function renderInventoryCrafting() {
-    const grid = $('inventory-craft-grid');
-    const output = $('inventory-craft-output');
-    if (!grid || !output) return;
-    Crafting.setGridSize(2);
-    grid.innerHTML = '';
-    Crafting.getVisibleCells().forEach(cellData => {
-      const cell = document.createElement('button');
-      const id = cellData.id;
-      cell.className = 'craft-cell' + (id ? ' filled' : '');
-      cell.setAttribute('aria-label', id ? getItemName(id) : '빈 2x2 제작 칸');
-      if (id) {
-        cell.innerHTML = `<img src="${Textures.blockIcon(id)}" alt=""><span>${getItemName(id)}</span>`;
-        cell.title = '클릭하여 빼기';
-        cell.addEventListener('click', () => {
-          if (Inventory.add(id, 1) === 1) Crafting.removeCell(cellData.index);
-          else showToast('인벤토리에 빈 칸이 없습니다');
+  function renderInventoryRecipes(){
+    const list=$('inventory-recipe-list');
+    if(!list)return;
+    list.replaceChildren();
+    const recipes=Crafting.getRecipes()
+      .filter(r=>Crafting.recipeFitsGrid(r))
+      .sort((a,b)=>Number(Crafting.canCraft(b))-Number(Crafting.canCraft(a)));
+    for(const r of recipes){
+      const available=Crafting.canCraft(r);
+      const btn=document.createElement('button');
+      btn.type='button';
+      btn.className='java-recipe-item'+(available?'':' unavailable');
+      const img=document.createElement('img');
+      img.src=Textures.blockIcon(r.outputId);
+      img.alt='';
+      const name=document.createElement('span');
+      name.textContent=r.name+' ×'+r.count;
+      btn.title=r.note||Crafting.summary(r);
+      btn.setAttribute('aria-label',btn.title);
+      btn.disabled=!available;
+      btn.append(img,name);
+      btn.addEventListener('click',()=>{
+        if(Crafting.getVisibleCells().some(cell=>cell.id) && !returnCraftingMaterials()){
+          showToast('제작 재료를 돌려줄 공간이 없습니다');
+          return;
+        }
+        if(!Crafting.autofill(r.id)){
+          showToast('해당 제작법을 배치할 수 없습니다');
           renderInventory();
+          return;
+        }
+        renderInventory();
+        showToast('제작법 배치 완료 · 결과 아이템을 누르세요');
+      });
+      list.appendChild(btn);
+    }
+  }
+
+  function renderInventoryCrafting(){
+    const grid=$('inventory-craft-grid'),output=$('inventory-craft-output');
+    if(!grid||!output)return;
+    Crafting.setGridSize(2);
+    grid.replaceChildren();
+    for(const cellData of Crafting.getVisibleCells()){
+      const id=cellData.id;
+      const cell=document.createElement('button');
+      cell.type='button';
+      cell.className='craft-cell'+(id?' filled':'');
+      cell.setAttribute('aria-label',id?getItemName(id)+' 2×2 제작 칸':'빈 2×2 제작 칸');
+      if(id){
+        cell.innerHTML='<img src="'+Textures.blockIcon(id)+'" alt="">';
+        cell.title='클릭하여 재료 꺼내기';
+        cell.addEventListener('click',()=>{
+          if(inventoryCursor && inventoryCursor.id===id && inventoryCursor.count<Inventory.MAX_STACK){
+            inventoryCursor.count++;
+            Crafting.removeCell(cellData.index);
+          }else if(!inventoryCursor){
+            inventoryCursor={id,count:1};
+            Crafting.removeCell(cellData.index);
+          }else if(Inventory.add(id,1)===1)Crafting.removeCell(cellData.index);
+          else{showToast('재료를 보관할 빈 칸이 없습니다');return;}
+          renderInventory();
+          updateInventoryCursor(innerWidth/2,innerHeight/2);
         });
-      } else {
-        cell.title = '인벤토리의 재료를 선택한 뒤 이 칸을 누르세요';
-        cell.addEventListener('click', () => {
-          if (inventoryCursor) {
-            if (getToolDef(inventoryCursor.id) || getArmorDef(inventoryCursor.id)) return;
-            Crafting.setCell(cellData.index, inventoryCursor.id);
-            inventoryCursor.count--;
-            if (inventoryCursor.count <= 0) inventoryCursor = null;
-          } else if (selectedInventoryMaterial !== null) {
-            const slot = Inventory.getSlots()[selectedInventoryMaterial];
-            if (!slot || getToolDef(slot.id) || getArmorDef(slot.id)) return;
-            const taken = Inventory.takeFromSlot(selectedInventoryMaterial, 1);
-            if (!taken) return;
-            if (!Crafting.setCell(cellData.index, taken.id)) {
-              Inventory.putIntoSlot(selectedInventoryMaterial, taken);
-              return;
-            }
-          } else {
-            showToast('먼저 인벤토리에서 재료를 선택하세요');
+      }else{
+        cell.title='커서에 든 재료를 이 칸에 한 개 넣으세요';
+        cell.addEventListener('click',()=>{
+          if(!inventoryCursor || getToolDef(inventoryCursor.id)||getArmorDef(inventoryCursor.id)){
+            showToast('가방의 블록이나 재료를 먼저 선택하세요');
             return;
           }
-          renderInventory();
-          updateInventoryCursor(innerWidth / 2, innerHeight / 2);
+          if(Crafting.setCell(cellData.index,inventoryCursor.id)){
+            inventoryCursor.count--;
+            if(inventoryCursor.count<=0)inventoryCursor=null;
+            renderInventory();
+            updateInventoryCursor(innerWidth/2,innerHeight/2);
+          }
         });
       }
       grid.appendChild(cell);
-    });
-    const match = Crafting.getMatch();
-    const ready = !!match && Crafting.canCraftGrid();
-    output.disabled = !ready;
-    output.className = 'craft-output' + (ready ? ' ready' : '');
-    output.innerHTML = match
-      ? `<img src="${Textures.blockIcon(match.outputId)}" alt=""><span>${match.name}<b>×${match.count}</b></span>`
+    }
+    const match=Crafting.getMatch();
+    const curDef=match?getItemDef(match.outputId):null;
+    const gear=!!(curDef?.toolType||curDef?.armorType);
+    const canStack=!inventoryCursor ||
+      (!gear && inventoryCursor.id===match?.outputId &&
+        inventoryCursor.count+match.count<=Inventory.MAX_STACK);
+    const ready=!!match && Crafting.canTakeGridResult() && canStack;
+    output.disabled=!ready;
+    output.className='craft-output'+(ready?' ready':'');
+    output.innerHTML=match
+      ? '<img src="'+Textures.blockIcon(match.outputId)+'" alt=""><span>'+match.name+'<b>×'+match.count+'</b></span>'
       : '<span class="craft-output-empty">?</span>';
-    output.onclick = () => {
-      if (!Crafting.craftGrid()) {
-        showToast('재료가 부족하거나 2×2로 만들 수 없습니다');
-        return;
+    output.title=match?match.name+' · 결과를 들기':'제작법을 맞춰 주세요';
+    output.onclick=e=>{
+      if(e.shiftKey && !inventoryCursor){
+        if(!Crafting.craftGrid()){
+          showToast('결과 아이템을 넣을 공간이 없습니다');
+          return;
+        }
+      }else{
+        const matched=Crafting.getMatch();
+        if(!matched || !Crafting.canTakeGridResult() ||
+           (inventoryCursor && (inventoryCursor.id!==matched.outputId ||
+             getToolDef(matched.outputId)||getArmorDef(matched.outputId)||
+             inventoryCursor.count+matched.count>Inventory.MAX_STACK))){
+          showToast('커서에 든 아이템을 먼저 내려놓으세요');
+          return;
+        }
+        const made=Crafting.takeGridResult();
+        if(!made)return;
+        if(!inventoryCursor)inventoryCursor=made;
+        else inventoryCursor.count+=made.count;
       }
-      renderInventoryCrafting();
-      renderHotbar();
-      renderInventory();
+      renderInventory();renderHotbar();
+      updateInventoryCursor(e.clientX,e.clientY);
       showToast('제작 완료');
     };
   }
