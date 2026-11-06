@@ -487,9 +487,12 @@
       milestonePopupTimer=setTimeout(()=>popup.classList.remove('show'),3100);
     }
     blip(740,.08,'triangle',.025);
-    doSave(true);
+    // Save after the current crafting/placing action has committed its inventory change.
+    clearTimeout(milestoneSaveTimer);
+    milestoneSaveTimer=setTimeout(()=>doSave(true),220);
   });
   let milestonePopupTimer=null;
+  let milestoneSaveTimer=null;
   document.getElementById('journal-set-home')?.addEventListener('click',()=>{
     if(WorldJournal.setHome(Player.pos)){
       UI.showToast('현재 위치를 집으로 기록했습니다');
