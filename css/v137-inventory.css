@@ -204,3 +204,46 @@
 @media(prefers-reduced-motion:reduce){
   #overlay-inventory .inventory-slot{transition:none}
 }
+
+/* Creative E-tab, included only in creative mode */
+.java-inventory-head-actions{display:flex;align-items:center;gap:8px}
+#inventory-creative-toggle{
+  padding:10px 12px;color:#d7f7dc;background:#365747;
+  border:1px solid #8fbd98;border-radius:5px;font:800 11px Galmuri,system-ui,sans-serif;
+}
+#inventory-creative-toggle[hidden]{display:none}
+#inventory-creative-toggle[aria-expanded=true]{background:#568a62;border-color:#c0eeb0}
+#overlay-inventory .java-creative-panel{
+  display:block;margin:0 0 12px;padding:11px;background:#152830;
+  border:2px solid #60776d;border-radius:5px;
+}
+#overlay-inventory .java-creative-panel.hidden{display:none}
+#inventory-creative-search{
+  width:100%;height:35px;padding:6px 11px;box-sizing:border-box;
+  color:#edf7e9;background:#1f3741;border:1px solid #708d7c;border-radius:3px;
+  font:500 12px Galmuri,system-ui,sans-serif;
+}
+.java-creative-grid{
+  display:grid;grid-template-columns:repeat(9,minmax(0,1fr));
+  max-height:190px;overflow-y:auto;gap:4px;padding:9px 1px 2px;
+}
+.java-creative-item{
+  min-height:51px;min-width:0;padding:2px;
+  background:#293f43;color:#eff8eb;border:2px solid #70897b;
+  border-top-color:#13262e;border-left-color:#13262e;border-radius:3px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  cursor:pointer;
+}
+.java-creative-item:hover,.java-creative-item:focus-visible{
+  background:#405b4c;border-color:#b5e5a0;
+}
+.java-creative-item img{width:29px;height:29px;image-rendering:pixelated;object-fit:contain}
+.java-creative-item small{font-size:8px;line-height:1.15;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:600px){
+  .java-inventory-head-actions{gap:5px}
+  #inventory-creative-toggle{font-size:8px;padding:8px 7px}
+  .java-creative-grid{grid-template-columns:repeat(7,minmax(0,1fr));max-height:145px;gap:3px}
+  .java-creative-item{min-height:44px}
+  .java-creative-item img{width:26px;height:26px}
+  .java-creative-item small{font-size:7px}
+}
