@@ -61,9 +61,24 @@ function selectFor(container){
 }
 const style=document.createElement('style');
 style.textContent='.webcraft-language-wrap{display:inline-flex;align-items:center;gap:5px;position:relative;z-index:20;background:#2d2925;color:#fff;border:2px solid #141414;padding:5px 8px;font:12px sans-serif;white-space:nowrap}.webcraft-language-select{background:#303030;color:#fff;border:1px solid #aaa;border-radius:2px;padding:5px 7px;font:inherit;max-width:126px}.webcraft-language-select:focus-visible{outline:2px solid #ffe873}.classic-home .nav-actions .webcraft-language-wrap{margin-right:8px}@media(max-width:600px){.classic-home .nav-actions .webcraft-language-select{max-width:95px;padding:4px}.webcraft-language-wrap{padding:3px}} #overlay-start .webcraft-language-wrap,#overlay-pause .webcraft-language-wrap{margin:8px auto;display:flex;width:max-content}';
-document.head.appendChild(style);
+style.textContent += '.webcraft-hero-language{display:flex;justify-content:center;margin:0 auto 20px}.webcraft-hero-language .webcraft-language-wrap{padding:9px 13px;background:#1e1c1bdc;border:2px solid #ddd;box-shadow:2px 2px 0 #111}.webcraft-hero-language .webcraft-language-select{min-width:130px;font-size:14px}.classic-home .classic-title-menu .webcraft-hero-language{position:relative;z-index:5}';document.head.appendChild(style);
 function init(){
- if(document.body.classList.contains('classic-home'))selectFor(document.querySelector('.nav-actions')||document.body);
+ if(document.body.classList.contains('classic-home')){
+  selectFor(document.querySelector('.nav-actions')||document.body);
+  const hero=document.querySelector('.classic-title-menu');
+  if(hero){
+    let spot=hero.querySelector('#webcraft-hero-language');
+    if(!spot){
+      spot=document.createElement('div');
+      spot.id='webcraft-hero-language';
+      spot.className='webcraft-hero-language';
+      const menu=hero.querySelector('.classic-menu-buttons');
+      if(menu)hero.insertBefore(spot,menu);
+      else hero.appendChild(spot);
+    }
+    selectFor(spot);
+  }
+}
  else{
  selectFor(document.querySelector('#overlay-start .panel'));
  selectFor(document.querySelector('#overlay-pause .panel'));
