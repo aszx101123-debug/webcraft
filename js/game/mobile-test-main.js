@@ -466,6 +466,17 @@
     resumeInput();
   });
   document.getElementById('journal-close')?.addEventListener('click',()=>WorldJournal.close());
+  WorldJournal.setOnChange(()=>doSave(true));
+  document.getElementById('journal-bookmark-add')?.addEventListener('click',()=>{
+    const input=document.getElementById('journal-bookmark-name');
+    const added=WorldJournal.addBookmark(Player.pos,input?.value||'');
+    if(!added){
+      UI.showToast('이미 기록한 위치이거나 거점 5개가 모두 찼습니다');
+      return;
+    }
+    if(input)input.value='';
+    UI.showToast('새 거점 기록: '+added.name);
+  });
   WorldMilestones.onUnlock(goal=>{
     UI.showToast('모험 목표 달성: '+goal.title);
     const popup=document.getElementById('milestone-unlock');
@@ -481,8 +492,6 @@
   let milestonePopupTimer=null;
   document.getElementById('journal-set-home')?.addEventListener('click',()=>{
     if(WorldJournal.setHome(Player.pos)){
-      WorldJournal.render();
-      doSave(true);
       UI.showToast('현재 위치를 집으로 기록했습니다');
     }
   });
@@ -504,7 +513,7 @@
       return;
     }
     if (WorldJournal.isOpen()) {
-      if(e.code==='Escape'||e.code==='KeyJ'){
+      if(e.code==='Escape'||(e.code==='KeyJ' && !e.target?.closest?.('input,textarea,select'))){
         e.preventDefault();
         WorldJournal.close();
       }
