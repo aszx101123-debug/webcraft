@@ -212,14 +212,15 @@ const Player = (() => {
   function update(dt, keys) {
     const f = (keys['KeyW'] || keys['ArrowUp'] ? 1 : 0) - (keys['KeyS'] || keys['ArrowDown'] ? 1 : 0);
     const s = (keys['KeyD'] || keys['ArrowRight'] ? 1 : 0) - (keys['KeyA'] || keys['ArrowLeft'] ? 1 : 0);
-    const sprint = keys['ShiftLeft'] || keys['ShiftRight'];
+    const crouch = keys['ControlLeft'] || keys['ControlRight'];
+    const sprint = (keys['ShiftLeft'] || keys['ShiftRight']) && !crouch;
     const ws = sampleWaterState();
     const inWater = ws.inWater;
     headSubmerged = ws.headSubmerged;
     waterCoverage = ws.coverage;
     lastInWater = inWater;
     const canFly = mode === GAME_MODE.CREATIVE && flying;
-    const speed = canFly ? CONFIG.FLY : (sprint && f > 0 ? CONFIG.SPRINT : CONFIG.SPEED) * (inWater ? .55 : 1);
+    const speed = canFly ? CONFIG.FLY : (sprint && f > 0 ? CONFIG.SPRINT : CONFIG.SPEED) * (inWater ? .55 : 1) * (crouch ? .3 : 1);
     const len = Math.hypot(f, s) || 1;
     const sy = Math.sin(yaw), cy = Math.cos(yaw);
     const wx = (-sy * f + cy * s) / len * speed;
@@ -229,7 +230,7 @@ const Player = (() => {
       const k = Math.min(1, dt * 8);
       vel.x += (wx - vel.x) * k;
       vel.z += (wz - vel.z) * k;
-      const up = (keys['Space'] ? 1 : 0) - (sprint ? 1 : 0);
+      const up = (keys['Space'] ? 1 : 0) - ((sprint || crouch) ? 1 : 0);
       vel.y += (up * CONFIG.FLY - vel.y) * k;
     } else {
       const k = Math.min(1, dt * (onGround ? 12 : 3.5));
