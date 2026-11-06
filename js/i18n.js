@@ -50,7 +50,9 @@ function apply(){
  for(const s of document.querySelectorAll('.webcraft-language-select'))s.value=current;
 }
 function selectFor(container){
- if(!container||container.querySelector('.webcraft-language-wrap'))return;
+ if(!container)return;
+ const existing=container.querySelector('.webcraft-language-wrap');
+ if(existing){const control=existing.querySelector('.webcraft-language-select');if(control){control.value=current;if(!control.dataset.languageBound){control.dataset.languageBound='true';control.addEventListener('change',()=>{current=control.value;try{localStorage.setItem(key,current);}catch{}apply();});}}return;}
  const wrap=document.createElement('label');wrap.className='webcraft-language-wrap notranslate';
  const label=document.createElement('span');label.textContent='🌐 ';
  const select=document.createElement('select');select.className='webcraft-language-select';
