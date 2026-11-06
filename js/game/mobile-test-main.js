@@ -373,7 +373,7 @@
       keys.KeyW=y<-.28;keys.KeyS=y>.28;
       // Pushing the stick all the way up runs, no separate sprint button.
       keys.ShiftLeft=y<-.86 && Math.abs(x)<.52 && !keys.ControlLeft;
-      knob.style.transform='translate('+x*(r.width*.29)+'px,'+y*(r.height*.29)+'px)';
+      knob.style.transform='translate(calc(-50% + '+(x*r.width*.29)+'px),calc(-50% + '+(y*r.height*.29)+'px))';
     }
     pad.addEventListener('pointerdown',e=>{
       e.preventDefault();e.stopPropagation();
@@ -392,6 +392,7 @@
       button.addEventListener('pointerdown',e=>{
         e.preventDefault();e.stopPropagation();
         if(!touchActive)return;
+        button.setPointerCapture?.(e.pointerId);
         if(act==='jump'){
           const now=performance.now();
           if(state.mode===GAME_MODE.CREATIVE && now-lastJumpTap<340){
@@ -474,7 +475,7 @@
         if(!touchActive||lookId!==e.pointerId||wasDrag)return;
         wasHold=true;mineDown();
         repeatTimer=setInterval(()=>{
-          if(touchActive && wasHold)mineDown();
+          if(touchActive && wasHold && !miningHeld)mineDown();
         },560);
       },340);
     });
