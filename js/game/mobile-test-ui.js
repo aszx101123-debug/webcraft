@@ -531,34 +531,67 @@ const UI = (() => {
     };
   }
 
-  function openInventory() {
-    if (Crafting.getGridSize() !== 2 && !returnCraftingMaterials()) {
-      showToast('3×3 제작 칸의 재료를 돌려줄 공간이 없습니다');
+  function openInventory(){
+    if(Crafting.getGridSize()!==2 && !returnCraftingMaterials()){
+      showToast('제작대 재료를 돌려줄 공간이 부족합니다');
       return false;
     }
-    if (Crafting.getGridSize() !== 2) Crafting.resetGrid(2);
-    inventoryOpen = true;
-    selectedInventoryMaterial = null;
-    document.querySelectorAll('.equip-slot:not(.disabled)').forEach(btn => {
-      if (btn.dataset.bound) return;
-      btn.dataset.bound = '1';
-      btn.addEventListener('mousedown', e => {
-        e.preventDefault();
-        e.stopPropagation();
-        handleEquipment(btn.dataset.equip);
+    if(Crafting.getGridSize()!==2)Crafting.resetGrid(2);
+    inventoryOpen=true;
+    hoveredInventorySlot=null;
+    mobileSplitMode=false;
+    selectedInventoryMaterial=null;
+    document.querySelectorAll('#overlay-inventory .equip-slot').forEach(btn=>{
+      if(btn.dataset.bound)return;
+      btn.dataset.bound='1';
+      btn.addEventListener('mousedown',e=>{
+        if(document.body.classList.contains('touch-device'))return;
+        if(e.button!==0&&e.button!==2)return;
+        e.preventDefault();e.stopPropagation();
+        handleEquipment(btn.dataset.equip,e.button===2);
       });
-      btn.addEventListener('contextmenu', e => e.preventDefault());
+      btn.addEventListener('click',e=>{
+        if(!document.body.classList.contains('touch-device'))return;
+        e.preventDefault();e.stopPropagation();
+        handleEquipment(btn.dataset.equip,mobileSplitMode);
+      });
+      btn.addEventListener('contextmenu',e=>e.preventDefault());
     });
+    const book=$('inventory-recipe-toggle'),panel=$('inventory-recipe-panel');
+    if(book && !recipeBookBound){
+      recipeBookBound=true;
+      book.addEventListener('click',()=>{
+        const expanded=book.getAttribute('aria-expanded')==='true';
+        book.setAttribute('aria-expanded',String(!expanded));
+        panel?.classList.toggle('hidden',expanded);
+        if(!expanded)renderInventoryRecipes();
+      });
+    }
+    const split=$('inventory-touch-split');
+    if(split && !split.dataset.bound){
+      split.dataset.bound='1';
+      split.addEventListener('click',()=>{
+        mobileSplitMode=!mobileSplitMode;
+        split.setAttribute('aria-pressed',String(mobileSplitMode));
+        split.textContent='한 개씩 놓기: '+(mobileSplitMode?'켬':'끔');
+      });
+    }
     renderInventory();
+    renderCharacterEditor();
     $('overlay-inventory').classList.remove('hidden');
     return true;
   }
 
-  function closeInventory() {
-    if (!returnCraftingMaterials()) { showToast('재료를 돌려줄 공간이 부족합니다'); return false; }
-    if (!inventoryCursorReturn()) return false;
-    inventoryOpen = false;
-    selectedInventoryMaterial = null;
+  function closeInventory(){
+    if(!returnCraftingMaterials()){
+      showToast('제작 재료를 되돌릴 빈 공간이 필요합니다');
+      return false;
+    }
+    if(!inventoryCursorReturn())return false;
+    inventoryOpen=false;
+    hoveredInventorySlot=null;
+    selectedInventoryMaterial=null;
+    mobileSplitMode=false;
     $('overlay-inventory').classList.add('hidden');
     return true;
   }
@@ -952,7 +985,8 @@ const UI = (() => {
   return {
     renderHotbar, setSelected, showItemName, showOverlay, showToast, setHUD, setTime, setMiningProgress,
     setModeLabel, renderWorlds, renderCrafting, openCrafting, closeCrafting, isCraftingOpen,
-    renderInventory, openInventory, closeInventory, isInventoryOpen, getInventoryCursor, restoreInventoryCursor,
+    renderInventory, openInventory, closeInventory, isInventoryOpen, quickSwapHotbar,
+    getInventoryCursor, restoreInventoryCursor,
     renderFurnace, openFurnace, closeFurnace, isFurnaceOpen, dropSelected, updateInventoryCursor,
     updateSurvival, showDeath, hideDeath, openPicker, closePicker, isPickerOpen, setStartEnabled, flashVignette
   };
