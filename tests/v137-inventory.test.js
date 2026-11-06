@@ -100,14 +100,14 @@ test('survival cursor and equipment survive serialization',()=>{
  assert.equal(equip.offhand.id,BLOCK.DIRT);
  assert.ok(equip.head.durability>0);
 });
-test('touch HUD has only jump, inventory and pause buttons',()=>{
+test('touch HUD provides working jump, sneak, inventory and pause controls',()=>{
  const main=src('js/game/mobile-test-main.js');
  const segment=main.slice(main.indexOf("touchControls.innerHTML ="),
   main.indexOf("document.body.appendChild(touchControls)"));
  assert.ok(segment.includes('id="touch-pad"'));
  assert.deepEqual([...segment.matchAll(/data-act="([^"]+)"/g)].map(x=>x[1]),
-  ['jump','inventory','pause']);
- assert.ok(!segment.includes('data-act="sneak"'));
+  ['jump','sneak','inventory','pause']);
+ assert.ok(main.includes("if(act==='sneak') keys.ShiftLeft=true"));
  assert.ok(main.includes('finishWorldTouch('));
  assert.ok(main.includes('holdTimer=setTimeout('));
 });

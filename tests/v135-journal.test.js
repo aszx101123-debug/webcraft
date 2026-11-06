@@ -70,7 +70,7 @@ check('journal panel populates eight readable tiles and supports close callback'
   assert.equal(Journal.isOpen(),false);
   assert.equal(children['overlay-journal'].classList.contains('hidden'),true);
 });
-check('PC/mobile pages load journal and helpful controls',()=>{
+check('classic pages preserve old journal saves without the custom gameplay shortcut',()=>{
   for(const page of ['play.html','mobile-test.html']){
     const html=source(page);
     assert.ok(html.includes('world-journal.js?v=v136'));
@@ -80,10 +80,9 @@ check('PC/mobile pages load journal and helpful controls',()=>{
   }
   const main=source('js/game/mobile-test-main.js');
   assert.ok(main.includes('WorldJournal.serialize()'));
-  assert.ok(main.includes("e.code === 'KeyJ'"));
+  assert.ok(!main.includes("e.code === 'KeyJ'"));
   assert.ok(main.includes("e.code === 'F3'"));
-  assert.ok(main.includes("data-mobile-act=\"journal\"") ||
-    source('play.html').includes('data-mobile-act="journal"'));
+  assert.ok(!source('play.html').includes('data-mobile-act="journal"'));
   const world=source('js/game/world.js');
   assert.ok(world.includes('biomeAt: (x, z)'));
 });

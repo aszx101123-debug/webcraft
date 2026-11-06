@@ -64,7 +64,7 @@ const UI = (() => {
     // Close related UI through its normal path so crafting escrow is never silently lost.
     if (name !== 'inventory' && inventoryOpen && !closeInventory()) return false;
     if (name !== 'crafting' && isCraftingOpen() && !closeCrafting()) return false;
-    if (name !== 'furnace' && isFurnaceOpen()) closeFurnace();
+    if (name !== 'furnace' && isFurnaceOpen() && !closeFurnace()) return false;
     ['overlay-start', 'overlay-pause', 'overlay-death', 'overlay-inventory', 'overlay-crafting', 'overlay-furnace'].forEach(id => $(id)?.classList.add('hidden'));
     if (name === 'start') $('overlay-start').classList.remove('hidden');
     else if (name === 'pause') $('overlay-pause').classList.remove('hidden');
@@ -807,85 +807,137 @@ const UI = (() => {
 
   function isCraftingOpen() { return !$('overlay-crafting').classList.contains('hidden'); }
 
-  const furnaceRecipes = [
-    { input: BLOCK.IRON_ORE, output: ITEM.IRON_INGOT },
-    { input: BLOCK.GOLD_ORE, output: ITEM.GOLD_INGOT },
-    { input: BLOCK.COPPER_ORE, output: ITEM.COPPER_INGOT },
-    { input: BLOCK.SAND, output: BLOCK.GLASS },
-    { input: BLOCK.COBBLE, output: BLOCK.STONE },
-    { input: BLOCK.CLAY, output: BLOCK.BRICK }
-  ];
-
-  function furnaceFuel() {
-    if (Inventory.countItem(ITEM.COAL) >= 1) return { id: ITEM.COAL, count: 1 };
-    for(const id of [BLOCK.PLANK,BLOCK.BIRCH_PLANKS,BLOCK.SPRUCE_PLANKS]) {
-      if (Inventory.countItem(id) >= 2) return { id, count: 2 };
-    }
-    return null;
+  let furnacePosition = null, furnaceRenderSignature = '';
+  function furnacePlayerClick(index, right, shift, event) {
+    if (!furnacePosition) return;
+    if (shift && !inventoryCursor) {
+      FurnaceSystem.depositFromInventory(furnacePosition, index);
+    } else if (right) {
+      const stack = Inventory.getSlots()[index];
+      if (!inventoryCursor && stack) {
+        const gear = !!(getToolDef(stack.id) || getArmorDef(stack.id));
+        inventoryCursor = Inventory.takeFromSlot(index, gear ? 1 : Math.ceil(stack.count / 2));
+      } else if (inventoryCursor && (!stack || stack.id === inventoryCursor.id)) {
+        const gear = !!(getToolDef(inventoryCursor.id) || getArmorDef(inventoryCursor.id));
+        if (!stack || !gear) {
+          const one = {...inventoryCursor, count:1};
+          if (!Inventory.putIntoSlot(index, one)) {
+            inventoryCursor.count--;
+            if (!inventoryCursor.count) inventoryCursor = null;
+          }
+        }
+      }
+    } else inventoryCursor = Inventory.swapWithSlot(index, inventoryCursor);
+    renderFurnace(); renderHotbar();
+    updateInventoryCursor(event.clientX, event.clientY);
   }
-
+  function furnaceSlotClick(slot, right, shift, event) {
+    if (!furnacePosition) return;
+    if (shift && !inventoryCursor) FurnaceSystem.withdrawToInventory(furnacePosition, slot);
+    else {
+      const result = FurnaceSystem.interact(furnacePosition, slot, inventoryCursor, right);
+      inventoryCursor = result.cursor;
+    }
+    renderFurnace(); renderHotbar();
+    updateInventoryCursor(event.clientX, event.clientY);
+  }
+  function furnaceButton(stack, label, action) {
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = 'classic-furnace-slot';
+    button.title = stack ? getItemName(stack.id) : label;
+    button.setAttribute('aria-label', stack ? label + ': ' + getItemName(stack.id) + ' ' + stack.count + '개' : label + ' 빈 칸');
+    if (stack) {
+      const image = document.createElement('img'); image.src = Textures.blockIcon(stack.id); image.alt = '';
+      const count = document.createElement('span'); count.className = 'classic-furnace-count';
+      count.textContent = stack.count === 1 ? '' : stackLabel(stack);
+      button.append(image, count);
+    }
+    button.addEventListener('mousedown', event => {
+      if (document.body.classList.contains('touch-device') || ![0,2].includes(event.button)) return;
+      event.preventDefault(); event.stopPropagation();
+      action(event.button === 2, event.shiftKey, event);
+    });
+    button.addEventListener('click', event => {
+      if (!document.body.classList.contains('touch-device')) return;
+      event.preventDefault(); event.stopPropagation();
+      action(false, false, event);
+    });
+    button.addEventListener('contextmenu', event => event.preventDefault());
+    return button;
+  }
   function renderFurnace() {
     const list = $('furnace-recipes');
-    if (!list) return;
-    list.innerHTML = '';
-    const fuel = furnaceFuel();
-    const supply = $('furnace-fuel');
-    if (supply) supply.textContent = fuel
-      ? '사용할 연료: ' + getItemName(fuel.id) + ' ×' + fuel.count
-      : '연료 부족: 석탄 1개 또는 같은 종류 판자 2개 필요';
-    for (const recipe of furnaceRecipes) {
-      const available = Inventory.countItem(recipe.input) >= 1 && !!fuel &&
-        Inventory.canAdd(recipe.output, 1) && !Inventory.isCreative();
-      const row = document.createElement('div');
-      row.className = 'furnace-recipe';
-      const icon = document.createElement('img');
-      icon.src = Textures.blockIcon(recipe.input);
-      icon.alt = '';
-      const label = document.createElement('span');
-      label.textContent = getItemName(recipe.input) + ' → ' + getItemName(recipe.output);
-      const button = document.createElement('button');
-      button.className = 'btn small';
-      button.textContent = '제련';
-      button.disabled = !available;
-      button.addEventListener('click', () => {
-        const chosenFuel = furnaceFuel();
-        if (!chosenFuel || Inventory.countItem(recipe.input) < 1 ||
-            !Inventory.canAdd(recipe.output, 1)) {
-          showToast('재료·연료 또는 인벤토리 공간을 확인해 주세요');
-          renderFurnace();
-          return;
-        }
-        if (!Inventory.removeItem(recipe.input, 1)) return;
-        if (!Inventory.removeItem(chosenFuel.id, chosenFuel.count)) {
-          Inventory.add(recipe.input, 1);
-          renderFurnace();
-          return;
-        }
-        const made = Inventory.add(recipe.output, 1);
-        if (made !== 1) {
-          Inventory.add(recipe.input, 1);
-          Inventory.add(chosenFuel.id, chosenFuel.count);
-          showToast('결과물을 보관할 공간이 없습니다');
-        } else {
-          renderHotbar();
-          showToast(getItemName(recipe.output) + ' 제련 완료');
-        }
-        renderFurnace();
+    if (!list || !furnacePosition || typeof FurnaceSystem === 'undefined') return;
+    const state = FurnaceSystem.getState(furnacePosition);
+    if (!state) return;
+    const inventory = Inventory.getSlots();
+    const signature = JSON.stringify([furnacePosition,state.input,state.fuel,state.output,inventory]);
+    if (signature !== furnaceRenderSignature) {
+      furnaceRenderSignature = signature;
+      list.replaceChildren();
+      list.className = 'classic-furnace-content';
+      const machine = document.createElement('div'); machine.className = 'classic-furnace-machine';
+      const input = document.createElement('div'); input.className = 'classic-furnace-input';
+      input.appendChild(furnaceButton(state.input, '제련 재료', (right,shift,event) => furnaceSlotClick('input',right,shift,event)));
+      const flame = document.createElement('div'); flame.className = 'classic-furnace-flame';
+      flame.setAttribute('aria-label','연료');
+      const flameFill = document.createElement('i'); flameFill.id = 'furnace-flame-fill'; flame.appendChild(flameFill);
+      const fuel = document.createElement('div'); fuel.className = 'classic-furnace-fuel';
+      fuel.appendChild(furnaceButton(state.fuel, '연료', (right,shift,event) => furnaceSlotClick('fuel',right,shift,event)));
+      const arrow = document.createElement('div'); arrow.className = 'classic-furnace-arrow';
+      arrow.setAttribute('role','progressbar'); arrow.setAttribute('aria-label','제련 진행');
+      arrow.setAttribute('aria-valuemin','0'); arrow.setAttribute('aria-valuemax','100');
+      const progress = document.createElement('i'); progress.id = 'furnace-progress-fill'; arrow.appendChild(progress);
+      const output = document.createElement('div'); output.className = 'classic-furnace-output';
+      output.appendChild(furnaceButton(state.output, '완성품', (right,shift,event) => furnaceSlotClick('output',right,shift,event)));
+      machine.append(input,flame,fuel,arrow,output); list.appendChild(machine);
+      const label = document.createElement('h3'); label.textContent = '인벤토리'; list.appendChild(label);
+      const grid = document.createElement('div'); grid.className = 'classic-furnace-inventory';
+      // Main backpack first, followed by a separated nine-slot hotbar.
+      [...Array.from({length:27},(_,i)=>i+9),...Array.from({length:9},(_,i)=>i)].forEach(index => {
+        const button = furnaceButton(inventory[index], '인벤토리 ' + (index + 1),
+          (right,shift,event) => furnacePlayerClick(index,right,shift,event));
+        if (index < 9) button.classList.add('classic-furnace-hotbar');
+        grid.appendChild(button);
       });
-      row.append(icon, label, button);
-      list.appendChild(row);
+      list.appendChild(grid);
+      const help = document.createElement('small'); help.className = 'classic-furnace-help';
+      help.textContent = '클릭: 집기·놓기 · 우클릭: 나누기·1개 놓기 · Shift+클릭: 빠른 이동';
+      list.appendChild(help);
     }
+    const flameFill = $('furnace-flame-fill'), progress = $('furnace-progress-fill');
+    if (flameFill) flameFill.style.height = (state.burnDuration ? state.burnRemaining / state.burnDuration * 100 : 0) + '%';
+    if (progress) {
+      const percentage = Math.min(100, state.cookProgress / FurnaceSystem.SMELT_SECONDS * 100);
+      progress.style.width = percentage + '%';
+      progress.parentElement?.setAttribute('aria-valuenow',String(Math.round(percentage)));
+    }
+    const supply = $('furnace-fuel');
+    const status = state.burnRemaining > 0 ? '연료가 타고 있습니다.' : '재료와 연료를 넣어 주세요.';
+    if (supply && supply.textContent !== status) supply.textContent = status;
   }
 
-  function openFurnace() {
+  function openFurnace(target) {
     const overlay = $('overlay-furnace');
-    if (!overlay) { showToast('화로 화면을 불러올 수 없습니다'); return; }
+    if (!overlay || typeof FurnaceSystem === 'undefined') { showToast('화로 화면을 불러올 수 없습니다'); return false; }
+    const position = target || (typeof Interact !== 'undefined' ? Interact.getTarget() : null);
+    if (!position || !FurnaceSystem.getState(position, true)) return false;
+    furnacePosition = {x:position.x,y:position.y,z:position.z};
+    furnaceRenderSignature = '';
+    const panel = overlay.querySelector('.panel');
+    panel?.classList.add('classic-furnace-panel');
+    const heading = panel?.querySelector('h2');
+    if (heading) heading.textContent = '화로';
     renderFurnace();
     overlay.classList.remove('hidden');
+    updateInventoryCursor(innerWidth/2, innerHeight/2);
+    return true;
   }
 
   function closeFurnace() {
+    if (!inventoryCursorReturn()) return false;
     $('overlay-furnace')?.classList.add('hidden');
+    furnacePosition = null; furnaceRenderSignature = '';
     return true;
   }
 
@@ -956,7 +1008,21 @@ const UI = (() => {
   function showDeath(cause) {
     const el = $('death-cause');
     if (el) el.textContent = cause ? cause + '…' : '';
-    showOverlay('death');
+    // Death must never be vetoed by a full bag. Keep held items and crafting
+    // escrow in their saved state instead of attempting transactional closes.
+    inventoryOpen = false;
+    pickerOpen = false;
+    hoveredInventorySlot = null;
+    selectedInventoryMaterial = null;
+    selectedCraftingMaterial = null;
+    mobileSplitMode = false;
+    furnacePosition = null;
+    furnaceRenderSignature = '';
+    for (const id of ['overlay-start','overlay-pause','overlay-inventory',
+      'overlay-crafting','overlay-furnace','picker','inventory-cursor']) {
+      $(id)?.classList.add('hidden');
+    }
+    $('overlay-death')?.classList.remove('hidden');
   }
 
   function hideDeath() {
@@ -1038,7 +1104,7 @@ const UI = (() => {
   }
 
   document.addEventListener('mousemove', e => {
-    if (inventoryOpen) updateInventoryCursor(e.clientX, e.clientY);
+    if (inventoryOpen || isFurnaceOpen()) updateInventoryCursor(e.clientX, e.clientY);
   });
 
   return {

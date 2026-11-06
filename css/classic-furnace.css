@@ -1,0 +1,145 @@
+/* Familiar three-slot furnace and the standard 27 + 9 player inventory. */
+#overlay-furnace .classic-furnace-panel {
+  --furnace-slot: 36px;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  padding: 12px 14px;
+  border: 3px solid;
+  border-color: #fff #555 #555 #fff;
+  border-radius: 0;
+  background: #c6c6c6;
+  color: #383838;
+  box-shadow: 0 0 0 2px #111;
+  text-align: left;
+  text-shadow: none;
+}
+#overlay-furnace .classic-furnace-panel > h2,
+#overlay-furnace .classic-furnace-content > h3 {
+  margin: 0 0 7px;
+  color: #383838;
+  font-size: 14px;
+  font-weight: normal;
+  text-shadow: none;
+}
+#overlay-furnace .classic-furnace-panel > .sub { display: none; }
+#overlay-furnace .classic-furnace-content {
+  display: block;
+  max-height: none;
+  overflow: visible;
+  padding: 0;
+  margin: 0;
+}
+.classic-furnace-machine {
+  display: grid;
+  grid-template-columns: var(--furnace-slot) 48px 52px;
+  grid-template-rows: var(--furnace-slot) 20px var(--furnace-slot);
+  justify-content: center;
+  margin: 16px auto 24px;
+}
+.classic-furnace-input { grid-column: 1; grid-row: 1; }
+.classic-furnace-fuel { grid-column: 1; grid-row: 3; }
+.classic-furnace-output { grid-column: 3; grid-row: 1 / 4; align-self: center; }
+.classic-furnace-slot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--furnace-slot);
+  height: var(--furnace-slot);
+  padding: 2px;
+  margin: 0;
+  border: 2px solid;
+  border-color: #373737 #fff #fff #373737;
+  border-radius: 0;
+  background: #8b8b8b;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: none;
+  touch-action: manipulation;
+}
+.classic-furnace-slot:hover,
+.classic-furnace-slot:focus-visible { background: #b6b6b6; outline: 2px solid #fff; outline-offset: -3px; }
+.classic-furnace-slot img {
+  width: calc(var(--furnace-slot) - 8px);
+  height: calc(var(--furnace-slot) - 8px);
+  object-fit: contain;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+.classic-furnace-count {
+  position: absolute;
+  right: 2px;
+  bottom: 0;
+  font-size: 13px;
+  line-height: 16px;
+  color: #fff;
+  text-shadow: 2px 2px #333;
+  pointer-events: none;
+}
+.classic-furnace-output .classic-furnace-slot { width: 48px; height: 48px; }
+.classic-furnace-output .classic-furnace-slot img { width: 32px; height: 32px; }
+.classic-furnace-inventory {
+  display: grid;
+  grid-template-columns: repeat(9, var(--furnace-slot));
+  gap: 0;
+  width: max-content;
+  margin: 0 auto;
+}
+.classic-furnace-hotbar { margin-top: 8px; }
+.classic-furnace-arrow {
+  grid-column: 2;
+  grid-row: 1 / 4;
+  position: relative;
+  align-self: center;
+  justify-self: center;
+  width: 34px;
+  height: 22px;
+  background: #858585;
+  clip-path: polygon(0 27%, 61% 27%, 61% 0, 100% 50%, 61% 100%, 61% 73%, 0 73%);
+}
+.classic-furnace-arrow > i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 0;
+  background: #fff;
+}
+.classic-furnace-flame {
+  grid-column: 1;
+  grid-row: 2;
+  position: relative;
+  justify-self: center;
+  align-self: center;
+  width: 17px;
+  height: 18px;
+  background: #727272;
+  clip-path: polygon(47% 0, 59% 27%, 76% 14%, 76% 41%, 100% 64%, 100% 86%, 76% 100%, 24% 100%, 0 86%, 0 64%, 24% 41%, 24% 27%);
+}
+.classic-furnace-flame > i {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 0;
+  background: linear-gradient(to top,#ffdf44 0 34%,#ff9e26 34% 68%,#e96119 68%);
+}
+.classic-furnace-help {
+  display: block;
+  max-width: calc(var(--furnace-slot) * 9);
+  margin: 10px 0 0;
+  color: #4c4c4c;
+  font-size: 10px;
+  line-height: 1.6;
+}
+#overlay-furnace #furnace-close { display: block; width: 100%; margin-top: 12px; }
+@media (max-width: 390px) {
+  #overlay-furnace .classic-furnace-panel { --furnace-slot: 31px; padding: 10px; }
+  .classic-furnace-count { font-size: 11px; }
+  .classic-furnace-help { font-size: 9px; }
+}
+@media (max-height: 440px) {
+  .classic-furnace-machine { margin-top: 5px; margin-bottom: 10px; }
+  #overlay-furnace .classic-furnace-panel { max-height: calc(100dvh - 20px); overflow-y: auto; }
+}

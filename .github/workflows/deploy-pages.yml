@@ -1,4 +1,4 @@
-name: Deploy Mini Maple RPG
+name: Deploy WebCraft
 
 on:
   push:

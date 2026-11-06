@@ -5,7 +5,7 @@ const Player = (() => {
   const pos = new THREE.Vector3();
   const vel = new THREE.Vector3();
   const spawnPoint = new THREE.Vector3();
-  let yaw = 0, pitch = -.2, onGround = false, flying = false;
+  let yaw = 0, pitch = -.2, onGround = false, flying = false, sneaking = false;
   let mode = GAME_MODE.CREATIVE;
   let hp = SURVIVAL.MAX_HP, food = SURVIVAL.MAX_FOOD, air = SURVIVAL.MAX_AIR;
   let exhaustion = 0, regenT = 0, starveT = 0, airT = 0, drownT = 0;
@@ -42,6 +42,7 @@ const Player = (() => {
     vel.set(0, 0, 0);
     yaw = yw; pitch = pt;
     onGround = false; flying = fly && mode === GAME_MODE.CREATIVE;
+    sneaking = false;
     setSpawn(x, y, z);
   }
 
@@ -76,13 +77,45 @@ const Player = (() => {
     return false;
   }
 
-  function moveAxis(axis,dist) {
+  function hasGroundSupportAt(x,y,z) {
+    // A half-block descent is safe, including stairs and slabs. Check the
+    // actual collision boxes rather than treating every block as a full cube.
+    for(let bx=Math.floor(x-HW);bx<=Math.floor(x+HW);bx++)
+      for(let by=Math.floor(y-.55);by<=Math.floor(y+.005);by++)
+        for(let bz=Math.floor(z-HW);bz<=Math.floor(z+HW);bz++)
+          for(const b of collisionBoxesAt(bx,by,bz)){
+            const top=by+b[4];
+            if(top>y+.005 || top<y-.55)continue;
+            if(x+HW>bx+b[0]+1e-5&&x-HW<bx+b[3]-1e-5&&
+               z+HW>bz+b[2]+1e-5&&z-HW<bz+b[5]-1e-5)return true;
+          }
+    return false;
+  }
+
+  function sneakDistance(axis,dist) {
+    const supported=t=>hasGroundSupportAt(
+      pos.x+(axis==='x'?dist*t:0),pos.y,
+      pos.z+(axis==='z'?dist*t:0));
+    if(supported(1)||!supported(0))return dist;
+    let safe=0,unsafe=1;
+    for(let i=0;i<10;i++){
+      const middle=(safe+unsafe)/2;
+      if(supported(middle))safe=middle;
+      else unsafe=middle;
+    }
+    return dist*safe;
+  }
+
+  function moveAxis(axis,dist,protectEdge=false) {
     if(!dist)return false;
+    const safeDist=protectEdge?sneakDistance(axis,dist):dist;
+    let hit=safeDist!==dist;
+    dist=safeDist;
+    if(!dist)return hit;
     pos[axis]+=dist;
     const x0=Math.floor(pos.x-HW),x1=Math.floor(pos.x+HW);
     const y0=Math.floor(pos.y),y1=Math.floor(pos.y+PH-1e-4);
     const z0=Math.floor(pos.z-HW),z1=Math.floor(pos.z+HW);
-    let hit=false;
     for(let bx=x0;bx<=x1;bx++)
       for(let by=y0;by<=y1;by++)
         for(let bz=z0;bz<=z1;bz++)for(const box of collisionBoxesAt(bx,by,bz)){
@@ -207,19 +240,21 @@ const Player = (() => {
     regenT = starveT = airT = drownT = 0;
     peakY = null;
     dead = false;
+    sneaking = false;
   }
 
   function update(dt, keys) {
     const f = (keys['KeyW'] || keys['ArrowUp'] ? 1 : 0) - (keys['KeyS'] || keys['ArrowDown'] ? 1 : 0);
     const s = (keys['KeyD'] || keys['ArrowRight'] ? 1 : 0) - (keys['KeyA'] || keys['ArrowLeft'] ? 1 : 0);
-    const crouch = keys['ControlLeft'] || keys['ControlRight'];
-    const sprint = (keys['ShiftLeft'] || keys['ShiftRight']) && !crouch;
+    const crouch = !!(keys['ShiftLeft'] || keys['ShiftRight']);
+    const sprint = (keys['ControlLeft'] || keys['ControlRight']) && !crouch;
     const ws = sampleWaterState();
     const inWater = ws.inWater;
     headSubmerged = ws.headSubmerged;
     waterCoverage = ws.coverage;
     lastInWater = inWater;
     const canFly = mode === GAME_MODE.CREATIVE && flying;
+    sneaking = crouch && !canFly && !inWater;
     const speed = canFly ? CONFIG.FLY : (sprint && f > 0 ? CONFIG.SPRINT : CONFIG.SPEED) * (inWater ? .55 : 1) * (crouch ? .3 : 1);
     const len = Math.hypot(f, s) || 1;
     const sy = Math.sin(yaw), cy = Math.cos(yaw);
@@ -230,7 +265,7 @@ const Player = (() => {
       const k = Math.min(1, dt * 8);
       vel.x += (wx - vel.x) * k;
       vel.z += (wz - vel.z) * k;
-      const up = (keys['Space'] ? 1 : 0) - ((sprint || crouch) ? 1 : 0);
+      const up = (keys['Space'] ? 1 : 0) - (crouch ? 1 : 0);
       vel.y += (up * CONFIG.FLY - vel.y) * k;
     } else {
       const k = Math.min(1, dt * (onGround ? 12 : 3.5));
@@ -255,8 +290,9 @@ const Player = (() => {
     const steps = Math.max(1, Math.ceil(maxDisp / .35));
     for (let i = 0; i < steps; i++) {
       if (moveAxis('y', vel.y * dt / steps)) vel.y = 0;
-      if (moveAxis('x', vel.x * dt / steps)) vel.x = 0;
-      if (moveAxis('z', vel.z * dt / steps)) vel.z = 0;
+      const protectEdge=sneaking && onGround && vel.y<=0;
+      if (moveAxis('x', vel.x * dt / steps,protectEdge)) vel.x = 0;
+      if (moveAxis('z', vel.z * dt / steps,protectEdge)) vel.z = 0;
     }
 
     const afterWater = sampleWaterState();
@@ -280,10 +316,11 @@ const Player = (() => {
   return {
     pos, vel, reset, update, damage, heal, eat, addExhaustion, survivalTick, respawn,
     setMode, setSpawn,
-    get eyeY() { return EYE; },
+    get eyeY() { return sneaking ? EYE - .12 : EYE; },
     get yaw() { return yaw; }, set yaw(v) { yaw = v; },
     get pitch() { return pitch; }, set pitch(v) { pitch = v; },
     get onGround() { return onGround; },
+    get sneaking() { return sneaking; },
     get flying() { return flying; }, set flying(v) { flying = v; if (v) vel.y = 0; },
     get inWater() { return lastInWater; },
     get headSubmerged() { return headSubmerged; },

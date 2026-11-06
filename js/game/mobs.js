@@ -729,7 +729,7 @@ const Mobs = (() => {
       });
       if(m.parts.healthBar){
         const {group:bar,fill}=m.parts.healthBar;
-        bar.visible=m.healthVisibleT>0;
+        bar.visible=CONFIG.MOB_HEALTH_BARS===true && m.healthVisibleT>0;
         if(bar.visible){
           const ratio=Math.max(.015,Math.min(1,m.hp/m.def.hp));
           fill.scale.x=ratio;

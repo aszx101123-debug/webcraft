@@ -100,7 +100,7 @@ test('zombies and skeletons have articulated arms; spiders have eight legs',()=>
   assert.equal(samples.spider.parts.extraLegs.length,4);
   assert.equal(samples.spider.parts.legs.length,8);
 });
-test('visible health bar is attached but only shown after a valid hit',()=>{
+test('classic view keeps mob health bars hidden after a valid hit',()=>{
   const z=samples.zombie;
   assert.ok(z.parts.healthBar.group);
   assert.equal(z.parts.healthBar.group.visible,false);
@@ -110,6 +110,8 @@ test('visible health bar is attached but only shown after a valid hit',()=>{
   assert.equal(z.healthVisibleT,1.8);
   assert.equal(Mobs.getLastAttackResult()?.landed,true);
   assert.equal(Mobs.getAttackCharge(),0);
+  Mobs.update(.016,true);
+  assert.equal(z.parts.healthBar.group.visible,false);
 });
 test('repeated quick clicking is gated; later clicks land without instant elimination',()=>{
   const z=samples.zombie;

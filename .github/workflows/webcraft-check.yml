@@ -29,7 +29,12 @@ jobs:
           node --check js/game/ui.js
           node --check js/game/main.js
       - name: Run logic tests
-        run: node test/run-tests.js
+        run: npm test
+      - name: Check active game and service worker syntax
+        run: |
+          for file in js/game/*.js js/*.js service-worker.js; do
+            node --check "$file"
+          done
 
       - name: Package POGL upload
         uses: actions/upload-artifact@v4

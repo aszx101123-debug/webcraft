@@ -112,6 +112,10 @@ const Interact = (() => {
       ? BLOCK.WOOD_DOOR : getBlockDrop(target.id,Math.random,tool)) : 0;
     if (target.id===BLOCK.CHEST)BlockFurniture.releaseContents(target.x,target.y,target.z);
     const ok = World.setBlock(target.x, target.y, target.z, BLOCK.AIR);
+    if(ok && target.id===BLOCK.FURNACE && typeof FurnaceSystem!=='undefined'){
+      for(const stack of FurnaceSystem.remove(target.x,target.y,target.z))
+        Drops.spawn(stack.id,stack.count,target.x+.5,target.y+.5,target.z+.5);
+    }
     if(ok && survival && typeof WorldMilestones!=='undefined')WorldMilestones.record('mine',target.id,'survival');
     if (ok && survival) {
       if (dropId) Drops.spawn(dropId, 1, target.x + .5, target.y + .5, target.z + .5);
@@ -201,8 +205,9 @@ const Interact = (() => {
   }
 
   function pickBlock() {
-    if (!target || !isPlaceable(target.id)) return null;
-    return target.id;
+    if (!target) return null;
+    const id=target.id===BLOCK.WOOD_DOOR_TOP?BLOCK.WOOD_DOOR:target.id;
+    return isPlaceable(id)?id:null;
   }
 
   function getTarget() { return target; }

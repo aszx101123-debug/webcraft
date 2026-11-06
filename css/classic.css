@@ -1,0 +1,534 @@
+/* Familiar sandbox UI, drawn with CSS rather than copied game assets. */
+:root {
+  --classic-slot: 44px;
+  --classic-hud-width: calc(var(--classic-slot) * 9 + 12px);
+  --classic-paper: #c6c6c6;
+  --classic-ink: #373737;
+  --classic-slot-fill: #8b8b8b;
+}
+
+body { color: #fff; }
+button, input, select { font-family: inherit; }
+
+/* Keep the world visible: everyday HUD consists of aim, items and survival. */
+#update-badge,
+#hud-hint,
+#hud-info,
+#hud-time,
+#mode-badge,
+#target-block-name,
+#attack-readiness,
+#journal-discovery,
+#milestone-unlock {
+  display: none !important;
+}
+
+#cross {
+  width: 16px;
+  height: 16px;
+  filter: none;
+  mix-blend-mode: difference;
+}
+#cross::before, #cross::after {
+  background: #fff;
+  box-shadow: none;
+}
+#cross::before { width: 16px; height: 2px; }
+#cross::after { width: 2px; height: 16px; }
+
+#hotbar, body.touch-device #hotbar {
+  bottom: max(0px, env(safe-area-inset-bottom));
+  width: var(--classic-hud-width);
+  max-width: calc(100vw - 8px);
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 0;
+  padding: 3px;
+  border: 3px solid #252525;
+  border-top-color: #b9b9b9;
+  border-left-color: #b9b9b9;
+  border-radius: 0;
+  background: #777b;
+  box-shadow: 0 0 0 1px #111, inset 0 0 0 1px #ddd9;
+}
+#hotbar .slot, body.touch-device #hotbar .slot {
+  width: 100%;
+  min-width: 0;
+  height: var(--classic-slot);
+  min-height: 0;
+  margin: 0;
+  border: 2px solid #333;
+  border-right-color: #aaa;
+  border-bottom-color: #aaa;
+  border-radius: 0;
+  background: #4449;
+  box-shadow: inset 0 0 0 1px #0003;
+  transform: none;
+  transition: none;
+}
+#hotbar .slot.empty::after { display: none; }
+#hotbar .slot.sel, body.touch-device #hotbar .slot.sel {
+  z-index: 1;
+  outline: 3px solid #eee;
+  outline-offset: -2px;
+  border-color: #444;
+  background: #7778;
+  box-shadow: 0 0 0 1px #181818, inset 0 0 0 3px #ddd9;
+  transform: none;
+}
+#hotbar .slot img, body.touch-device #hotbar .slot img {
+  width: 82%;
+  height: 82%;
+  image-rendering: pixelated;
+  object-fit: contain;
+}
+#hotbar .num { display: none; }
+#hotbar .cnt {
+  bottom: 1px;
+  right: 2px;
+  font-size: 13px;
+  line-height: 1;
+  text-shadow: 2px 2px #222;
+}
+#hotbar .dur-wrap, #hotbar .dur-fill { border-radius: 0; }
+
+#survival-hud, body.touch-device #survival-hud {
+  width: calc(var(--classic-hud-width) - 12px);
+  max-width: calc(100vw - 20px);
+  bottom: calc(var(--classic-slot) + 18px + env(safe-area-inset-bottom));
+  align-items: flex-end;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+#hearts, #foods, #airs { gap: 0; }
+#hearts img, #foods img,
+body.touch-device #hearts img, body.touch-device #foods img {
+  width: min(18px, 4vw);
+  height: min(18px, 4vw);
+  filter: drop-shadow(1px 1px #222);
+}
+#airs img { width: min(16px, 3.6vw); height: min(16px, 3.6vw); }
+.hud-right { gap: 4px; }
+#item-name {
+  bottom: calc(var(--classic-slot) + 64px + env(safe-area-inset-bottom));
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+  font-size: 15px;
+  text-shadow: 2px 2px #333;
+}
+#mine-progress { border-radius: 0; height: 4px; width: 44px; padding: 0; box-shadow: none; }
+#mine-progress-fill { border-radius: 0; background: #fff; }
+
+.overlay {
+  padding: 16px;
+  background: #0009;
+  backdrop-filter: none;
+}
+.overlay .panel {
+  min-width: 0;
+  max-width: min(96vw, 920px);
+  max-height: calc(100dvh - 32px);
+  padding: 22px;
+  border: 4px solid #fff;
+  border-right-color: #555;
+  border-bottom-color: #555;
+  border-radius: 0;
+  background: var(--classic-paper);
+  color: var(--classic-ink);
+  box-shadow: 0 0 0 2px #191919, inset 0 0 0 1px #999;
+  scrollbar-color: #777 #333;
+}
+.overlay .panel h1, .overlay .panel h2, .overlay .panel h3 {
+  color: inherit;
+  font-family: inherit;
+  letter-spacing: 0;
+  text-shadow: none;
+}
+.overlay .sub, .overlay .tip, .overlay .cr { color: #505050; line-height: 1.6; }
+.overlay .row { color: inherit; }
+
+.overlay .btn, .overlay .btn-primary,
+.overlay :where(button:not(.inventory-slot):not(.craft-cell):not(.craft-output):not(.equip-slot):not(.craft-inv-slot):not(.java-creative-item):not(.storage-slot):not(.classic-furnace-slot):not(.character-swatch):not(.pick)),
+#overlay-inventory #inventory-close,
+#overlay-inventory #inventory-creative-toggle,
+#overlay-inventory .java-recipe-toggle,
+.boot-error .btn, .boot-error .btn-primary {
+  min-height: 36px;
+  border: 2px solid #111;
+  border-radius: 0;
+  background: #747474;
+  color: #fff;
+  box-shadow: inset 2px 2px #aaa, inset -2px -2px #444;
+  text-shadow: 2px 2px #333;
+  transition: none;
+}
+.overlay button:not(:disabled):hover,
+.overlay button:not(:disabled):focus-visible,
+#overlay-inventory #inventory-close:hover,
+#overlay-inventory #inventory-creative-toggle:hover,
+#overlay-inventory .java-recipe-toggle:hover {
+  background-color: #8d8d9a;
+  color: #ffffa0;
+}
+.overlay button:focus-visible, .overlay input:focus-visible, .overlay select:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+.overlay button:active:not(:disabled) {
+  transform: none;
+  box-shadow: inset 2px 2px #444, inset -2px -2px #aaa;
+}
+.overlay button:disabled { opacity: .5; text-shadow: none; }
+.overlay input, .overlay select, #inventory-creative-search,
+#picker-search, #picker-category {
+  border: 2px solid #888;
+  border-radius: 0;
+  background: #151515;
+  color: #fff;
+  box-shadow: none;
+}
+.overlay input::placeholder { color: #a5a5a5; }
+
+/* Procedural earth background and simple world-selection rows. */
+#overlay-start {
+  background-color: #38291f;
+  background-image:
+    repeating-linear-gradient(0deg, #ffffff04 0 3px, #0001 3px 6px),
+    repeating-linear-gradient(90deg, transparent 0 6px, #0002 6px 9px, transparent 9px 15px);
+}
+#overlay-start > .panel, #overlay-pause > .panel {
+  width: min(620px, 94vw);
+  border: 0;
+  background: transparent;
+  color: #fff;
+  box-shadow: none;
+}
+#overlay-start .logo { color: #ddd; text-shadow: 3px 3px #181818; }
+#overlay-start .sub, #overlay-start .tip, #overlay-start .cr,
+#overlay-pause .sub, #overlay-pause .tip { color: #ccc; }
+#overlay-start .btn-col, #overlay-pause .btn-col { gap: 9px; }
+#overlay-start .btn-col > button, #overlay-pause .btn-col > button { min-height: 42px; }
+#overlay-pause > .panel { width: min(440px, 94vw); }
+#overlay-pause h2 { margin-bottom: 24px; text-shadow: 2px 2px #333; }
+.world-section, .world-row, .keys, .touch-device .touch-keys {
+  border: 2px solid #555;
+  border-radius: 0;
+  background: #0008;
+  color: #ddd;
+}
+.world-section h3, .world-name, .keys b { color: #fff; }
+.world-detail { color: #aaa; }
+.world-row.active { border-color: #ddd; background: #000a; }
+.start-status, .start-status.ready {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #ccc;
+}
+#mobile-pause-actions { border-radius: 0 !important; background: #0005 !important; border-color: #777 !important; }
+.mobile-pause-heading { color: #ddd; }
+
+/* Inventory, workbench and containers share inset item slots. */
+#overlay-inventory .inventory-panel.java-inventory,
+#overlay-chest .chest-panel {
+  border: 4px solid #fff;
+  border-right-color: #555;
+  border-bottom-color: #555;
+  border-radius: 0;
+  background: var(--classic-paper);
+  color: var(--classic-ink);
+  box-shadow: 0 0 0 2px #191919, inset 0 0 0 1px #999;
+}
+#overlay-inventory .java-inventory-head h2 { color: #333; text-shadow: none; }
+.java-inventory-kicker { display: none; }
+.java-inventory-head h2 small, .java-inventory-head #inventory-close span { color: #555; }
+.java-player-panel, #overlay-inventory .java-personal-crafting,
+#overlay-inventory .inventory-main.java-inventory-bottom,
+#overlay-inventory .java-creative-panel,
+.craft-left, .craft-recipes {
+  padding: 8px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+#overlay-inventory .java-character .character-preview-stage {
+  border: 2px solid #777;
+  border-radius: 0;
+  background: #242424;
+  box-shadow: none;
+}
+#overlay-inventory .inventory-section-title,
+#overlay-inventory .inventory-section-title span,
+.java-equip-label, .java-held-readout,
+.java-inventory-tips, #overlay-inventory .inventory-craft-tip,
+.craft-inventory-title, .craft-recipes-title, .chest-section-title { color: #444; }
+#overlay-inventory .inventory-slot,
+#overlay-inventory .java-equip-slot,
+#overlay-inventory .inventory-craft-grid .craft-cell,
+#overlay-inventory .inventory-craft-board .craft-output,
+.java-mainhand-display, .java-creative-item,
+.craft-cell, .craft-output, .craft-inv-slot,
+#overlay-chest .storage-slot {
+  border: 2px solid #373737;
+  border-right-color: #fff;
+  border-bottom-color: #fff;
+  border-radius: 0;
+  background: var(--classic-slot-fill);
+  color: #fff;
+  box-shadow: none;
+}
+#overlay-inventory .inventory-slot:hover,
+#overlay-inventory .inventory-slot:focus-visible,
+#overlay-inventory .inventory-slot.java-hovered,
+#overlay-inventory .java-equip-slot:hover,
+#overlay-inventory .inventory-craft-grid .craft-cell:hover,
+.java-creative-item:hover, .craft-cell:hover, .craft-inv-slot:hover,
+#overlay-chest .storage-slot:hover, #overlay-chest .storage-slot:focus-visible {
+  background: #bababa;
+  border-color: #555 #fff #fff #555;
+}
+#overlay-inventory .inventory-slot.material-selected,
+.craft-inv-slot.material-selected { background: #b4b4a1; border-color: #555 #fff #fff #555; box-shadow: none; }
+#overlay-inventory .hotbar-grid .inventory-slot.java-selected-hotbar { outline: 2px solid #fff; }
+#overlay-inventory .java-equip-slot span { color: #454545; }
+.java-creative-item small { color: #333; text-shadow: none; }
+#overlay-inventory .inventory-slot .inv-count, .craft-inv-count { text-shadow: 2px 2px #333; }
+#overlay-inventory .hotbar-grid { border-color: #999; }
+#overlay-inventory .inventory-craft-grid, .craft-grid {
+  padding: 0;
+  gap: 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.craft-arrow, #overlay-inventory .inventory-craft-board .craft-arrow { color: #777; }
+.craft-output.ready, #overlay-inventory .inventory-craft-board .craft-output.ready {
+  border-color: #373737 #fff #fff #373737;
+  background: #999;
+  box-shadow: none;
+}
+.craft-output span, .craft-output span b { color: #fff; text-shadow: 1px 1px #333; }
+.craft-output-empty { color: #777 !important; }
+.java-recipe-panel, .java-appearance-fold {
+  border: 2px solid #777;
+  border-radius: 0;
+  background: #ababab;
+  color: #333;
+}
+.java-recipe-panel p, .java-appearance-fold > summary,
+.java-appearance-fold > summary span, .character-editor-help { color: #444; }
+.java-recipe-item.unavailable { background: #666 !important; color: #bbb !important; }
+.recipe-card, .furnace-recipe {
+  border: 2px solid #777;
+  border-radius: 0;
+  background: #aaa;
+  color: #333;
+}
+.recipe-card.ready { border-color: #555; background: #b9b9b9; }
+.recipe-name, .recipe-ing, .furnace-recipe span { color: #333; }
+#picker-grid .pick {
+  border: 2px solid #444;
+  border-right-color: #fff;
+  border-bottom-color: #fff;
+  border-radius: 0;
+  background: #8b8b8b;
+  color: #fff;
+  box-shadow: none;
+}
+#picker-grid .pick:hover, #picker-grid .pick:focus-visible { background: #bababa; border-color: #555 #fff #fff #555; }
+#picker-grid .pick span { color: #fff; text-shadow: 1px 1px #333; }
+.picker-controls, .picker-controls input, .picker-controls select { border-radius: 0; }
+#picker-count { color: #444; }
+
+/* Functional notifications and recovery controls stay available. */
+#toast {
+  border: 0;
+  border-radius: 0;
+  background: #0009;
+  color: #fff;
+  text-shadow: 1px 1px #222;
+  box-shadow: none;
+}
+#save-indicator {
+  top: auto;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  right: 12px;
+  border: 1px solid #aaa;
+  border-radius: 0;
+  background: #222d;
+  color: #eee;
+  box-shadow: none;
+}
+#save-indicator.save-failed { border-color: #f99; background: #542828ee; color: #fff; }
+#debug-panel {
+  top: 8px;
+  left: 8px;
+  padding: 3px 7px;
+  border: 0;
+  border-radius: 0;
+  background: #222b;
+  color: #fff;
+  box-shadow: none;
+  line-height: 1.6;
+}
+.boot-error-panel { border-radius: 0; border: 3px solid #888; background: #292929; }
+#overlay-death { background: #6008; }
+#overlay-death .death-panel { background: transparent; border: 0; box-shadow: none; color: #fff; }
+#overlay-death .death-title { color: #fff; text-shadow: 3px 3px #333; }
+#overlay-death .sub { color: #fff; }
+
+/* F1 affects the world HUD only; dialog and touch navigation remain usable. */
+body.classic-hud-hidden #hotbar,
+body.classic-hud-hidden #survival-hud,
+body.classic-hud-hidden #cross,
+body.classic-hud-hidden #mine-progress,
+body.classic-hud-hidden #item-name,
+body.classic-hud-hidden #debug-panel {
+  display: none !important;
+}
+
+@media (max-width: 480px) {
+  :root { --classic-slot: calc((100vw - 24px) / 9); }
+  .overlay { padding: 8px; }
+  .overlay .panel { max-width: 96vw; max-height: calc(100dvh - 16px); padding: 14px; }
+  #hotbar .cnt { font-size: 11px; }
+  #item-name { font-size: 12px; }
+  #overlay-start > .panel, #overlay-pause > .panel { padding: 12px; }
+  .world-create { grid-template-columns: 1fr; }
+  .world-row { flex-wrap: wrap; }
+  .world-meta { flex-basis: 100%; }
+  #save-indicator { bottom: calc(var(--classic-slot) + 48px + env(safe-area-inset-bottom)); font-size: 10px; }
+  .craft-grid { width: 174px; height: 174px; }
+  .craft-board { gap: 10px; }
+  .craft-output { width: 62px; height: 62px; }
+  .craft-output img, .craft-cell img { width: 36px; height: 36px; }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  :root { --classic-slot: 34px; }
+  #survival-hud, body.touch-device #survival-hud { bottom: calc(var(--classic-slot) + 15px + env(safe-area-inset-bottom)); }
+  #hearts img, #foods img, body.touch-device #hearts img, body.touch-device #foods img { width: 14px; height: 14px; }
+  #airs img { width: 12px; height: 12px; }
+  #item-name { bottom: calc(var(--classic-slot) + 48px + env(safe-area-inset-bottom)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay button, #item-name, #toast, #save-indicator { transition: none !important; }
+}
+
+/* Both touch actions have separate targets; the old single-action gap is reset. */
+body.touch-device #touch-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 10px;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: calc(var(--classic-slot) + 34px + env(safe-area-inset-bottom));
+}
+body.touch-device #touch-actions button {
+  flex: 0 0 58px;
+  width: 58px;
+  height: 58px;
+  min-height: 58px;
+  padding: 0;
+  border: 2px solid #ccc9;
+  border-right-color: #333b;
+  border-bottom-color: #333b;
+  border-radius: 2px;
+  background: #5559;
+  color: #fff;
+  font-size: 28px;
+  box-shadow: inset 1px 1px #fffa, inset -1px -1px #0007;
+}
+body.touch-device #touch-actions button:active {
+  background: #999b;
+  box-shadow: inset 1px 1px #333, inset -1px -1px #fff9;
+}
+body.touch-device #touch-topbar button {
+  border-radius: 2px;
+  border-color: #ccc9;
+  background: #555a;
+  box-shadow: inset 1px 1px #fff7, inset -1px -1px #2229;
+}
+[data-mobile-act="journal"] { display: none !important; }
+
+/* Pause options and help stay within the menu's existing scrollable panel. */
+#classic-options, .classic-help {
+  margin: 4px 0;
+  border: 2px solid #111;
+  border-radius: 0;
+  background: #222b;
+  color: #eee;
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.6;
+}
+#classic-options { max-height: min(48dvh, 340px); overflow-y: auto; overscroll-behavior: contain; }
+#classic-options > summary, .classic-help > summary {
+  min-height: 38px;
+  padding: 8px 12px;
+  background: #6d6d6d;
+  color: #fff;
+  box-shadow: inset 2px 2px #aaa, inset -2px -2px #444;
+  cursor: pointer;
+  text-shadow: 1px 1px #333;
+  list-style-position: inside;
+}
+#classic-options > summary { position: sticky; top: 0; z-index: 1; }
+#classic-options > summary:hover, .classic-help > summary:hover { background: #858590; color: #ffffa0; }
+#classic-options > summary:focus-visible, .classic-help > summary:focus-visible { outline: 2px solid #fff; outline-offset: -3px; }
+#classic-options .classic-option {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) minmax(100px, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 11px;
+  min-width: 0;
+  border-bottom: 1px solid #666;
+  color: #eee;
+  font-size: 12px;
+}
+#classic-options .classic-option:last-child { border-bottom: 0; }
+#classic-options .classic-option input[type="range"] {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  accent-color: #ddd;
+  cursor: pointer;
+}
+#classic-options .classic-option input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  justify-self: end;
+  accent-color: #999;
+}
+#classic-options output { min-width: 3ch; color: #fff; font-variant-numeric: tabular-nums; text-align: right; }
+#classic-options .classic-option select { width: 100%; min-width: 0; }
+.classic-help p, .classic-help ul, .classic-help ol { margin: 10px 12px; color: #ddd; }
+.classic-help ul, .classic-help ol { padding-left: 20px; }
+.classic-help li { margin: 5px 0; }
+.classic-help kbd { padding: 1px 4px; border: 1px solid #888; border-radius: 0; background: #4a4a4a; color: #fff; font: inherit; }
+
+@media (max-width: 400px) {
+  body.touch-device #touch-actions { gap: 8px; right: max(8px, env(safe-area-inset-right)); }
+  body.touch-device #touch-actions button { flex-basis: 52px; width: 52px; height: 52px; min-height: 52px; }
+  #classic-options .classic-option { grid-template-columns: minmax(85px, 1fr) minmax(80px, 1fr) auto; padding: 8px; gap: 6px; font-size: 11px; }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  body.touch-device #touch-actions { bottom: calc(var(--classic-slot) + 25px + env(safe-area-inset-bottom)); gap: 8px; }
+  body.touch-device #touch-actions button { flex-basis: 46px; width: 46px; height: 46px; min-height: 46px; font-size: 24px; }
+  #classic-options { max-height: 58dvh; }
+}

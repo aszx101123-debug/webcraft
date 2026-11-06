@@ -2,6 +2,8 @@
 
 (() => {
   const params = new URLSearchParams(location.search);
+  let classicOptions = ClassicSettings.get();
+  ClassicSettings.bind(options => { classicOptions = options; });
 
   function seedFromParam(v) {
     if (!v) return null;
@@ -35,7 +37,7 @@
   document.body.prepend(renderer.domElement);
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, .1, 500);
+  const camera = new THREE.PerspectiveCamera(classicOptions.fov, innerWidth / innerHeight, .1, 500);
   camera.rotation.order = 'YXZ';
   // Camera-attached first-person arms only render when the camera is in the scene graph.
   scene.add(camera);
@@ -55,6 +57,7 @@
   WorldMilestones.init(saved?.milestones);
   WorldMilestones.syncExploration(WorldJournal.getStats());
   BlockFurniture.init(saved?.blockObjects);
+  FurnaceSystem.init(saved?.furnaces);
   BlockPhysics.init();
   Fluids.init();
   PlayerModel.init(scene,camera);
@@ -89,7 +92,7 @@
     sound: saved ? saved.sound !== false : true,
     suppressPause: false,
     paused: false,
-    mode: saved && saved.version >= 2 && saved.mode ? saved.mode : GAME_MODE.CREATIVE
+    mode: saved && saved.version >= 2 && saved.mode ? saved.mode : GAME_MODE.SURVIVAL
   };
 
   Player.setMode(state.mode);
@@ -136,6 +139,11 @@
   };
   Player.onDeath = cause => {
     state.suppressPause = true;
+    disableTouchInput();
+    miningHeld=false;
+    Interact.cancelBreak();
+    BlockFurniture.closeChest(false);
+    WorldJournal.close(false);
     document.exitPointerLock?.();
     UI.showDeath(cause);
     doSave(true);
@@ -247,7 +255,7 @@
   let saveBadgeTimer=null;
   function doSave(silent) {
     const ok = SaveSystem.save(worldId, {
-      version: 6,
+      version: 7,
       savedAt: Date.now(),
       worldId,
       worldName: worldMeta.name,
@@ -274,6 +282,7 @@
       },
       edits: World.getEdits(),
       blockObjects: BlockFurniture.serialize(),
+      furnaces: FurnaceSystem.serialize(),
       journal: WorldJournal.serialize(),
       milestones: WorldMilestones.serialize()
     });
@@ -332,12 +341,16 @@
   const keys = {};
   let touchActive = false;
   let resetTouchPad = () => {};
+  let resetTouchTaps = () => {};
+  let pauseBeganAt = -Infinity;
   function disableTouchInput() {
     touchActive = false;
     resetTouchPad();
+    resetTouchTaps();
+    lastSpaceTap=-Infinity;
     cancelTouchGesture();
     document.body.classList.remove('touch-playing');
-    for (const k of ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space', 'ShiftLeft']) keys[k] = false;
+    for (const k of ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space', 'ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight']) keys[k] = false;
   }
   const touchControls = document.createElement('div');
   touchControls.id = 'touch-controls';
@@ -349,6 +362,7 @@
       '<div id="touch-pad" role="group" aria-label="이동 조이스틱"><div id="touch-knob"></div></div>'+
       '<div id="touch-actions" role="group" aria-label="이동 동작">'+
       '<button type="button" data-act="jump" aria-label="점프">↥</button>'+
+      '<button type="button" data-act="sneak" aria-label="웅크리기 / 비행 하강">◇</button>'+
       '</div>'+
       '<div id="touch-topbar" role="group" aria-label="게임 메뉴">'+
       '<button type="button" data-act="inventory" aria-label="인벤토리 열기">▦</button>'+
@@ -357,7 +371,7 @@
     document.body.classList.add('touch-device');
     const pad = touchControls.querySelector('#touch-pad');
     const knob = touchControls.querySelector('#touch-knob');
-    const moveKeys = ['KeyW','KeyA','KeyS','KeyD','ShiftLeft'];
+    const moveKeys = ['KeyW','KeyA','KeyS','KeyD','ControlLeft'];
     const resetPad = () => {
       moveKeys.forEach(k=>keys[k]=false);
       knob.style.transform='';
@@ -371,7 +385,7 @@
       keys.KeyA=x<-.28;keys.KeyD=x>.28;
       keys.KeyW=y<-.28;keys.KeyS=y>.28;
       // Pushing the stick all the way up runs, no separate sprint button.
-      keys.ShiftLeft=y<-.86 && Math.abs(x)<.52;
+      keys.ControlLeft=y<-.86 && Math.abs(x)<.52;
       knob.style.transform='translate(calc(-50% + '+(x*r.width*.29)+'px),calc(-50% + '+(y*r.height*.29)+'px))';
     }
     pad.addEventListener('pointerdown',e=>{
@@ -385,7 +399,8 @@
     for(const eventName of ['pointerup','pointercancel','lostpointercapture'])
       pad.addEventListener(eventName,()=>{moveKeys.slice(0,5).forEach(k=>keys[k]=false);knob.style.transform='';});
 
-    let lastJumpTap=0;
+    let lastJumpTap=-Infinity;
+    resetTouchTaps=()=>{lastJumpTap=-Infinity;};
     for(const button of touchControls.querySelectorAll('button')){
       const act=button.dataset.act;
       button.addEventListener('pointerdown',e=>{
@@ -401,6 +416,7 @@
             lastJumpTap=0;
           }else{keys.Space=true;lastJumpTap=now;}
         }
+        if(act==='sneak') keys.ShiftLeft=true;
         if(act==='inventory'){
           state.suppressPause=true;
           disableTouchInput();
@@ -408,14 +424,16 @@
         }
         if(act==='pause'){
           state.paused=true;
+          pauseBeganAt=performance.now();
           disableTouchInput();
           UI.showOverlay('pause');doSave(true);
         }
       });
-      if(act==='jump'){
-        const release=()=>{keys.Space=false;};
+      if(act==='jump'||act==='sneak'){
+        const release=()=>{keys[act==='jump'?'Space':'ShiftLeft']=false;};
         button.addEventListener('pointerup',release);
         button.addEventListener('pointercancel',release);
+        button.addEventListener('lostpointercapture',release);
       }
     }
 
@@ -482,9 +500,9 @@
         Interact.clearTouchAim();
       }
       if(wasDrag){
-        Player.yaw-=(e.clientX-lastX)*.006;
+        Player.yaw-=(e.clientX-lastX)*.006*classicOptions.sensitivity/100;
         Player.pitch=Math.max(-1.55,Math.min(1.55,
-          Player.pitch-(e.clientY-lastY)*.006));
+          Player.pitch-(e.clientY-lastY)*.006*classicOptions.sensitivity/100*(classicOptions.invertY?-1:1)));
       }
       lastX=e.clientX;lastY=e.clientY;
     });
@@ -516,8 +534,6 @@
             Inventory.setSlot(Inventory.getSelected(),id);
             UI.renderHotbar();resumeInput();
           });
-        }else if(act==='journal'){
-          UI.showOverlay(null);WorldJournal.show();WorldMilestones.render();
         }else if(act==='drop'){
           if(state.mode===GAME_MODE.SURVIVAL){
             const dropped=UI.dropSelected(false);
@@ -533,6 +549,8 @@
   }
   let miningHeld = false;
   let miningSwingElapsed = 0;
+  let creativeBreakTimer = 0;
+  let lastSpaceTap = -Infinity;
   const canvas = renderer.domElement;
   function resumeInput() {
     if (isTouch) {
@@ -585,21 +603,12 @@
     if(input)input.value='';
     UI.showToast('새 거점 기록: '+added.name);
   });
-  WorldMilestones.onUnlock(goal=>{
-    UI.showToast('모험 목표 달성: '+goal.title);
-    const popup=document.getElementById('milestone-unlock');
-    if(popup){
-      popup.textContent='✦ 모험 목표 완료 · '+goal.title;
-      popup.classList.add('show');
-      clearTimeout(milestonePopupTimer);
-      milestonePopupTimer=setTimeout(()=>popup.classList.remove('show'),3100);
-    }
-    blip(740,.08,'triangle',.025);
+  WorldMilestones.onUnlock(()=>{
+    // Retain old progression in saved worlds without adding a custom HUD.
     // Save after the current crafting/placing action has committed its inventory change.
     clearTimeout(milestoneSaveTimer);
     milestoneSaveTimer=setTimeout(()=>doSave(true),220);
   });
-  let milestonePopupTimer=null;
   let milestoneSaveTimer=null;
   document.getElementById('journal-set-home')?.addEventListener('click',()=>{
     if(WorldJournal.setHome(Player.pos)){
@@ -618,11 +627,7 @@
   }
 
   document.addEventListener('keydown', e => {
-    if((e.ctrlKey||e.metaKey) && e.code==='KeyS'){
-      e.preventDefault();
-      if(state.started)doSave(false);
-      return;
-    }
+    if(e.target?.closest?.('input,textarea,select,[contenteditable="true"]') && e.code!=='Escape')return;
     if (WorldJournal.isOpen()) {
       if(e.code==='Escape'||(e.code==='KeyJ' && !e.target?.closest?.('input,textarea,select'))){
         e.preventDefault();
@@ -631,9 +636,16 @@
       return;
     }
     if (BlockFurniture.isChestOpen()) {
-      if (e.code==='Escape') {
+      if (e.code==='Escape'||e.code==='KeyE') {
         e.preventDefault();
-        BlockFurniture.closeChest();
+        if(!e.repeat)BlockFurniture.closeChest();
+      }
+      return;
+    }
+    if(UI.isCraftingOpen() || UI.isFurnaceOpen()){
+      if(e.code==='Escape'||e.code==='KeyE'){
+        e.preventDefault();
+        if(!e.repeat && (UI.isFurnaceOpen()?UI.closeFurnace():UI.closeCrafting()))resumeInput();
       }
       return;
     }
@@ -659,53 +671,65 @@
       }
       return;
     }
-    keys[e.code] = true;
-    if (e.code === 'Space') e.preventDefault();
-    if (e.code === 'Escape' && UI.isCraftingOpen()) {
-      if (UI.closeCrafting()) resumeInput();
+    if(e.code==='F1' && state.started){
+      e.preventDefault();
+      if(!e.repeat)document.body.classList.toggle('classic-hud-hidden');
       return;
     }
-    if (e.code === 'Escape' && UI.isFurnaceOpen()) {
-      UI.closeFurnace();
-      resumeInput();
-      return;
+    keys[e.code] = true;
+    if (e.code === 'Space') e.preventDefault();
+    if(e.code==='Space' && !e.repeat && state.mode===GAME_MODE.CREATIVE &&
+       (state.locked || (isTouch&&touchActive))){
+      const now=performance.now();
+      if(now-lastSpaceTap<300){
+        Player.flying=!Player.flying;
+        lastSpaceTap=-Infinity;
+      }else lastSpaceTap=now;
     }
     if (e.code === 'F3') {
       e.preventDefault();
       document.getElementById('debug-panel')?.classList.toggle('hidden');
       return;
     }
-    if (e.code === 'KeyJ' && state.started && !Player.dead &&
-        (state.locked || (isTouch&&touchActive))) {
-      e.preventDefault();
-      disableTouchInput();
-      state.suppressPause=true;
-      document.exitPointerLock?.();
-      WorldJournal.show();WorldMilestones.render();
-      return;
-    }
     if (e.code === 'F5') {
       e.preventDefault();
+      if(e.repeat)return;
       state.thirdPersonView = (state.thirdPersonView + 1) % 3;
       const labels = ['1인칭 카메라', '3인칭 뒤', '3인칭 앞'];
       UI.showToast(labels[state.thirdPersonView] + ' ON');
       return;
     }
     if (e.code === 'Escape' && state.started && !state.locked && !UI.isInventoryOpen() && !UI.isCraftingOpen() && !UI.isFurnaceOpen()) {
+      e.preventDefault();
+      if(e.repeat)return;
+      if(state.paused){
+        if(performance.now()-pauseBeganAt<180)return;
+        state.paused=false;
+        state.suppressPause=true;
+        UI.showOverlay(null);
+        resumeInput();
+        return;
+      }
       disableTouchInput();
       state.paused = true;
+      pauseBeganAt=performance.now();
       UI.showOverlay('pause');
       doSave(true);
       return;
     }
     if (!(state.locked || (isTouch && touchActive))) return;
+    if(e.code.startsWith('Key') || e.code.startsWith('Digit') ||
+       e.code.startsWith('Arrow') || e.code.startsWith('Control') ||
+       e.code.startsWith('Shift'))e.preventDefault();
     if (e.code.startsWith('Digit')) {
       const n = +e.code[5];
       if (n >= 1 && n <= 9) { UI.setSelected(n - 1); blip(300, .04, 'square', .02); }
     }
     if (e.code === 'KeyQ') {
+      e.preventDefault();
+      if(e.repeat)return;
       if (state.mode !== GAME_MODE.SURVIVAL) { UI.showToast('크리에이티브에서는 아이템이 사라지지 않습니다'); return; }
-      const dropped = UI.dropSelected(e.shiftKey);
+      const dropped = UI.dropSelected(e.ctrlKey);
       if (dropped) {
         Drops.spawn(dropped.id, dropped.count, Player.pos.x, Player.pos.y + .7, Player.pos.z);
         UI.renderHotbar();
@@ -714,10 +738,9 @@
       return;
     }
     if (e.code === 'KeyF') {
-      if (state.mode !== GAME_MODE.CREATIVE) { UI.showToast('서바이벌에서는 날 수 없습니다'); return; }
-      Player.flying = !Player.flying;
-      UI.showToast(Player.flying ? '비행 모드 ON' : '비행 모드 OFF');
-      blip(Player.flying ? 520 : 260, .09, 'triangle', .04);
+      e.preventDefault();
+      if(!e.repeat && Inventory.swapOffhand())UI.renderHotbar();
+      return;
     }
     if (e.code === 'KeyE') {
       disableTouchInput();
@@ -726,29 +749,15 @@
       if (UI.openInventory() === false) resumeInput();
       return;
     }
-    if (e.code === 'KeyC') {
-      UI.showToast('3×3 제작은 제작대에서만 사용할 수 있습니다');
-      return;
-    }
-    if (e.code === 'KeyB') {
-      if (state.mode !== GAME_MODE.CREATIVE) { UI.showToast('서바이벌에서는 블록을 직접 캐서 얻으세요'); return; }
-      disableTouchInput();
-      state.suppressPause = true;
-      document.exitPointerLock?.();
-      UI.openPicker(id => {
-        Inventory.setSlot(Inventory.getSelected(), id);
-        UI.renderHotbar();
-        blip(340, .05, 'square', .03);
-        resumeInput();
-      });
-    }
   });
   document.addEventListener('keyup', e => keys[e.code] = false);
 
   document.addEventListener('mousemove', e => {
     if (!state.locked) return;
-    Player.yaw -= e.movementX * .0022;
-    Player.pitch = Math.max(-1.55, Math.min(1.55, Player.pitch - e.movementY * .0022));
+    const sensitivity=.0022*classicOptions.sensitivity/100;
+    Player.yaw -= e.movementX * sensitivity;
+    Player.pitch = Math.max(-1.55, Math.min(1.55,
+      Player.pitch - e.movementY * sensitivity * (classicOptions.invertY?-1:1)));
   });
 
   document.addEventListener('mousedown', e => {
@@ -764,49 +773,53 @@
         if (Mobs.getLastAttackResult()?.landed)
           Player.addExhaustion(SURVIVAL.ATTACK_COST);
       } else if (state.mode === GAME_MODE.SURVIVAL) {
-        miningHeld = Interact.startBreak(true);
+        miningHeld = true;
+        Interact.startBreak(true);
         UI.setMiningProgress(Interact.miningProgress());
-      } else if (Interact.startBreak(false)) {
-        miningHeld = false;
+      } else {
+        miningHeld = true;
+        creativeBreakTimer=.18;
+        Interact.startBreak(false);
         UI.setMiningProgress(0);
         blip(95, .12, 'triangle', .09);
       }
     } else if (e.button === 2) {
       const target = Interact.getTarget();
-      if (target && (target.id===BLOCK.WOOD_DOOR || target.id===BLOCK.WOOD_DOOR_TOP)) {
+      if (target && !Player.sneaking && (target.id===BLOCK.WOOD_DOOR || target.id===BLOCK.WOOD_DOOR_TOP)) {
         const opened=BlockFurniture.toggleDoor(target.x,target.y,target.z);
-        UI.showToast(opened?'문을 열었습니다':'문을 닫았습니다');
         blip(opened?310:225,.07,'square',.04);
         return;
       }
-      if (target && target.id===BLOCK.CHEST) {
+      if (target && !Player.sneaking && target.id===BLOCK.CHEST) {
         disableTouchInput();
         state.suppressPause=true;
         document.exitPointerLock?.();
         if(!BlockFurniture.openChest(target.x,target.y,target.z))resumeInput();
         return;
       }
-      if (target && (target.id === BLOCK.CRAFTING_TABLE || target.id === BLOCK.FURNACE)) {
+      if (target && !Player.sneaking && (target.id === BLOCK.CRAFTING_TABLE || target.id === BLOCK.FURNACE)) {
         disableTouchInput();
         state.suppressPause = true;
         document.exitPointerLock?.();
-        if (target.id === BLOCK.FURNACE) UI.openFurnace();
+        if (target.id === BLOCK.FURNACE) { if(UI.openFurnace(target)===false)resumeInput(); }
         else if (UI.openCrafting() === false) resumeInput();
         return;
       }
-      const s = Inventory.selectedSlot();
+      const mainhand = Inventory.selectedSlot();
+      const useOffhand = !mainhand || (!isFoodId(mainhand.id) && !isBlockId(mainhand.id));
+      const s = useOffhand ? Inventory.getEquipment().offhand : mainhand;
       if (!s) return;
       PlayerModel.swing();
       if (isFoodId(s.id)) {
         if (Player.eat(ITEMS[s.id].food)) {
           blip(280, .07, 'triangle', .05);
           setTimeout(() => blip(200, .08, 'triangle', .05), 100);
-          Inventory.consumeSelected();
+          if(useOffhand)Inventory.consumeOffhand();else Inventory.consumeSelected();
           UI.renderHotbar();
         } else UI.showToast('배가 부릅니다');
       } else if (isBlockId(s.id)) {
         if (Interact.tryPlace(s.id)) {
-          Inventory.consumeSelected();
+          if(useOffhand)Inventory.consumeOffhand();else Inventory.consumeSelected();
           blip(190, .07, 'square', .05);
           UI.renderHotbar();
         }
@@ -815,8 +828,7 @@
       if (UI.isInventoryOpen()) return;
       e.preventDefault();
       const id = Interact.pickBlock();
-      if (id) {
-        Inventory.setSlot(Inventory.getSelected(), id);
+      if (id && Inventory.pickBlock(id)) {
         UI.renderHotbar();
         blip(340, .05, 'square', .03);
       }
@@ -829,16 +841,24 @@
     UI.setMiningProgress(0);
   });
   addEventListener('blur', () => {
+    disableTouchInput();
+    for(const code of Object.keys(keys))keys[code]=false;
     miningHeld = false;
     Interact.cancelBreak();
     UI.setMiningProgress(0);
+    if(state.started && !Player.dead){
+      state.paused=true;
+      pauseBeganAt=performance.now();
+      UI.showOverlay('pause');
+      doSave(true);
+    }
   });
   document.addEventListener('pointerlockerror', () => UI.showToast('마우스 잠금을 시작하지 못했습니다. 게임 화면을 한 번 클릭해 주세요.'));
   document.addEventListener('contextmenu', e => e.preventDefault());
   document.addEventListener('wheel', e => {
     if (!state.locked) return;
     e.preventDefault();
-    if (e.ctrlKey || e.metaKey) return;
+    if (e.metaKey) return;
     UI.setSelected(Inventory.getSelected() + (e.deltaY > 0 ? 1 : -1));
   }, { passive: false });
 
@@ -850,11 +870,15 @@
       state.suppressPause = false;
       UI.showOverlay(null);
     } else if (state.started && !Player.dead) {
+      for(const code of Object.keys(keys))keys[code]=false;
+      lastSpaceTap=-Infinity;
+      resetTouchTaps();
       miningHeld = false;
       Interact.cancelBreak();
       UI.setMiningProgress(0);
       if (state.suppressPause) { state.suppressPause = false; return; }
       state.paused = true;
+      pauseBeganAt=performance.now();
       UI.showOverlay('pause');
       doSave(true);
     }
@@ -862,7 +886,10 @@
 
   function createWorldAndOpen(name, rawSeed) {
     const parsed = seedFromParam(rawSeed);
-    doSave(true);
+    if(state.started && !doSave(true)){
+      UI.showToast('현재 월드를 저장하지 못했습니다. 백업 후 다시 시도해 주세요.');
+      return;
+    }
     const meta = SaveSystem.create(name, parsed ?? undefined);
     if (!meta) {
       UI.showToast('새 월드를 만들지 못했습니다. 저장 공간을 확인해 주세요.');
@@ -872,6 +899,10 @@
   }
 
   function openWorldMenu() {
+    if(state.started && !doSave(true)){
+      UI.showToast('저장하지 못했습니다. 월드 백업을 확인해 주세요.');
+      return;
+    }
     WorldJournal.close(false);
     BlockFurniture.closeChest(false);
     if (UI.isInventoryOpen() && !UI.closeInventory()) return;
@@ -939,7 +970,7 @@
     resumeInput();
   });
   document.getElementById('furnace-close')?.addEventListener('click', () => {
-    UI.closeFurnace();
+    if (!UI.closeFurnace()) return;
     state.paused = false;
     state.suppressPause = true;
     resumeInput();
@@ -986,12 +1017,15 @@
         return;
       }
       const parsed = JSON.parse(await file.text());
+      if(state.started && !doSave(true)){
+        UI.showToast('현재 월드를 저장하지 못했습니다. 백업 후 다시 시도해 주세요.');
+        return;
+      }
       const imported = SaveSystem.importWorld(parsed);
       if (!imported) {
         UI.showToast('올바른 WebCraft 월드 백업 파일이 아닙니다');
         return;
       }
-      doSave(true);
       UI.showToast('새 월드로 가져왔습니다');
       location.href = 'play.html?world=' + encodeURIComponent(imported.id);
     } catch (error) {
@@ -1001,7 +1035,10 @@
     }
   });
 
-  document.getElementById('btn-home').addEventListener('click', () => { doSave(true); location.href = 'index.html'; });
+  document.getElementById('btn-home').addEventListener('click', () => {
+    if(doSave(true))location.href='index.html';
+    else UI.showToast('저장하지 못했습니다. 백업 후 다시 시도해 주세요.');
+  });
   document.getElementById('btn-respawn').addEventListener('click', () => {
     miningHeld = false;
     Interact.cancelBreak();
@@ -1061,6 +1098,7 @@
       WorldJournal.close(false);
       disableTouchInput();
       state.paused = true;
+      pauseBeganAt=performance.now();
       UI.showOverlay('pause');
       doSave(true);
       document.exitPointerLock?.();
@@ -1073,10 +1111,12 @@
   const clock = new THREE.Clock();
   let hudTick = 0;
   let milestoneTick = 0;
+  let furnaceUITick = 0;
 
   function loop() {
     requestAnimationFrame(loop);
     const dt = Math.min(clock.getDelta(), .05);
+    const worldRunning = state.ready && state.started && !state.paused && !Player.dead;
 
     if (!state.ready) {
       World.update(Player.pos.x, Player.pos.z, state.renderDist, isTouch ? 4 : 8, isTouch ? 6 : 12);
@@ -1085,11 +1125,10 @@
         UI.setStartEnabled(true);
       }
     } else {
-      const active = state.started && !state.paused && !Player.dead && !UI.isInventoryOpen() && !UI.isCraftingOpen() && !UI.isFurnaceOpen() && !BlockFurniture.isChestOpen() && !WorldJournal.isOpen();
+      const active = worldRunning && !UI.isInventoryOpen() && !UI.isCraftingOpen() && !UI.isFurnaceOpen() && !UI.isPickerOpen() && !BlockFurniture.isChestOpen() && !WorldJournal.isOpen();
       if (active) {
         Player.update(dt, keys);
         const discovery=WorldJournal.update(dt,Player.pos,World.biomeAt(Player.pos.x,Player.pos.z));
-        if(discovery)announceDiscovery(discovery);
         if(discovery || ++milestoneTick%12===0)WorldMilestones.syncExploration(WorldJournal.getStats());
         Interact.update();
         const aimed=Interact.getTarget();
@@ -1097,6 +1136,15 @@
         if(targetLabel){
           targetLabel.textContent=aimed?getItemName(aimed.id):'';
           targetLabel.classList.toggle('show',!!aimed);
+        }
+        if(miningHeld){
+          if(state.mode===GAME_MODE.SURVIVAL && !Interact.miningProgress())Interact.startBreak(true);
+          if(state.mode===GAME_MODE.CREATIVE){
+            creativeBreakTimer-=dt;
+            if(creativeBreakTimer<=0){
+              Interact.startBreak(false);PlayerModel.swing();creativeBreakTimer=.18;
+            }
+          }
         }
         const mined = Interact.updateMining(dt, state.mode === GAME_MODE.SURVIVAL);
         const miningProgress = Interact.miningProgress();
@@ -1116,36 +1164,38 @@
           miningSwingElapsed = 0;
         }
         if (mined) {
-          miningHeld = false;
           blip(95, .12, 'triangle', .09);
-          UI.showToast('블록을 캤습니다');
         }
-        if (!Interact.miningProgress()) miningHeld = false;
+      } else if(worldRunning){
+        // Inventories do not pause a Minecraft-style world; player input does.
+        Player.update(dt, {});
+      }
+      if(worldRunning){
         updateSky(dt);
         updateWeather(dt);
         Fluids.update(Player.pos.x, Player.pos.y, Player.pos.z, dt);
         BlockPhysics.update(dt);
-        const sprinting = (keys['ShiftLeft'] || keys['ShiftRight']) && keys['KeyW'] && !Player.flying;
+        FurnaceSystem.update(dt);
+        if(UI.isFurnaceOpen() && ++furnaceUITick%6===0)UI.renderFurnace();
+        const sprinting = active && (keys['ControlLeft'] || keys['ControlRight']) &&
+          !(keys['ShiftLeft'] || keys['ShiftRight']) && keys['KeyW'] && !Player.flying;
         Player.survivalTick(dt, sprinting);
         Mobs.update(dt, true);
         Drops.update(dt, Player.pos, state.mode === GAME_MODE.SURVIVAL && !Player.dead);
-      } else {
-        updateSky(dt);
-        updateWeather(dt);
-        Fluids.update(Player.pos.x, Player.pos.y, Player.pos.z, dt);
-        BlockPhysics.update(dt);
       }
       World.update(Player.pos.x, Player.pos.z, state.renderDist, isTouch ? 1 : 2, isTouch ? 2 : 4);
     }
 
-    const sprinting = (keys['ShiftLeft'] || keys['ShiftRight']) && keys['KeyW'] && !Player.flying;
-    const targetFov = sprinting ? 79 : 72;
+    const sprinting = worldRunning && (state.locked || (isTouch&&touchActive)) &&
+      (keys['ControlLeft'] || keys['ControlRight']) && !(keys['ShiftLeft'] || keys['ShiftRight']) &&
+      keys['KeyW'] && !Player.flying;
+    const targetFov = Math.min(120,classicOptions.fov + (sprinting ? 8 : 0));
     if (Math.abs(camera.fov - targetFov) > .1) {
       camera.fov += (targetFov - camera.fov) * Math.min(1, dt * 8);
       camera.updateProjectionMatrix();
     }
 
-    PlayerModel.update(Player, dt, state.thirdPersonView > 0);
+    PlayerModel.update(Player, worldRunning ? dt : 0, state.thirdPersonView > 0);
     const waterFx = document.getElementById('underwater-overlay');
     if (waterFx) waterFx.classList.toggle('show', Player.headSubmerged);
     if (state.thirdPersonView > 0) {
@@ -1193,7 +1243,7 @@
         const direction=((Player.yaw%(Math.PI*2))*180/Math.PI+360)%360;
         const journal=WorldJournal.getStats();
         debug.textContent=[
-          'WEBCRAFT v1.3.5 · DEBUG (F3)',
+          'WEBCRAFT v'+CONFIG.VERSION+' · DEBUG (F3)',
           'FPS: '+fps+' · 청크 로딩: '+World.chunkCount(),
           '위치: X '+p.x.toFixed(1)+' / Y '+p.y.toFixed(1)+' / Z '+p.z.toFixed(1),
           '바이옴: '+WorldJournal.biomeName(biome),
@@ -1201,8 +1251,6 @@
           '월드 시드: '+World.getSeed(),
           '몹: '+mc.total+' (야생 '+mc.passive+' / 적대 '+mc.hostile+')',
           '청크 대기: '+World.pendingCount()+' · 리빌드: '+World.dirtyCount(),
-          '탐험: '+journal.found+'개 바이옴 · 이동 '+journal.distance+'블록',
-          '집: '+(journal.home?('X '+journal.home.x+' / Z '+journal.home.z+' · '+journal.homeDistance+'블록 거리'):'미설정'),
           '카메라: '+(state.thirdPersonView===0?'1인칭':'3인칭')
         ].join('\n');
       }
