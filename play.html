@@ -264,6 +264,18 @@
       <button id="journal-set-home" type="button" class="btn">현재 위치를 집으로 지정</button>
     </div>
     <div id="journal-biomes" class="journal-biome-grid" aria-label="발견한 바이옴"></div>
+    <div class="journal-bookmark-section">
+      <div class="journal-bookmark-heading">
+        <div><p class="journal-kicker">WORLD BOOKMARKS</p><h3>나만의 거점</h3></div>
+        <span id="journal-bookmark-count">0/5</span>
+      </div>
+      <div class="journal-bookmark-actions">
+        <input id="journal-bookmark-name" type="text" maxlength="18"
+          placeholder="거점 이름 (선택)" aria-label="새 거점 이름" autocomplete="off">
+        <button id="journal-bookmark-add" type="button" class="btn">현재 위치 기록</button>
+      </div>
+      <div id="journal-bookmarks" class="journal-bookmark-list" aria-label="기록한 거점"></div>
+    </div>
     <div class="milestone-header">
       <div><p class="journal-kicker">WORLD PROGRESSION</p><h3>모험의 기록</h3></div>
       <span id="milestone-summary">목표 불러오는 중...</span>
