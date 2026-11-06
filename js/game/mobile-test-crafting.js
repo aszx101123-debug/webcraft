@@ -267,7 +267,29 @@ const Crafting = (() => {
       Inventory.canAdd(recipe.outputId, recipe.count);
   }
 
-  function canCraftGrid(){const r=getMatch();if(!r)return false;const m=new Map();activeIndices().forEach(i=>{const id=grid[i];if(id)m.set(id,(m.get(id)||0)+1)});return r.ingredients.every(x=>(m.get(x.id)||0)>=x.count)&&Inventory.canAdd(r.outputId,r.count);}
+  function canTakeGridResult(){
+    const r=getMatch();
+    if(!r)return false;
+    const m=new Map();
+    activeIndices().forEach(i=>{const id=grid[i];if(id)m.set(id,(m.get(id)||0)+1)});
+    return r.ingredients.every(x=>(m.get(x.id)||0)>=x.count);
+  }
+  function canCraftGrid(){
+    const r=getMatch();
+    return !!r && canTakeGridResult() && Inventory.canAdd(r.outputId,r.count);
+  }
+  // Personal 2x2 output follows the mouse cursor, not a forced inventory slot.
+  function takeGridResult(){
+    const recipe=getMatch();
+    if(!recipe || !canTakeGridResult())return null;
+    const item={id:recipe.outputId,count:recipe.count};
+    const def=getItemDef(item.id);
+    if(def?.toolType || def?.armorType)item.durability=def.maxDurability||1;
+    resetGrid();
+    if(typeof WorldMilestones!=='undefined')
+      WorldMilestones.record('craft',recipe.outputId,Inventory.isCreative()?'creative':'survival');
+    return item;
+  }
 
   function consumeIngredients(recipe) {
     for (const ing of recipe.ingredients) {
@@ -339,6 +361,7 @@ const Crafting = (() => {
   return {
     getRecipes, getGrid, getVisibleCells, getGridSize, setGridSize,
     setCell, addToFirstEmpty, removeCell, resetGrid,
-    getMatch, canCraft, canCraftGrid, craftGrid, autofill, summary, recipeFitsGrid
+    getMatch, canCraft, canCraftGrid, canTakeGridResult, takeGridResult,
+    craftGrid, autofill, summary, recipeFitsGrid
   };
 })();
