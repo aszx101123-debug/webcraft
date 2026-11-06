@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.4.0-i18n-home-20261106-2';
+const VERSION = 'webcraft-v1.4.0-i18n-full-20261106';
 const CORE = [
   "./",
   "./index.html",
@@ -56,7 +56,7 @@ const CORE = [
   "./css/v133-home.css?v=v133",
   "./js/v133-home.js?v=v133",
   "./js/skin-studio-page.js?v=v131",
-  "./js/i18n.js?v=20261106-languages3"
+  "./js/i18n.js?v=20261106-languages4"
 ];
 
 self.addEventListener('install', e => {
