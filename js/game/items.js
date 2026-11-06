@@ -203,6 +203,81 @@ const Inventory = (() => {
     return true;
   }
 
+  // Inventory hotkeys and quick transfers keep existing item durability intact.
+  function swapSlots(a,b) {
+    if (!Number.isInteger(a)||!Number.isInteger(b)||a<0||b<0||a>=SIZE||b>=SIZE||a===b) return false;
+    [slots[a],slots[b]]=[slots[b],slots[a]];
+    return true;
+  }
+
+  function swapWithSlot(index,held) {
+    if(!Number.isInteger(index)||index<0||index>=SIZE)return held;
+    if(!held)return takeFromSlot(index);
+    if(!getItemDef(held.id))return held;
+    const current=slots[index];
+    if(!current || (current.id===held.id && !isGear(getItemDef(held.id)))) {
+      return putIntoSlot(index,held);
+    }
+    const old=cloneStack(current);
+    slots[index]=cloneStack(held);
+    return old;
+  }
+
+  function swapEquipmentWithCursor(key,held) {
+    if(!EQUIPMENT_KEYS.includes(key))return held;
+    if(!held)return takeEquipment(key);
+    const def=getItemDef(held.id);
+    if(!def)return held;
+    if(['head','chest','legs','feet'].includes(key) && def.armorType!==key)return held;
+    if(['mainhand','offhand'].includes(key) && def.armorType)return held;
+    const current=equipment[key];
+    if(!current) {
+      equipment[key]=cloneStack(held);
+      return null;
+    }
+    if(current.id===held.id && !isGear(def) && current.count<MAX_STACK) {
+      const n=Math.min(MAX_STACK-current.count,held.count);
+      current.count+=n;
+      held.count-=n;
+      return held.count>0?held:null;
+    }
+    equipment[key]=cloneStack(held);
+    return cloneStack(current);
+  }
+
+  // Classic Shift+click: move between backpack and hotbar; armor auto-equips.
+  // Never partially lose a stack if the destination is full.
+  function quickMove(index) {
+    if(!Number.isInteger(index)||index<0||index>=SIZE)return false;
+    const current=slots[index];
+    if(!current || current.count===Infinity)return false;
+    const def=getItemDef(current.id);
+    if(def?.armorType && !equipment[def.armorType]) {
+      equipment[def.armorType]=cloneStack(current);
+      slots[index]=null;
+      return true;
+    }
+    const dest=index<HOTBAR_SIZE
+      ? Array.from({length:SIZE-HOTBAR_SIZE},(_,i)=>i+HOTBAR_SIZE)
+      : Array.from({length:HOTBAR_SIZE},(_,i)=>i);
+    let moving=takeFromSlot(index);
+    if(!moving)return false;
+    const original=moving.count;
+    if(!isGear(def))for(const i of dest) {
+      if(!moving)break;
+      if(slots[i]?.id===moving.id)moving=putIntoSlot(i,moving);
+    }
+    for(const i of dest) {
+      if(!moving)break;
+      if(!slots[i])moving=putIntoSlot(i,moving);
+    }
+    if(moving) {
+      // Source was vacated first, so restoration always fits any remainder.
+      slots[index]=cloneStack(moving);
+    }
+    return !moving || moving.count<original;
+  }
+
   function dropFromSlot(index, amount = 1) {
     return takeFromSlot(index, amount);
   }
@@ -284,6 +359,7 @@ const Inventory = (() => {
     init, setMode, getSlots, getHotbarSlots, getSelected, setSelected,
     selectedSlot, selectedId, isCreative, getEquipment, setSlot, canAdd, add,
     removeItem, countItem, takeFromSlot, putIntoSlot, move, dropFromSlot,
+    swapSlots, swapWithSlot, swapEquipmentWithCursor, quickMove,
     consumeSelected, damageSelectedTool, selectedTool, selectedToolDurability,
     serialize, serializeEquipment, takeEquipment, putEquipment
   };

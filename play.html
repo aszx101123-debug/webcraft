@@ -19,10 +19,12 @@
 <link rel="stylesheet" href="css/v134-combat.css?v=v134">
 <link rel="stylesheet" href="css/v135-adventure.css?v=v135">
 <link rel="stylesheet" href="css/v136-progress.css?v=v136">
+<link rel="stylesheet" href="css/v137-inventory.css?v=v137">
+<link rel="stylesheet" href="css/v137-touch.css?v=v137">
 </head>
 <body>
 
-<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.3.6 · 계단·반 블록·문·상자 추가 + 월드 건축 확장</div>
+<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.3.7 · 자바 스타일 E 인벤토리 · 장비 · 개인 제작 · 레시피 책</div>
 <div id="boot-error" class="boot-error hidden" role="alert">
   <div class="boot-error-panel">
     <div class="boot-error-icon">!</div>
@@ -78,7 +80,7 @@
       </div>
     </div>
     <p id="start-status" class="start-status" role="status">월드를 준비하고 있습니다…</p>
-    <p class="touch-keys">왼쪽 조이스틱 이동 · 화면 드래그 시점 전환 · 달리기 버튼 누르고 이동 · 점프/채굴/사용/설치 · 블록/비행(크리에이티브) · 가방 2×2 제작 · 제작대 3×3 제작</p>
+    <p class="touch-keys">왼쪽 조이스틱 이동 · 오른쪽 점프/웅크리기 · 화면 드래그로 시점 전환 · 화면 짧게 터치: 사용·설치 · 길게 누르기: 채굴 · 상단 인벤토리/메뉴 · 빠르게 점프 두 번: 크리에이티브 비행</p>
     <div class="keys">
       <div><b>WASD</b> 이동</div><div><b>Space</b> 점프/수영</div><div><b>Shift</b> 달리기</div>
       <div><b>좌클릭 유지</b> 캐기/공격</div><div><b>우클릭</b> 놓기/먹기</div><div><b>휠 / 1~9</b> 선택</div>
@@ -99,6 +101,16 @@
     <h2>일시정지</h2>
     <div class="btn-col">
       <button id="btn-resume" class="btn-primary">계속하기</button>
+      <div id="mobile-pause-actions" class="mobile-pause-actions" aria-label="모바일 추가 기능">
+        <div class="mobile-pause-heading">모바일 추가 기능</div>
+        <div class="mobile-pause-grid">
+          <button type="button" data-mobile-act="camera" class="btn small">시점 변경</button>
+          <button type="button" data-mobile-act="blocks" class="btn small">블록 선택</button>
+          <button type="button" data-mobile-act="fly" class="btn small">비행 켜기/끄기</button>
+          <button type="button" data-mobile-act="journal" class="btn small">탐험 일지</button>
+          <button type="button" data-mobile-act="drop" class="btn small">아이템 버리기</button>
+        </div>
+      </div>
       <button id="btn-save" class="btn">월드 저장</button>
       <div class="row world-backup-tools">
         <button id="btn-export-world" class="btn small">월드 백업 내려받기</button>
@@ -156,58 +168,84 @@
 </div>
 
 
-<div id="overlay-inventory" class="overlay hidden">
-  <div class="panel inventory-panel">
-    <div class="inventory-head">
+<div id="overlay-inventory" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="inventory-title">
+  <div class="panel inventory-panel java-inventory">
+    <div class="inventory-head java-inventory-head">
       <div>
-        <h2>인벤토리</h2>
-        <p class="sub">PC: 아이템 클릭 후 제작 칸 클릭 · 모바일: 재료 선택 후 제작 칸 터치 · 우클릭은 절반 나누기</p>
+        <div class="java-inventory-kicker">WEBCRAFT · PLAYER INVENTORY</div>
+        <h2 id="inventory-title">인벤토리 <small>2×2 개인 제작</small></h2>
       </div>
-      <button id="inventory-close" class="btn ghost">닫기 (E)</button>
+      <div class="java-inventory-head-actions">
+        <button id="inventory-creative-toggle" class="btn" type="button" aria-expanded="false" aria-controls="inventory-creative-panel" hidden>▦ 전체 아이템</button>
+        <button id="inventory-close" class="btn ghost" type="button" aria-label="인벤토리 닫기">✕ <span>E</span></button>
+      </div>
     </div>
-    <div class="inventory-layout">
-      <div class="inventory-main">
-        <div class="inventory-section-title">소지품 · 27칸</div>
-        <div id="inventory-grid" class="inventory-grid"></div>
-        <div class="inventory-section-title hotbar-title">핫바</div>
-        <div id="inventory-hotbar-grid" class="inventory-grid hotbar-grid"></div>
-      </div>
-      <div class="equipment-panel">
-        <section class="character-editor" aria-label="캐릭터 미리보기와 꾸미기">
-          <div class="inventory-section-title character-editor-title">내 캐릭터 · 꾸미기</div>
+    <div class="java-inventory-top">
+      <section class="java-player-panel" aria-label="캐릭터와 장비">
+        <div class="java-armor-rail">
+          <button class="equip-slot java-equip-slot" data-equip="head" title="투구"><span>투구</span><b></b></button>
+          <button class="equip-slot java-equip-slot" data-equip="chest" title="흉갑"><span>흉갑</span><b></b></button>
+          <button class="equip-slot java-equip-slot" data-equip="legs" title="바지"><span>바지</span><b></b></button>
+          <button class="equip-slot java-equip-slot" data-equip="feet" title="신발"><span>신발</span><b></b></button>
+        </div>
+        <section class="character-editor java-character" aria-label="장착 장비가 보이는 캐릭터 미리보기">
           <div class="character-preview-stage">
-            <canvas id="character-preview" width="164" height="224" role="img" aria-label="현재 캐릭터 모습"></canvas>
-            <img id="character-held-icon" class="character-held-icon hidden" alt="손에 든 아이템">
+            <canvas id="character-preview" width="164" height="224" role="img" aria-label="현재 스킨과 장비를 입은 캐릭터"></canvas>
+            <img id="character-held-icon" class="character-held-icon hidden" alt="현재 손에 든 아이템">
           </div>
           <div class="character-preview-actions">
-            <button type="button" id="character-rotate" class="btn small">뒤에서 보기</button>
-            <button type="button" id="character-reset" class="btn small ghost">기본 스타일</button>
+            <button type="button" id="character-rotate" class="btn small">↻ 회전</button>
           </div>
-          <div id="character-options" class="character-options" aria-label="캐릭터 색상과 머리 스타일"></div>
-          <p class="character-editor-help">변경한 모습은 1인칭·3인칭에 바로 적용되고 월드에 저장돼요.</p>
         </section>
-        <div class="inventory-craft-panel">
-          <div class="inventory-section-title">2×2 제작</div>
-          <div class="inventory-craft-board">
-            <div id="inventory-craft-grid" class="inventory-craft-grid"></div>
-            <span class="craft-arrow">→</span>
-            <button id="inventory-craft-output" class="craft-output" disabled aria-label="2×2 제작 결과"></button>
-          </div>
-          <p class="inventory-craft-tip">재료를 선택하고 원하는 2×2 제작 칸을 누르세요. PC에서는 Shift+클릭으로 빠르게 추가할 수도 있어요.</p>
+        <div class="java-aux-rail">
+          <div class="java-equip-label">보조 손</div>
+          <button class="equip-slot java-equip-slot" data-equip="offhand" title="보조 손"><span>보조 손</span><b></b></button>
+          <div class="java-equip-label">선택된 주손</div>
+          <div id="java-mainhand-display" class="java-mainhand-display" aria-label="현재 선택된 핫바 아이템"></div>
         </div>
-        <div class="inventory-section-title">장비 슬롯</div>
-        <div class="equipment-slots">
-          <button class="equip-slot" data-equip="mainhand"><span>주손</span><b></b></button>
-          <button class="equip-slot" data-equip="offhand"><span>보조손</span><b></b></button>
-          <button class="equip-slot" data-equip="head"><span>투구</span><b></b></button>
-          <button class="equip-slot" data-equip="chest"><span>흉갑</span><b></b></button>
-          <button class="equip-slot" data-equip="legs"><span>레깅스</span><b></b></button>
-          <button class="equip-slot" data-equip="feet"><span>부츠</span><b></b></button>
+      </section>
+      <section class="inventory-craft-panel java-personal-crafting" aria-label="2×2 개인 제작">
+        <div class="inventory-section-title">제작 <span>2×2</span></div>
+        <div class="inventory-craft-board">
+          <div id="inventory-craft-grid" class="inventory-craft-grid" aria-label="2×2 제작 재료"></div>
+          <span class="craft-arrow" aria-hidden="true">➜</span>
+          <button id="inventory-craft-output" class="craft-output" disabled aria-label="제작 결과"></button>
         </div>
-        <div id="inventory-cursor" class="inventory-cursor hidden"></div>
-        <div class="equipment-tip">4부위 방어구는 장착 시 피해 감소와 내구도 소모가 적용됩니다.</div>
-      </div>
+        <button id="inventory-recipe-toggle" class="btn java-recipe-toggle" type="button" aria-expanded="false" aria-controls="inventory-recipe-panel">▤ 제작법 책</button>
+        <div id="inventory-recipe-panel" class="java-recipe-panel hidden">
+          <p>현재 재료로 만들 수 있는 제작법이 먼저 표시돼요.</p>
+          <div id="inventory-recipe-list" class="java-recipe-list"></div>
+        </div>
+        <p class="inventory-craft-tip">2×2에서는 기본 제작만 가능해요. 무기·갑옷 등은 제작대를 이용하세요.</p>
+      </section>
     </div>
+    <section id="inventory-creative-panel" class="java-creative-panel hidden" aria-label="크리에이티브 아이템 목록">
+      <input id="inventory-creative-search" type="search" placeholder="블록·아이템 검색" aria-label="블록과 아이템 검색" autocomplete="off">
+      <div id="inventory-creative-grid" class="java-creative-grid" role="group" aria-label="아이템을 선택하면 커서로 가져옵니다"></div>
+    </section>
+    <section class="inventory-main java-inventory-bottom" aria-label="내 소지품">
+      <div class="inventory-section-title">가방 <span>27칸</span></div>
+      <div id="inventory-grid" class="inventory-grid"></div>
+      <div class="inventory-section-title hotbar-title">핫바 <span>9칸</span></div>
+      <div id="inventory-hotbar-grid" class="inventory-grid hotbar-grid"></div>
+    </section>
+    <div class="java-inventory-footer">
+      <p class="java-inventory-tips">좌클릭: 아이템 들기·놓기 · 우클릭: 절반 집기·1개 놓기 · Shift+클릭: 빠른 이동 · 숫자 1~9: 핫바 교체</p>
+      <span id="inventory-held-readout" class="java-held-readout" role="status" aria-live="polite">커서: 비어 있음</span>
+      <button id="inventory-touch-split" class="btn small java-split-button" type="button" aria-pressed="false">한 개씩 놓기: 끔</button>
+    </div>
+    <details class="java-appearance-fold">
+      <summary>✦ 스킨 꾸미기 <span>피부·머리·의상·액세서리 변경</span></summary>
+      <div class="java-appearance-content">
+        <div id="character-options" class="character-options" aria-label="캐릭터 색상과 스타일"></div>
+        <div class="java-appearance-actions">
+          <button type="button" id="character-reset" class="btn small ghost">기본 스타일 복구</button>
+          <button class="equip-slot java-legacy-hand" data-equip="mainhand" title="이전 월드의 별도 주손 슬롯"><span>예전 주손 저장칸</span><b></b></button>
+        </div>
+        <p class="character-editor-help">스킨은 1인칭과 3인칭에 적용돼요. 예전 버전의 별도 주손 아이템은 여기에서 회수할 수 있어요.</p>
+      </div>
+    </details>
+    <div id="inventory-cursor" class="inventory-cursor hidden" aria-hidden="true"></div>
   </div>
 </div>
 <div id="overlay-crafting" class="overlay hidden">
@@ -309,7 +347,7 @@
   });
 })();
 </script>
-<script src="js/game/config.js?v=v136"></script>
+<script src="js/game/config.js?v=v137"></script>
 <script src="js/game/noise.js"></script>
 <script src="js/game/terrain.js?v=v132"></script>
 <script src="js/game/mobile-test-textures.js?v=v133"></script>
@@ -318,18 +356,18 @@
 <script src="js/game/world-milestones.js?v=v136"></script>
 <script src="js/game/block-furniture.js?v=v133"></script>
 <script src="js/game/block-physics.js?v=v132"></script>
-<script src="js/game/player.js?v=v133"></script>
+<script src="js/game/player.js?v=v137"></script>
 <script src="js/skin-studio.js?v=v131"></script>
 <script src="js/game/mobile-test-player-model.js?v=v131"></script>
 <script src="js/game/fluids.js?v=v129"></script>
-<script src="js/game/interaction.js?v=v136"></script>
-<script src="js/game/items.js?v=v129"></script>
+<script src="js/game/interaction.js?v=v137"></script>
+<script src="js/game/items.js?v=v137"></script>
 <script src="js/game/drops.js"></script>
 <script src="js/game/mobs.js?v=v135"></script>
 <script src="js/game/save.js?v=v129"></script>
-<script src="js/game/mobile-test-crafting.js?v=v136"></script>
-<script src="js/game/mobile-test-ui.js?v=v132"></script>
-<script src="js/game/mobile-test-main.js?v=v136"></script>
+<script src="js/game/mobile-test-crafting.js?v=v137"></script>
+<script src="js/game/mobile-test-ui.js?v=v137"></script>
+<script src="js/game/mobile-test-main.js?v=v137"></script>
 <script>
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(() => {}));

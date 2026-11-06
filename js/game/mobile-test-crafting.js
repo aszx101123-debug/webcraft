@@ -267,7 +267,29 @@ const Crafting = (() => {
       Inventory.canAdd(recipe.outputId, recipe.count);
   }
 
-  function canCraftGrid(){const r=getMatch();if(!r)return false;const m=new Map();activeIndices().forEach(i=>{const id=grid[i];if(id)m.set(id,(m.get(id)||0)+1)});return r.ingredients.every(x=>(m.get(x.id)||0)>=x.count)&&Inventory.canAdd(r.outputId,r.count);}
+  function canTakeGridResult(){
+    const r=getMatch();
+    if(!r)return false;
+    const m=new Map();
+    activeIndices().forEach(i=>{const id=grid[i];if(id)m.set(id,(m.get(id)||0)+1)});
+    return r.ingredients.every(x=>(m.get(x.id)||0)>=x.count);
+  }
+  function canCraftGrid(){
+    const r=getMatch();
+    return !!r && canTakeGridResult() && Inventory.canAdd(r.outputId,r.count);
+  }
+  // Personal 2x2 output follows the mouse cursor, not a forced inventory slot.
+  function takeGridResult(){
+    const recipe=getMatch();
+    if(!recipe || !canTakeGridResult())return null;
+    const item={id:recipe.outputId,count:recipe.count};
+    const def=getItemDef(item.id);
+    if(def?.toolType || def?.armorType)item.durability=def.maxDurability||1;
+    resetGrid();
+    if(typeof WorldMilestones!=='undefined')
+      WorldMilestones.record('craft',recipe.outputId,Inventory.isCreative()?'creative':'survival');
+    return item;
+  }
 
   function consumeIngredients(recipe) {
     for (const ing of recipe.ingredients) {
@@ -309,11 +331,25 @@ const Crafting = (() => {
       out.forEach((id, i) => { grid[activeIndices()[i]] = id; });
       return true;
     }
-    const shape = recipe.pattern[0];
+    const shape = recipe.pattern.find(p=>{
+      if(gridSize===3)return true;
+      const occupied=p.map((v,i)=>v?i:-1).filter(i=>i>=0);
+      if(!occupied.length)return false;
+      const xs=occupied.map(i=>i%3),ys=occupied.map(i=>Math.floor(i/3));
+      return Math.max(...xs)-Math.min(...xs)<2 && Math.max(...ys)-Math.min(...ys)<2;
+    });
+    if(!shape){
+      for(const refund of removed)Inventory.add(refund.id,refund.count);
+      return false;
+    }
     const ids = recipe.ingredients.map(x=>x.id);
-    for (let i = 0; i < 9; i++) {
-      const v = shape[i];
-      grid[i] = v ? (ids[v-1] || null) : null;
+    const occupied=shape.map((v,i)=>v?i:-1).filter(i=>i>=0);
+    const dx=gridSize===2?Math.min(...occupied.map(i=>i%3)):0;
+    const dy=gridSize===2?Math.min(...occupied.map(i=>Math.floor(i/3))):0;
+    for(let i=0;i<9;i++){
+      if(!shape[i])continue;
+      const nx=(i%3)-dx,ny=Math.floor(i/3)-dy;
+      grid[ny*3+nx]=ids[shape[i]-1]||null;
     }
     return true;
   }
@@ -325,6 +361,7 @@ const Crafting = (() => {
   return {
     getRecipes, getGrid, getVisibleCells, getGridSize, setGridSize,
     setCell, addToFirstEmpty, removeCell, resetGrid,
-    getMatch, canCraft, canCraftGrid, craftGrid, autofill, summary
+    getMatch, canCraft, canCraftGrid, canTakeGridResult, takeGridResult,
+    craftGrid, autofill, summary, recipeFitsGrid
   };
 })();

@@ -1,0 +1,249 @@
+/* WebCraft v1.3.7 · original pixel-style E inventory inspired by familiar 9×4 sandbox ergonomics */
+#overlay-inventory{z-index:91;padding:12px;box-sizing:border-box}
+#overlay-inventory .inventory-panel.java-inventory{
+  width:min(780px,98vw);max-width:98vw;min-width:0;max-height:min(95dvh,850px);
+  padding:19px 24px 16px;box-sizing:border-box;text-align:left;
+  border:4px solid #8e9b94;border-right-color:#303d40;border-bottom-color:#303d40;
+  border-radius:6px;
+  background:linear-gradient(135deg,#273d42,#1e2d37 65%,#202b36);
+  box-shadow:inset 2px 2px 0 #c4dac074,inset -3px -3px 0 #101d26,0 26px 80px #000b;
+}
+#overlay-inventory .java-inventory-head{align-items:center;gap:16px;margin-bottom:14px}
+.java-inventory-kicker{font:900 10px Galmuri,monospace;color:#a9d7b8;letter-spacing:.12em}
+#overlay-inventory .java-inventory-head h2{
+  margin:5px 0 0;color:#f0f8ed;font:850 22px Galmuri,system-ui,sans-serif;
+  letter-spacing:-.05em;text-shadow:1px 2px #142028
+}
+.java-inventory-head h2 small{font:500 11px Galmuri,system-ui,sans-serif;letter-spacing:0;color:#bbd0cf;padding-left:7px}
+.java-inventory-head #inventory-close{min-width:55px;padding:9px 12px;border-radius:5px;background:#192731;border:1px solid #879b92;font-weight:800}
+.java-inventory-head #inventory-close span{font-size:10px;color:#9cb6b5;margin-left:5px}
+.java-inventory-top{display:grid;grid-template-columns:minmax(0,1fr) minmax(255px,.9fr);gap:14px;margin-bottom:14px;align-items:stretch}
+.java-player-panel{display:grid;grid-template-columns:44px minmax(0,1fr) 56px;gap:9px;align-items:center;padding:10px;background:#17242e;border:2px solid #65736d;box-shadow:inset 2px 2px 0 #0b1920,inset -1px -1px 0 #97a39788;border-radius:4px;min-width:0}
+.java-armor-rail{display:grid;grid-template-rows:repeat(4,42px);gap:5px}
+#overlay-inventory .java-equip-slot{
+  min-height:0;width:44px;height:42px;box-sizing:border-box;border:2px solid #64736d;
+  border-left-color:#111b25;border-top-color:#111b25;border-radius:3px;
+  background:#1d2c37;padding:2px;display:flex;flex-direction:column;gap:0;
+  align-items:center;justify-content:center;cursor:pointer;position:relative
+}
+#overlay-inventory .java-equip-slot:hover,#overlay-inventory .java-equip-slot:focus-visible{border-color:#b9ec9e;background:#395044}
+#overlay-inventory .java-equip-slot b{display:block;font-size:0;min-height:0}
+#overlay-inventory .java-equip-slot b img{width:30px;height:30px;object-fit:contain}
+#overlay-inventory .java-equip-slot span{font-size:8px;color:#92a8ac;line-height:1.3;text-align:center}
+#overlay-inventory .java-equip-slot:has(b img) span{display:none}
+#overlay-inventory .java-character{
+  border:none;background:none;box-shadow:none;margin:0;padding:0;
+  gap:5px;min-width:0;width:100%;display:flex;flex-direction:column;align-items:center;
+}
+#overlay-inventory .java-character .character-preview-stage{
+  width:100%;height:177px;max-width:150px;background:radial-gradient(ellipse at 50% 45%,#38545a,#16242e 70%);
+  border:2px solid #394e53;border-radius:3px;box-shadow:inset 0 0 18px #0a1926;
+  display:flex;align-items:center;justify-content:center;
+}
+#overlay-inventory .java-character #character-preview{width:130px;height:177px;object-fit:contain;image-rendering:pixelated}
+#overlay-inventory .java-character .character-held-icon{right:3px;bottom:32px;width:34px;height:34px}
+#overlay-inventory .character-preview-actions{justify-content:center;gap:2px}
+#overlay-inventory .character-preview-actions .btn{font:800 9px Galmuri,system-ui,sans-serif;min-width:64px;padding:5px}
+.java-aux-rail{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.java-equip-label{text-align:center;font-size:8px;color:#9bb5b1;line-height:1.3}
+.java-mainhand-display{
+  width:44px;height:42px;display:flex;align-items:center;justify-content:center;
+  box-sizing:border-box;background:#1c2e36;border:2px solid #5a716c;
+  border-radius:3px;color:#91b9a2;font-size:11px
+}
+.java-mainhand-display img{width:34px;height:34px;image-rendering:pixelated;object-fit:contain}
+#overlay-inventory .java-personal-crafting{
+  margin:0;padding:14px 12px 9px;background:#17242e;border:2px solid #65736d;
+  box-shadow:inset 2px 2px 0 #0b1920,inset -1px -1px 0 #97a39788;
+  min-width:0;border-radius:4px;text-align:left;
+}
+#overlay-inventory .inventory-section-title{font:850 12px Galmuri,system-ui,sans-serif;color:#d8e8df;margin:0 0 8px}
+#overlay-inventory .inventory-section-title span{color:#91b5a2;font-size:10px;padding-left:3px}
+#overlay-inventory .inventory-craft-board{justify-content:space-evenly;gap:9px;padding:3px 0 9px}
+#overlay-inventory .inventory-craft-grid{
+  width:120px;height:120px;box-sizing:border-box;display:grid;grid-template-columns:repeat(2,1fr);
+  padding:2px;gap:3px;border:2px solid #4f655c;background:#10222d;border-radius:3px
+}
+#overlay-inventory .inventory-craft-grid .craft-cell{
+  width:100%;height:100%;position:relative;min-height:0;padding:2px;
+  border:2px solid #66786e;border-top-color:#0d1a22;border-left-color:#0d1a22;border-radius:2px;
+  background:#273a43;box-sizing:border-box;cursor:pointer;
+}
+#overlay-inventory .inventory-craft-grid .craft-cell:hover{border-color:#b2e08c;background:#40594a}
+#overlay-inventory .inventory-craft-grid .craft-cell img{width:38px;height:38px;max-width:100%;image-rendering:pixelated}
+#overlay-inventory .inventory-craft-grid .craft-cell span{display:none}
+#overlay-inventory .inventory-craft-board .craft-arrow{font-size:21px;color:#a5ca9f}
+#overlay-inventory .inventory-craft-board .craft-output{
+  width:54px;height:56px;min-width:54px;max-width:54px;box-sizing:border-box;
+  border:2px solid #627b6a;border-top-color:#0d1c25;border-left-color:#0d1c25;
+  border-radius:3px;background:#253841;box-shadow:inset 0 0 4px #0c181d;
+}
+#overlay-inventory .inventory-craft-board .craft-output img{width:34px;height:34px}
+#overlay-inventory .inventory-craft-board .craft-output span{font-size:9px}
+#overlay-inventory .inventory-craft-board .craft-output.ready{border-color:#a5e29b;background:#344f3d}
+#overlay-inventory .inventory-craft-tip{font-size:10px;line-height:1.55;margin:7px 0 0;color:#99b4b3}
+.java-recipe-toggle{margin-top:4px;width:100%;padding:6px 8px;font:800 11px Galmuri,sans-serif;border-radius:4px;background:#2a4b42;border:1px solid #729b82;color:#dcf3d5}
+.java-recipe-panel{max-height:170px;overflow:auto;background:#13242b;border:1px solid #5c736b;border-radius:4px;padding:7px;margin:6px 0}
+.java-recipe-panel.hidden{display:none}
+.java-recipe-panel p{font-size:9px;color:#a5beb8;line-height:1.5;margin-bottom:6px}
+.java-recipe-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+.java-recipe-item{display:flex;gap:4px;align-items:center;min-width:0;min-height:33px;border:1px solid #5e776a;background:#28463b;border-radius:3px;padding:3px;color:#e5f5de;cursor:pointer;font-size:9px}
+.java-recipe-item img{width:24px;height:24px;image-rendering:pixelated}
+.java-recipe-item span{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}
+.java-recipe-item.unavailable{background:#172731;color:#80999f;border-color:#354851;cursor:not-allowed;opacity:.64}
+#overlay-inventory .inventory-main.java-inventory-bottom{
+  padding:11px 12px 12px;border:2px solid #566c61;border-radius:4px;
+  background:linear-gradient(145deg,#20323a,#172630);
+  box-shadow:inset 2px 2px 0 #0f2128;text-align:left;
+}
+#overlay-inventory .inventory-grid{
+  display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:4px;width:100%;
+}
+#overlay-inventory .inventory-slot{
+  position:relative;width:100%;min-width:0;height:auto;aspect-ratio:1;
+  border:2px solid #708073;border-top-color:#101e27;border-left-color:#101e27;
+  box-sizing:border-box;border-radius:3px;background:#263840;padding:1px;
+  color:#f6f8f2;display:flex;justify-content:center;align-items:center;cursor:pointer;
+}
+#overlay-inventory .inventory-slot:hover,
+#overlay-inventory .inventory-slot:focus-visible{background:#3d534c;border-color:#b3da95}
+#overlay-inventory .inventory-slot img{width:85%;height:85%;image-rendering:pixelated;object-fit:contain;pointer-events:none}
+#overlay-inventory .inventory-slot .inv-num{display:none}
+#overlay-inventory .inventory-slot .inv-count{
+  font:850 11px Galmuri,monospace;color:#f9f6e8;right:2px;bottom:1px;text-shadow:1px 1px 1px #000,-1px -1px 1px #000;
+}
+#overlay-inventory .inventory-slot .inv-dur{height:3px;left:3px;right:3px;bottom:2px}
+#overlay-inventory .inventory-slot.java-hovered{border-color:#d0ebad;background:#465f4c}
+#overlay-inventory .inventory-slot.material-selected{border-color:#e9d888;background:#55523c}
+#overlay-inventory .hotbar-title{margin:12px 0 7px}
+#overlay-inventory .hotbar-grid{padding-top:8px;border-top:1px solid #73897680}
+#overlay-inventory .hotbar-grid .inventory-slot{border-bottom-color:#829784}
+#overlay-inventory .hotbar-grid .inventory-slot.java-selected-hotbar{outline:2px solid #caeeaa;outline-offset:-1px}
+.java-inventory-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 0 0}
+.java-inventory-tips{font-size:10px;color:#a8c5bb;line-height:1.65;margin:0}
+.java-held-readout{flex:1;font:800 10px Galmuri,system-ui,sans-serif;color:#c0e0cb;line-height:1.5}
+.java-split-button{flex:none;display:none;font-size:10px!important;padding:7px 9px!important}
+.touch-device .java-split-button{display:block}
+.java-split-button[aria-pressed=true]{background:#416e4e!important;border-color:#bce6a3!important;color:#fff!important}
+.java-appearance-fold{margin-top:12px;border:1px solid #4d6b65;background:#14232c;border-radius:4px}
+.java-appearance-fold>summary{padding:10px 12px;cursor:pointer;font-size:11px;color:#cae4d5;font-weight:850;list-style-position:inside}
+.java-appearance-fold>summary span{font-size:10px;color:#8da6a5;margin-left:5px;font-weight:400}
+.java-appearance-content{padding:11px 12px 15px}
+.java-appearance-content #character-options{width:100%;max-height:210px;overflow:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.java-appearance-actions{display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap}
+#overlay-inventory .java-legacy-hand{
+  width:140px;height:43px;min-height:0;flex-direction:row;border:1px solid #53685c;border-radius:3px;
+  background:#263b3c;padding:4px;gap:4px;
+}
+#overlay-inventory .java-legacy-hand b img{width:27px;height:27px}
+#overlay-inventory .java-legacy-hand span{font-size:9px}
+#overlay-inventory .inventory-cursor{
+  position:fixed;z-index:130;min-width:50px;width:50px;height:50px;pointer-events:none;
+  border:none;background:transparent;box-shadow:none;transform:translate(-12px,-14px);
+}
+#overlay-inventory .inventory-cursor img{width:44px;height:44px;filter:drop-shadow(1px 2px 2px #000d)}
+#overlay-inventory .inventory-cursor span{font-size:11px;right:0;bottom:1px}
+@media(max-width:800px){
+  #overlay-inventory .inventory-panel.java-inventory{padding:11px 13px;max-height:96dvh}
+  .java-inventory-top{grid-template-columns:minmax(0,1fr) minmax(215px,.92fr);gap:8px}
+  .java-player-panel{grid-template-columns:38px minmax(0,1fr) 43px;padding:6px;gap:5px}
+  .java-armor-rail{grid-template-rows:repeat(4,38px);gap:3px}
+  #overlay-inventory .java-equip-slot{width:38px;height:38px}
+  #overlay-inventory .java-character .character-preview-stage{height:156px}
+  #overlay-inventory .java-character #character-preview{width:112px;height:156px}
+  #overlay-inventory .inventory-craft-grid{width:108px;height:108px}
+  #overlay-inventory .inventory-grid{gap:3px}
+}
+@media(max-width:600px){
+  #overlay-inventory{padding:4px}
+  #overlay-inventory .inventory-panel.java-inventory{width:99vw;max-width:99vw;padding:9px;max-height:98dvh}
+  .java-inventory-head{margin-bottom:8px!important}
+  #overlay-inventory .java-inventory-head h2{font-size:16px}
+  .java-inventory-head h2 small,.java-inventory-kicker{font-size:8px}
+  .java-inventory-top{grid-template-columns:1fr 1fr;gap:6px;margin-bottom:9px}
+  .java-player-panel{grid-template-columns:31px minmax(0,1fr) 33px;gap:3px;padding:4px}
+  .java-armor-rail{grid-template-rows:repeat(4,30px);gap:2px}
+  #overlay-inventory .java-equip-slot{width:30px;height:30px;padding:0}
+  #overlay-inventory .java-equip-slot span,.java-equip-label{font-size:6px}
+  #overlay-inventory .java-equip-slot b img{width:23px;height:23px}
+  .java-mainhand-display{width:30px;height:30px}
+  .java-mainhand-display img{width:23px;height:23px}
+  #overlay-inventory .java-character .character-preview-stage{height:127px;border-width:1px}
+  #overlay-inventory .java-character #character-preview{width:93px;height:127px}
+  #overlay-inventory .java-character .character-held-icon{width:25px;height:25px;bottom:20px}
+  #overlay-inventory .character-preview-actions .btn{font-size:7px;min-width:0;padding:3px 5px}
+  #overlay-inventory .java-personal-crafting{padding:6px}
+  #overlay-inventory .inventory-section-title{font-size:10px;margin-bottom:4px}
+  #overlay-inventory .inventory-craft-grid{width:min(88px,24vw);height:min(88px,24vw);gap:1px;padding:1px}
+  #overlay-inventory .inventory-craft-grid .craft-cell{border-width:1px}
+  #overlay-inventory .inventory-craft-grid .craft-cell img{width:90%;height:90%}
+  #overlay-inventory .inventory-craft-board{gap:3px;padding:2px 0}
+  #overlay-inventory .inventory-craft-board .craft-arrow{font-size:14px}
+  #overlay-inventory .inventory-craft-board .craft-output{min-width:35px;width:35px;max-width:35px;height:40px}
+  #overlay-inventory .inventory-craft-board .craft-output img{width:27px;height:27px}
+  #overlay-inventory .inventory-craft-tip{font-size:8px;line-height:1.3}
+  #overlay-inventory .inventory-main.java-inventory-bottom{padding:7px}
+  #overlay-inventory .inventory-grid{gap:2px}
+  #overlay-inventory .inventory-slot{border-width:1px;padding:0}
+  #overlay-inventory .inventory-slot .inv-count{font-size:8px}
+  #overlay-inventory .hotbar-title{margin:7px 0 5px}
+  .java-inventory-footer{margin-top:7px;gap:6px;flex-direction:column}
+  .java-inventory-tips{font-size:8px;line-height:1.45}
+  .java-recipe-list{grid-template-columns:1fr}
+  .java-recipe-panel{max-height:130px}
+  .java-appearance-content #character-options{grid-template-columns:1fr;max-height:170px}
+  .java-appearance-fold>summary{padding:7px;font-size:9px}
+  .java-appearance-fold>summary span{font-size:8px}
+  #overlay-inventory .inventory-cursor{display:none}
+}
+@media(max-height:560px) and (orientation:landscape){
+  #overlay-inventory .inventory-panel.java-inventory{max-height:96dvh;overflow:auto}
+  #overlay-inventory .java-inventory-top{margin-bottom:8px}
+  .java-appearance-fold{margin-top:7px}
+}
+@media(prefers-reduced-motion:reduce){
+  #overlay-inventory .inventory-slot{transition:none}
+}
+
+/* Creative E-tab, included only in creative mode */
+.java-inventory-head-actions{display:flex;align-items:center;gap:8px}
+#inventory-creative-toggle{
+  padding:10px 12px;color:#d7f7dc;background:#365747;
+  border:1px solid #8fbd98;border-radius:5px;font:800 11px Galmuri,system-ui,sans-serif;
+}
+#inventory-creative-toggle[hidden]{display:none}
+#inventory-creative-toggle[aria-expanded=true]{background:#568a62;border-color:#c0eeb0}
+#overlay-inventory .java-creative-panel{
+  display:block;margin:0 0 12px;padding:11px;background:#152830;
+  border:2px solid #60776d;border-radius:5px;
+}
+#overlay-inventory .java-creative-panel.hidden{display:none}
+#inventory-creative-search{
+  width:100%;height:35px;padding:6px 11px;box-sizing:border-box;
+  color:#edf7e9;background:#1f3741;border:1px solid #708d7c;border-radius:3px;
+  font:500 12px Galmuri,system-ui,sans-serif;
+}
+.java-creative-grid{
+  display:grid;grid-template-columns:repeat(9,minmax(0,1fr));
+  max-height:190px;overflow-y:auto;gap:4px;padding:9px 1px 2px;
+}
+.java-creative-item{
+  min-height:51px;min-width:0;padding:2px;
+  background:#293f43;color:#eff8eb;border:2px solid #70897b;
+  border-top-color:#13262e;border-left-color:#13262e;border-radius:3px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  cursor:pointer;
+}
+.java-creative-item:hover,.java-creative-item:focus-visible{
+  background:#405b4c;border-color:#b5e5a0;
+}
+.java-creative-item img{width:29px;height:29px;image-rendering:pixelated;object-fit:contain}
+.java-creative-item small{font-size:8px;line-height:1.15;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:600px){
+  .java-inventory-head-actions{gap:5px}
+  #inventory-creative-toggle{font-size:8px;padding:8px 7px}
+  .java-creative-grid{grid-template-columns:repeat(7,minmax(0,1fr));max-height:145px;gap:3px}
+  .java-creative-item{min-height:44px}
+  .java-creative-item img{width:26px;height:26px}
+  .java-creative-item small{font-size:7px}
+}

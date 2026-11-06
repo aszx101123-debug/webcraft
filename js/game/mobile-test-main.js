@@ -335,93 +335,201 @@
   function disableTouchInput() {
     touchActive = false;
     resetTouchPad();
+    cancelTouchGesture();
     document.body.classList.remove('touch-playing');
     for (const k of ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space', 'ShiftLeft']) keys[k] = false;
   }
   const touchControls = document.createElement('div');
   touchControls.id = 'touch-controls';
+  let cancelTouchGesture = () => {};
   if (isTouch) {
-    touchControls.innerHTML = '<div id="touch-pad" aria-label="이동 조이스틱"><div id="touch-knob"></div></div><div id="touch-actions"><button data-act="jump">점프</button><button data-act="mine">채굴</button><button data-act="place">사용/설치</button><button data-act="run">달리기</button><button data-act="inventory">가방</button><button data-act="journal">일지</button><button data-act="camera">시점</button><button data-act="blocks">블록</button><button data-act="fly">비행</button><button data-act="drop">버리기</button><button data-act="pause">메뉴</button></div>';
-    document.body.append(touchControls);
+    // Bedrock-inspired minimalist touch layout: movement + jump/sneak,
+    // top inventory and pause, with tap/use and hold/break in the game world.
+    touchControls.innerHTML =
+      '<div id="touch-pad" role="group" aria-label="이동 조이스틱"><div id="touch-knob"></div></div>'+
+      '<div id="touch-actions" role="group" aria-label="이동 동작">'+
+      '<button type="button" data-act="jump" aria-label="점프">↥</button>'+
+      '</div>'+
+      '<div id="touch-topbar" role="group" aria-label="게임 메뉴">'+
+      '<button type="button" data-act="inventory" aria-label="인벤토리 열기">▦</button>'+
+      '<button type="button" data-act="pause" aria-label="일시정지 메뉴">Ⅱ</button></div>';
+    document.body.appendChild(touchControls);
     document.body.classList.add('touch-device');
     const pad = touchControls.querySelector('#touch-pad');
     const knob = touchControls.querySelector('#touch-knob');
-    const moveKeys = ['KeyW','KeyA','KeyS','KeyD'];
-    const resetPad = () => { moveKeys.forEach(k => keys[k] = false); knob.style.transform = ''; };
+    const moveKeys = ['KeyW','KeyA','KeyS','KeyD','ShiftLeft'];
+    const resetPad = () => {
+      moveKeys.forEach(k=>keys[k]=false);
+      knob.style.transform='';
+    };
     resetTouchPad = resetPad;
-    pad.addEventListener('pointerdown', e => { pad.setPointerCapture(e.pointerId); movePad(e); });
-    pad.addEventListener('pointermove', e => { if (pad.hasPointerCapture(e.pointerId)) movePad(e); });
-    pad.addEventListener('pointerup', resetPad);
-    pad.addEventListener('pointercancel', resetPad);
     function movePad(e) {
-      const r = pad.getBoundingClientRect(), dx = (e.clientX-r.left-r.width/2)/(r.width/2), dy = (e.clientY-r.top-r.height/2)/(r.height/2);
-      const x = Math.max(-1,Math.min(1,dx)), y = Math.max(-1,Math.min(1,dy));
-      keys.KeyA = x < -.28; keys.KeyD = x > .28; keys.KeyW = y < -.28; keys.KeyS = y > .28;
-      knob.style.transform = 'translate('+x*36+'px,'+y*36+'px)';
+      const r=pad.getBoundingClientRect();
+      const dx=(e.clientX-r.left-r.width/2)/(r.width/2);
+      const dy=(e.clientY-r.top-r.height/2)/(r.height/2);
+      const x=Math.max(-1,Math.min(1,dx)),y=Math.max(-1,Math.min(1,dy));
+      keys.KeyA=x<-.28;keys.KeyD=x>.28;
+      keys.KeyW=y<-.28;keys.KeyS=y>.28;
+      // Pushing the stick all the way up runs, no separate sprint button.
+      keys.ShiftLeft=y<-.86 && Math.abs(x)<.52;
+      knob.style.transform='translate(calc(-50% + '+(x*r.width*.29)+'px),calc(-50% + '+(y*r.height*.29)+'px))';
     }
-    let lookId = null, lastX = 0, lastY = 0;
-    document.addEventListener('pointerdown', e => {
-      if (!touchActive || e.pointerType === 'mouse' || e.target.closest('#touch-controls, .overlay, #hotbar, #picker')) return;
-      if (e.clientX < innerWidth * .38) return;
-      lookId = e.pointerId; lastX=e.clientX; lastY=e.clientY;
+    pad.addEventListener('pointerdown',e=>{
+      e.preventDefault();e.stopPropagation();
+      if(!touchActive)return;
+      pad.setPointerCapture(e.pointerId);movePad(e);
     });
-    document.addEventListener('pointermove', e => {
-      if (!touchActive || e.pointerId !== lookId) return;
-      Player.yaw -= (e.clientX-lastX)*.006;
-      Player.pitch = Math.max(-1.55,Math.min(1.55,Player.pitch-(e.clientY-lastY)*.006));
-      lastX=e.clientX; lastY=e.clientY;
+    pad.addEventListener('pointermove',e=>{
+      if(pad.hasPointerCapture(e.pointerId))movePad(e);
     });
-    document.addEventListener('pointerup', e => { if(e.pointerId===lookId) lookId=null; });
-    document.addEventListener('pointercancel', e => { if(e.pointerId===lookId) lookId=null; });
-    for (const button of touchControls.querySelectorAll('button')) {
-      const act = button.dataset.act;
-      const stop = () => {
-        if (act === 'jump') keys.Space = false;
-        if (act === 'run') keys.ShiftLeft = false;
-        if (act === 'mine') canvas.dispatchEvent(new MouseEvent('mouseup', { button: 0, bubbles: true }));
-      };
-      button.addEventListener('pointerdown', e => {
-        e.preventDefault(); e.stopPropagation();
+    for(const eventName of ['pointerup','pointercancel','lostpointercapture'])
+      pad.addEventListener(eventName,()=>{moveKeys.slice(0,5).forEach(k=>keys[k]=false);knob.style.transform='';});
+
+    let lastJumpTap=0;
+    for(const button of touchControls.querySelectorAll('button')){
+      const act=button.dataset.act;
+      button.addEventListener('pointerdown',e=>{
+        e.preventDefault();e.stopPropagation();
         if(!touchActive)return;
-        if(act==='jump')keys.Space=true;
-        if(act==='run')keys.ShiftLeft=true;
-        if(act==='mine')canvas.dispatchEvent(new MouseEvent('mousedown',{button:0,bubbles:true}));
-        if(act==='place')canvas.dispatchEvent(new MouseEvent('mousedown',{button:2,bubbles:true}));
-        if(act==='inventory') { state.suppressPause=true; disableTouchInput(); resetPad(); if (UI.openInventory() === false) resumeInput(); }
-        if(act==='journal') { disableTouchInput();resetPad();WorldJournal.show();WorldMilestones.render(); }
-        if(act==='camera') { state.thirdPersonView = (state.thirdPersonView + 1) % 3; UI.showToast(['1인칭','3인칭 뒤','3인칭 앞'][state.thirdPersonView]); }
-        if(act==='blocks') {
-          if (state.mode !== GAME_MODE.CREATIVE) UI.showToast('크리에이티브에서 블록 선택을 사용할 수 있어요');
-          else {
-            disableTouchInput();
-            UI.openPicker(id => {
-              Inventory.setSlot(Inventory.getSelected(), id);
-              UI.renderHotbar();
-              resumeInput();
-            });
-          }
+        button.setPointerCapture?.(e.pointerId);
+        if(act==='jump'){
+          const now=performance.now();
+          if(state.mode===GAME_MODE.CREATIVE && now-lastJumpTap<340){
+            Player.flying=!Player.flying;
+            UI.showToast(Player.flying?'비행 시작':'비행 종료');
+            keys.Space=false;
+            lastJumpTap=0;
+          }else{keys.Space=true;lastJumpTap=now;}
         }
-        if(act==='fly') {
-          if (state.mode !== GAME_MODE.CREATIVE) UI.showToast('비행은 크리에이티브 전용입니다');
-          else {
-            Player.flying = !Player.flying;
-            UI.showToast(Player.flying ? '비행 ON · 점프로 상승, 달리기로 하강' : '비행 OFF');
-          }
+        if(act==='inventory'){
+          state.suppressPause=true;
+          disableTouchInput();
+          if(UI.openInventory()===false)resumeInput();
         }
-        if(act==='drop') {
-          if (state.mode === GAME_MODE.SURVIVAL) {
-            const dropped = UI.dropSelected(false);
-            if (dropped) {
-              Drops.spawn(dropped.id, dropped.count, Player.pos.x, Player.pos.y + .7, Player.pos.z);
+        if(act==='pause'){
+          state.paused=true;
+          disableTouchInput();
+          UI.showOverlay('pause');doSave(true);
+        }
+      });
+      if(act==='jump'){
+        const release=()=>{keys.Space=false;};
+        button.addEventListener('pointerup',release);
+        button.addEventListener('pointercancel',release);
+      }
+    }
+
+    // Mobile control uses only joystick, jump, inventory and pause.
+    // Touch the world to place/use or hit a mob, hold to mine, drag to look.
+    // Minecraft-style "joystick and tap to interact" on the world surface.
+    let lookId=null,startX=0,startY=0,lastX=0,lastY=0;
+    let holdTimer=null,repeatTimer=null,wasDrag=false,wasHold=false;
+    const mineDown=()=>{
+      Interact.update();
+      canvas.dispatchEvent(new MouseEvent('mousedown',{button:0,bubbles:true}));
+    };
+    function cancelTimers(){
+      clearTimeout(holdTimer);clearInterval(repeatTimer);
+      holdTimer=null;repeatTimer=null;
+    }
+    function finishWorldTouch(e,cancelled=false){
+      if(e.pointerId!==lookId)return;
+      cancelTimers();
+      if(wasHold)canvas.dispatchEvent(new MouseEvent('mouseup',{button:0,bubbles:true}));
+      else if(!wasDrag && !cancelled && touchActive){
+        // Try the tapped mob first; otherwise use/place the tapped block.
+        Interact.setTouchAim(e.clientX,e.clientY,canvas);
+        Interact.update();
+        const aim=Interact.getTouchDirection();
+        const mob=aim?Mobs.tryAttack(camera.position,aim,3.6):null;
+        if(mob){
+          PlayerModel.swing();
+          if(Mobs.getLastAttackResult()?.landed)Player.addExhaustion(SURVIVAL.ATTACK_COST);
+        }else canvas.dispatchEvent(new MouseEvent('mousedown',{button:2,bubbles:true}));
+      }
+      lookId=null;wasDrag=false;wasHold=false;
+      Interact.clearTouchAim();
+    }
+    cancelTouchGesture=()=>{
+      if(lookId!==null){
+        cancelTimers();
+        if(wasHold)canvas.dispatchEvent(new MouseEvent('mouseup',{button:0,bubbles:true}));
+      }
+      lookId=null;wasDrag=false;wasHold=false;keys.Space=false;
+      Interact.clearTouchAim();
+    };
+    document.addEventListener('pointerdown',e=>{
+      if(!touchActive||e.pointerType==='mouse' || lookId!==null)return;
+      if(e.target?.closest?.('#touch-controls, .overlay, #hotbar, #picker, button, input'))return;
+      if(e.clientX<innerWidth*.28)return;
+      lookId=e.pointerId;
+      startX=lastX=e.clientX;startY=lastY=e.clientY;
+      wasDrag=false;wasHold=false;
+      Interact.setTouchAim(lastX,lastY,canvas);
+      Interact.update();
+      holdTimer=setTimeout(()=>{
+        if(!touchActive||lookId!==e.pointerId||wasDrag)return;
+        wasHold=true;mineDown();
+        repeatTimer=setInterval(()=>{
+          if(touchActive && wasHold && !miningHeld)mineDown();
+        },560);
+      },340);
+    });
+    document.addEventListener('pointermove',e=>{
+      if(!touchActive||e.pointerId!==lookId)return;
+      if(Math.hypot(e.clientX-startX,e.clientY-startY)>10 && !wasHold){
+        wasDrag=true;clearTimeout(holdTimer);holdTimer=null;
+        Interact.clearTouchAim();
+      }
+      if(wasDrag){
+        Player.yaw-=(e.clientX-lastX)*.006;
+        Player.pitch=Math.max(-1.55,Math.min(1.55,
+          Player.pitch-(e.clientY-lastY)*.006));
+      }
+      lastX=e.clientX;lastY=e.clientY;
+    });
+    document.addEventListener('pointerup',e=>finishWorldTouch(e));
+    document.addEventListener('pointercancel',e=>finishWorldTouch(e,true));
+
+    // Advanced features stay in the pause menu rather than obscuring gameplay.
+    document.querySelectorAll('#mobile-pause-actions [data-mobile-act]').forEach(button=>{
+      button.addEventListener('click',()=>{
+        const act=button.dataset.mobileAct;
+        const backToGame=()=>{UI.showOverlay(null);state.paused=false;resumeInput();};
+        if(act==='camera'){
+          state.thirdPersonView=(state.thirdPersonView+1)%3;
+          UI.showToast(['1인칭','3인칭 뒤','3인칭 앞'][state.thirdPersonView]);
+          backToGame();
+        }else if(act==='fly'){
+          if(state.mode!==GAME_MODE.CREATIVE){
+            UI.showToast('크리에이티브에서만 비행할 수 있습니다');return;
+          }
+          Player.flying=!Player.flying;
+          UI.showToast(Player.flying?'비행 시작':'비행 종료');
+          backToGame();
+        }else if(act==='blocks'){
+          if(state.mode!==GAME_MODE.CREATIVE){
+            UI.showToast('블록 상자는 크리에이티브 전용입니다');return;
+          }
+          UI.showOverlay(null);
+          UI.openPicker(id=>{
+            Inventory.setSlot(Inventory.getSelected(),id);
+            UI.renderHotbar();resumeInput();
+          });
+        }else if(act==='journal'){
+          UI.showOverlay(null);WorldJournal.show();WorldMilestones.render();
+        }else if(act==='drop'){
+          if(state.mode===GAME_MODE.SURVIVAL){
+            const dropped=UI.dropSelected(false);
+            if(dropped){
+              Drops.spawn(dropped.id,dropped.count,Player.pos.x,Player.pos.y+.7,Player.pos.z);
               UI.renderHotbar();
             }
-          } else UI.showToast('서바이벌에서 아이템을 버릴 수 있어요');
+          }else UI.showToast('서바이벌에서 아이템을 버릴 수 있어요');
+          backToGame();
         }
-        if(act==='pause') { state.paused=true; disableTouchInput(); resetPad(); UI.showOverlay('pause'); doSave(true); }
       });
-      button.addEventListener('pointerup',stop);
-      button.addEventListener('pointercancel',stop);
-    }
+    });
   }
   let miningHeld = false;
   let miningSwingElapsed = 0;
@@ -538,12 +646,21 @@
       }
       return;
     }
-    keys[e.code] = true;
-    if (e.code === 'Space') e.preventDefault();
-    if (e.code === 'Escape' && UI.isInventoryOpen()) {
-      if (UI.closeInventory()) resumeInput();
+    // The open inventory captures E / Escape and Minecraft-style 1–9 swaps.
+    // No movement or other game shortcuts should fire behind its dialog.
+    if(UI.isInventoryOpen()){
+      if(e.code==='KeyE' && e.target?.closest?.('input,textarea,select'))return;
+      if(e.code==='KeyE'||e.code==='Escape'){
+        e.preventDefault();
+        if(!e.repeat && UI.closeInventory())resumeInput();
+      }else if(/^Digit[1-9]$/.test(e.code) && !e.target?.closest?.('input,textarea,select')){
+        e.preventDefault();
+        UI.quickSwapHotbar(Number(e.code.slice(-1))-1);
+      }
       return;
     }
+    keys[e.code] = true;
+    if (e.code === 'Space') e.preventDefault();
     if (e.code === 'Escape' && UI.isCraftingOpen()) {
       if (UI.closeCrafting()) resumeInput();
       return;
@@ -640,8 +757,8 @@
     if (e.button === 0) {
       miningSwingElapsed = 0;
       PlayerModel.swing();
-      const dir = new THREE.Vector3();
-      camera.getWorldDirection(dir);
+      const dir = Interact.getTouchDirection() || new THREE.Vector3();
+      if(!Interact.getTouchDirection())camera.getWorldDirection(dir);
       const hitMob = Mobs.tryAttack(camera.position, dir, 3.6);
       if (hitMob) {
         if (Mobs.getLastAttackResult()?.landed)

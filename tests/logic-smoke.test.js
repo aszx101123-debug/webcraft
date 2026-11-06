@@ -195,10 +195,10 @@ check('flowing water does not rebuild unchanged and clears after source removal'
   assert.equal([...blocks.values()].filter(id => id === BLOCK.WATER_FLOW).length, 0);
 });
 
-check('PC/mobile pages include v1.3.6 achievements, journal and skin editor', () => {
+check('PC/mobile pages include v1.3.7 player inventory and compact touch HUD', () => {
   for (const page of ['play.html', 'mobile-test.html']) {
     const html = src(page);
-    assert.ok(html.includes('mobile-test-main.js?v=v136'));
+    assert.ok(html.includes('mobile-test-main.js?v=v137'));
     assert.ok(html.includes('v129-polish.css?v=v129'));
     assert.ok(html.includes('btn-export-world'));
     assert.ok(html.includes('btn-import-world'));
@@ -213,6 +213,16 @@ check('PC/mobile pages include v1.3.6 achievements, journal and skin editor', ()
     assert.ok(html.includes('id="overlay-chest"'));
     assert.ok(html.includes('css/v133-build.css?v=v133'));
     assert.ok(html.includes('js/game/mobs.js?v=v135'));
+    assert.ok(html.includes('js/game/player.js?v=v137'));
+    assert.ok(html.includes('js/game/interaction.js?v=v137'));
+    assert.ok(html.includes('js/game/items.js?v=v137'));
+    assert.ok(html.includes('js/game/mobile-test-ui.js?v=v137'));
+    assert.ok(html.includes('js/game/mobile-test-crafting.js?v=v137'));
+    assert.ok(html.includes('css/v137-touch.css?v=v137'));
+    assert.ok(html.includes('css/v137-inventory.css?v=v137'));
+    assert.ok(html.includes('id="mobile-pause-actions"'));
+    assert.ok(html.includes('id="inventory-recipe-panel"'));
+    assert.ok(html.includes('id="inventory-craft-grid"'));
     assert.ok(html.includes('css/v134-combat.css?v=v134'));
     assert.ok(html.includes('js/game/world-journal.js?v=v136'));
     assert.ok(html.includes('js/game/world-milestones.js?v=v136'));
@@ -229,7 +239,7 @@ check('PC/mobile pages include v1.3.6 achievements, journal and skin editor', ()
     assert.ok(html.indexOf('js/skin-studio.js?v=v131') < html.indexOf('js/game/mobile-test-player-model.js?v=v131'));
 
   }
-  assert.ok(src('index.html').includes('v1.3.6'));
+  assert.ok(src('index.html').includes('v1.3.7'));
   assert.ok(src('index.html').includes('id="skin-studio"'));
   assert.ok(src('index.html').includes('js/skin-studio-page.js?v=v131'));
 });

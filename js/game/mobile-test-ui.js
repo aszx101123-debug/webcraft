@@ -160,101 +160,144 @@ const UI = (() => {
     return true;
   }
 
-  function renderInventorySlot(index, target) {
-    const s = Inventory.getSlots()[index];
-    const btn = document.createElement('button');
-    btn.className = 'inventory-slot' + (!s ? ' empty' : '') + (index < Inventory.HOTBAR_SIZE ? ' inventory-hotbar-slot' : '') + (selectedInventoryMaterial === index ? ' material-selected' : '');
-    btn.setAttribute('aria-label', s ? getItemName(s.id) + ' 슬롯 ' + (index + 1) : '빈 슬롯');
-    btn.innerHTML = `<span class="inv-num">${index < Inventory.HOTBAR_SIZE ? index + 1 : index - Inventory.HOTBAR_SIZE + 1}</span>`;
-    if (s) {
-      const td = getToolDef(s.id);
-      const dur = td && s.durability ? `<span class="inv-dur"><i style="transform:scaleX(${Math.max(0, Math.min(1, s.durability / td.maxDurability))})"></i></span>` : '';
-      btn.innerHTML += `<img src="${Textures.blockIcon(s.id)}" alt=""><span class="inv-count">${stackLabel(s)}</span>${dur}`;
-      btn.title = td ? `${getItemName(s.id)} · 내구도 ${s.durability}/${td.maxDurability}` : getItemName(s.id);
-    } else btn.title = '빈 슬롯';
+  let hoveredInventorySlot=null;
+  let mobileSplitMode=false;
+  let recipeBookBound=false;
 
-    btn.addEventListener('click', e => {
-      if (!inventoryOpen || !document.body.classList.contains('touch-device')) return;
-      e.preventDefault();
-      if (!s) return;
-      selectedInventoryMaterial = index;
-      showToast(getItemName(s.id) + ' 선택 · 위의 제작 칸을 눌러 넣으세요');
+  function clickInventorySlot(index,right=false,shift=false,double=false,clientX=0,clientY=0){
+    if(!inventoryOpen)return false;
+    const src=Inventory.getSlots()[index];
+    if(shift && !inventoryCursor){
+      const moved=Inventory.quickMove(index);
+      if(!moved)showToast('이동할 공간이 없습니다');
       renderInventory();
-    });
-    btn.addEventListener('mousedown', e => {
-      if (inventoryOpen && document.body.classList.contains('touch-device')) return;
-      e.preventDefault();
-      e.stopPropagation();
-      if (e.button === 0 && e.shiftKey && inventoryOpen && Crafting.getGridSize() === 2) {
-        const src = Inventory.getSlots()[index];
-        if(src){const taken=Inventory.takeFromSlot(index,1);if(taken&&Crafting.addToFirstEmpty(taken.id)>=0){
-          renderInventory();
-          showToast(getItemName(src.id) + '을 2×2 제작칸에 넣었습니다');
-        } else if(taken) Inventory.add(taken.id,1); }
-        return;
+      return moved;
+    }
+    if(double && inventoryCursor && !getToolDef(inventoryCursor.id) &&
+       !getArmorDef(inventoryCursor.id) && inventoryCursor.count!==Infinity){
+      const max=Inventory.MAX_STACK||64;
+      for(let i=0;i<Inventory.SIZE && inventoryCursor.count<max;i++){
+        const stack=Inventory.getSlots()[i];
+        if(!stack||stack.id!==inventoryCursor.id||stack.count===Infinity)continue;
+        const taken=Inventory.takeFromSlot(i,max-inventoryCursor.count);
+        if(taken)inventoryCursor.count+=taken.count;
       }
-      if (e.button === 2) {
-        if (!inventoryCursor) {
-          const src = Inventory.getSlots()[index];
-          if (!src) return;
-          if (src.count === Infinity) inventoryCursor = { id: src.id, count: 1 };
-          else inventoryCursor = Inventory.takeFromSlot(index, Math.ceil(src.count / 2));
-        } else {
-          const one = { id: inventoryCursor.id, count: 1 };
-          if (getToolDef(one.id)) one.durability = inventoryCursor.durability || getToolDef(one.id).maxDurability;
-          const left = Inventory.putIntoSlot(index, one);
-          if (!left) {
-            inventoryCursor.count -= 1;
-            if (inventoryCursor.count <= 0) inventoryCursor = null;
+    }else if(right){
+      if(!inventoryCursor){
+        if(!src)return false;
+        const gear=!!(getToolDef(src.id)||getArmorDef(src.id));
+        inventoryCursor=Inventory.takeFromSlot(index,gear?1:Math.ceil(src.count/2));
+      }else{
+        if(getToolDef(inventoryCursor.id)||getArmorDef(inventoryCursor.id)){
+          if(!src)inventoryCursor=Inventory.swapWithSlot(index,inventoryCursor);
+        }else if(!src || (src.id===inventoryCursor.id && src.count<Inventory.MAX_STACK)){
+          const one={id:inventoryCursor.id,count:1};
+          if(!Inventory.putIntoSlot(index,one)){
+            inventoryCursor.count--;
+            if(inventoryCursor.count<=0)inventoryCursor=null;
           }
         }
-      } else if (e.button === 0) {
-        const current = Inventory.getSlots()[index];
-        if (!inventoryCursor) {
-          if (current) inventoryCursor = Inventory.takeFromSlot(index);
-        } else if (!current) {
-          inventoryCursor = Inventory.putIntoSlot(index, inventoryCursor);
-        } else if (current.id === inventoryCursor.id && !getToolDef(current.id) && !getArmorDef(current.id)) {
-          inventoryCursor = Inventory.putIntoSlot(index, inventoryCursor);
-        } else {
-          const old = Inventory.takeFromSlot(index);
-          const left = Inventory.putIntoSlot(index, inventoryCursor);
-          inventoryCursor = left || old;
-        }
       }
-      renderInventory();
-      updateInventoryCursor(e.clientX, e.clientY);
+    }else inventoryCursor=Inventory.swapWithSlot(index,inventoryCursor);
+    renderInventory();
+    updateInventoryCursor(clientX,clientY);
+    return true;
+  }
+
+  function quickSwapHotbar(hotbarIndex){
+    if(!inventoryOpen || inventoryCursor || hoveredInventorySlot===null || hotbarIndex<0 || hotbarIndex>=9)return false;
+    if(Inventory.swapSlots(hoveredInventorySlot,hotbarIndex)){
+      renderInventory();renderHotbar();
+      return true;
+    }
+    return false;
+  }
+
+  function renderInventorySlot(index,target) {
+    const s=Inventory.getSlots()[index];
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='inventory-slot'+(!s?' empty':'')+
+      (index<Inventory.HOTBAR_SIZE?' inventory-hotbar-slot':'')+
+      (index===Inventory.getSelected()?' java-selected-hotbar':'')+
+      (selectedInventoryMaterial===index?' material-selected':'')+
+      (hoveredInventorySlot===index?' java-hovered':'');
+    btn.dataset.slot=String(index);
+    btn.setAttribute('aria-label',s?getItemName(s.id)+' '+stackLabel(s)+'개, '+(index+1)+'번 칸':'빈 '+(index+1)+'번 칸');
+    btn.innerHTML='<span class="inv-num">'+(index<Inventory.HOTBAR_SIZE?index+1:index-Inventory.HOTBAR_SIZE+1)+'</span>';
+    if(s){
+      const td=getToolDef(s.id);
+      const dur=td&&s.durability
+        ? '<span class="inv-dur"><i style="transform:scaleX('+Math.max(0,Math.min(1,s.durability/td.maxDurability))+')"></i></span>':'';
+      btn.innerHTML+='<img src="'+Textures.blockIcon(s.id)+'" alt=""><span class="inv-count">'+
+        (s.count===1?'':stackLabel(s))+'</span>'+dur;
+      btn.title=getItemName(s.id)+(td?' · 내구도 '+s.durability+'/'+td.maxDurability:'');
+    }else btn.title='빈 칸';
+    btn.addEventListener('mousedown',e=>{
+      if(document.body.classList.contains('touch-device'))return;
+      if(e.button!==0 && e.button!==2)return;
+      e.preventDefault();e.stopPropagation();
+      clickInventorySlot(index,e.button===2,e.shiftKey,e.detail>=2,e.clientX,e.clientY);
     });
-    btn.addEventListener('mouseenter', e => updateInventoryCursor(e.clientX, e.clientY));
-    btn.addEventListener('contextmenu', e => e.preventDefault());
+    btn.addEventListener('click',e=>{
+      if(!document.body.classList.contains('touch-device'))return;
+      e.preventDefault();e.stopPropagation();
+      clickInventorySlot(index,mobileSplitMode,false,false,e.clientX,e.clientY);
+    });
+    btn.addEventListener('mouseenter',e=>{
+      hoveredInventorySlot=index;
+      updateInventoryCursor(e.clientX,e.clientY);
+    });
+    btn.addEventListener('mouseleave',()=>{
+      if(hoveredInventorySlot===index)hoveredInventorySlot=null;
+    });
+    btn.addEventListener('contextmenu',e=>e.preventDefault());
     target.appendChild(btn);
   }
 
-  function renderEquipment() {
-    const equipment = Inventory.getEquipment();
-    document.querySelectorAll('.equip-slot').forEach(btn => {
-      const key = btn.dataset.equip;
-      const s = equipment[key];
-      const b = btn.querySelector('b');
-      if (!s) {
-        b.innerHTML = btn.classList.contains('disabled') ? '준비중' : '빈 슬롯';
+  function renderEquipment(){
+    const equipment=Inventory.getEquipment();
+    document.querySelectorAll('.equip-slot').forEach(btn=>{
+      const key=btn.dataset.equip,s=equipment[key],b=btn.querySelector('b');
+      if(!b)return;
+      if(!s){
+        b.replaceChildren();
+        btn.title=btn.querySelector('span')?.textContent||'빈 장비 슬롯';
+        btn.setAttribute('aria-label',btn.title+' · 비어 있음');
         return;
       }
-      b.innerHTML = `<img src="${Textures.blockIcon(s.id)}" alt="">`;
-      b.title = getItemName(s.id);
+      const img=document.createElement('img');
+      img.src=Textures.blockIcon(s.id);
+      img.alt='';
+      b.replaceChildren(img);
+      btn.title=getItemName(s.id)+(s.durability?' · 내구도 '+s.durability:'');
+      btn.setAttribute('aria-label',btn.title+' · '+key+' 장비 슬롯');
     });
   }
 
-  function handleEquipment(key) {
-    if (!inventoryCursor) {
-      const got = Inventory.takeEquipment(key);
-      if (got) inventoryCursor = got;
-    } else {
-      const left = Inventory.putEquipment(key, inventoryCursor);
-      inventoryCursor = left || null;
+  function handleEquipment(key,right=false){
+    if(!inventoryOpen)return;
+    const current=Inventory.getEquipment()[key];
+    if(right && inventoryCursor && (!current || (current.id===inventoryCursor.id && !getToolDef(current.id) && !getArmorDef(current.id)))){
+      const one={...inventoryCursor,count:1};
+      const left=Inventory.putEquipment(key,one);
+      if(!left){
+        inventoryCursor.count--;
+        if(inventoryCursor.count<=0)inventoryCursor=null;
+      }
+    }else if(right && !inventoryCursor && current && !getToolDef(current.id) &&
+      !getArmorDef(current.id) && current.count>1){
+      const removed=Inventory.takeEquipment(key);
+      const half=Math.ceil(removed.count/2);
+      inventoryCursor={...removed,count:half};
+      Inventory.putEquipment(key,{...removed,count:removed.count-half});
+    }else{
+      const previous=inventoryCursor;
+      inventoryCursor=Inventory.swapEquipmentWithCursor(key,inventoryCursor);
+      if(previous===inventoryCursor && previous)showToast('장비 종류가 맞지 않습니다');
     }
     renderInventory();
-    updateInventoryCursor(innerWidth / 2, innerHeight / 2);
+    updateInventoryCursor(innerWidth/2,innerHeight/2);
   }
 
   const characterFields = [
@@ -336,6 +379,36 @@ const UI = (() => {
     updateCharacterPreview();
   }
 
+  function renderCreativeCatalog(){
+    const panel=$('inventory-creative-panel'),list=$('inventory-creative-grid');
+    if(!panel||!list || panel.classList.contains('hidden') || !Inventory.isCreative())return;
+    const needle=($('inventory-creative-search')?.value||'').trim().toLocaleLowerCase('ko-KR');
+    list.replaceChildren();
+    const ids=[...new Set([...PLACEABLE_IDS,...Object.keys(ITEMS).map(Number)])]
+      .filter(id=>getItemDef(id)&&(!needle||getItemName(id).toLocaleLowerCase('ko-KR').includes(needle)));
+    for(const id of ids){
+      const def=getItemDef(id);
+      const btn=document.createElement('button');
+      btn.type='button';btn.className='java-creative-item';
+      btn.title=getItemName(id);
+      const img=document.createElement('img');img.src=Textures.blockIcon(id);img.alt='';
+      const name=document.createElement('small');name.textContent=getItemName(id);
+      btn.append(img,name);
+      btn.addEventListener('click',()=>{
+        if(inventoryCursor){
+          showToast('손에 든 아이템을 먼저 빈 슬롯에 내려놓으세요');
+          return;
+        }
+        const gear=!!(def.toolType||def.armorType);
+        inventoryCursor={id,count:gear?1:64};
+        if(gear)inventoryCursor.durability=def.maxDurability||1;
+        renderInventory();
+        updateInventoryCursor(innerWidth/2,innerHeight/2);
+      });
+      list.appendChild(btn);
+    }
+  }
+
   function renderInventory() {
     const grid = $('inventory-grid');
     const hotbar = $('inventory-hotbar-grid');
@@ -346,7 +419,21 @@ const UI = (() => {
     for (let i = 0; i < Inventory.HOTBAR_SIZE; i++) renderInventorySlot(i, hotbar);
     renderEquipment();
     renderInventoryCrafting();
-    renderCharacterEditor();
+    renderInventoryRecipes();
+    renderCreativeCatalog();
+    updateCharacterPreview();
+    const hand=$('java-mainhand-display');
+    if(hand)hand.innerHTML=Inventory.selectedId()
+      ? '<img src="'+Textures.blockIcon(Inventory.selectedId())+'" alt="">':'<span>비어 있음</span>';
+    const split=$('inventory-touch-split');
+    if(split){
+      split.setAttribute('aria-pressed',String(mobileSplitMode));
+      split.textContent='한 개씩 놓기: '+(mobileSplitMode?'켬':'끔');
+    }
+    const held=$('inventory-held-readout');
+    if(held)held.textContent=inventoryCursor
+      ? '들고 있음: '+getItemName(inventoryCursor.id)+' ×'+stackLabel(inventoryCursor)
+      : '커서: 비어 있음';
   }
 
   function returnCraftingMaterials() {
@@ -359,99 +446,211 @@ const UI = (() => {
     return complete;
   }
 
-  function renderInventoryCrafting() {
-    const grid = $('inventory-craft-grid');
-    const output = $('inventory-craft-output');
-    if (!grid || !output) return;
-    Crafting.setGridSize(2);
-    grid.innerHTML = '';
-    Crafting.getVisibleCells().forEach(cellData => {
-      const cell = document.createElement('button');
-      const id = cellData.id;
-      cell.className = 'craft-cell' + (id ? ' filled' : '');
-      cell.setAttribute('aria-label', id ? getItemName(id) : '빈 2x2 제작 칸');
-      if (id) {
-        cell.innerHTML = `<img src="${Textures.blockIcon(id)}" alt=""><span>${getItemName(id)}</span>`;
-        cell.title = '클릭하여 빼기';
-        cell.addEventListener('click', () => {
-          if (Inventory.add(id, 1) === 1) Crafting.removeCell(cellData.index);
-          else showToast('인벤토리에 빈 칸이 없습니다');
+  function renderInventoryRecipes(){
+    const list=$('inventory-recipe-list');
+    if(!list)return;
+    list.replaceChildren();
+    const recipes=Crafting.getRecipes()
+      .filter(r=>Crafting.recipeFitsGrid(r))
+      .sort((a,b)=>Number(Crafting.canCraft(b))-Number(Crafting.canCraft(a)));
+    for(const r of recipes){
+      const available=Crafting.canCraft(r);
+      const btn=document.createElement('button');
+      btn.type='button';
+      btn.className='java-recipe-item'+(available?'':' unavailable');
+      const img=document.createElement('img');
+      img.src=Textures.blockIcon(r.outputId);
+      img.alt='';
+      const name=document.createElement('span');
+      name.textContent=r.name+' ×'+r.count;
+      btn.title=r.note||Crafting.summary(r);
+      btn.setAttribute('aria-label',btn.title);
+      btn.disabled=!available;
+      btn.append(img,name);
+      btn.addEventListener('click',()=>{
+        if(Crafting.getVisibleCells().some(cell=>cell.id) && !returnCraftingMaterials()){
+          showToast('제작 재료를 돌려줄 공간이 없습니다');
+          return;
+        }
+        if(!Crafting.autofill(r.id)){
+          showToast('해당 제작법을 배치할 수 없습니다');
           renderInventory();
+          return;
+        }
+        renderInventory();
+        showToast('제작법 배치 완료 · 결과 아이템을 누르세요');
+      });
+      list.appendChild(btn);
+    }
+  }
+
+  function renderInventoryCrafting(){
+    const grid=$('inventory-craft-grid'),output=$('inventory-craft-output');
+    if(!grid||!output)return;
+    Crafting.setGridSize(2);
+    grid.replaceChildren();
+    for(const cellData of Crafting.getVisibleCells()){
+      const id=cellData.id;
+      const cell=document.createElement('button');
+      cell.type='button';
+      cell.className='craft-cell'+(id?' filled':'');
+      cell.setAttribute('aria-label',id?getItemName(id)+' 2×2 제작 칸':'빈 2×2 제작 칸');
+      if(id){
+        cell.innerHTML='<img src="'+Textures.blockIcon(id)+'" alt="">';
+        cell.title='클릭하여 재료 꺼내기';
+        cell.addEventListener('click',()=>{
+          if(inventoryCursor && inventoryCursor.id===id && inventoryCursor.count<Inventory.MAX_STACK){
+            inventoryCursor.count++;
+            Crafting.removeCell(cellData.index);
+          }else if(!inventoryCursor){
+            inventoryCursor={id,count:1};
+            Crafting.removeCell(cellData.index);
+          }else if(Inventory.add(id,1)===1)Crafting.removeCell(cellData.index);
+          else{showToast('재료를 보관할 빈 칸이 없습니다');return;}
+          renderInventory();
+          updateInventoryCursor(innerWidth/2,innerHeight/2);
         });
-      } else {
-        cell.title = '인벤토리의 재료를 선택한 뒤 이 칸을 누르세요';
-        cell.addEventListener('click', () => {
-          if (inventoryCursor) {
-            if (getToolDef(inventoryCursor.id) || getArmorDef(inventoryCursor.id)) return;
-            Crafting.setCell(cellData.index, inventoryCursor.id);
-            inventoryCursor.count--;
-            if (inventoryCursor.count <= 0) inventoryCursor = null;
-          } else if (selectedInventoryMaterial !== null) {
-            const slot = Inventory.getSlots()[selectedInventoryMaterial];
-            if (!slot || getToolDef(slot.id) || getArmorDef(slot.id)) return;
-            const taken = Inventory.takeFromSlot(selectedInventoryMaterial, 1);
-            if (!taken) return;
-            if (!Crafting.setCell(cellData.index, taken.id)) {
-              Inventory.putIntoSlot(selectedInventoryMaterial, taken);
-              return;
-            }
-          } else {
-            showToast('먼저 인벤토리에서 재료를 선택하세요');
+      }else{
+        cell.title='커서에 든 재료를 이 칸에 한 개 넣으세요';
+        cell.addEventListener('click',()=>{
+          if(!inventoryCursor || getToolDef(inventoryCursor.id)||getArmorDef(inventoryCursor.id)){
+            showToast('가방의 블록이나 재료를 먼저 선택하세요');
             return;
           }
-          renderInventory();
-          updateInventoryCursor(innerWidth / 2, innerHeight / 2);
+          if(Crafting.setCell(cellData.index,inventoryCursor.id)){
+            inventoryCursor.count--;
+            if(inventoryCursor.count<=0)inventoryCursor=null;
+            renderInventory();
+            updateInventoryCursor(innerWidth/2,innerHeight/2);
+          }
         });
       }
       grid.appendChild(cell);
-    });
-    const match = Crafting.getMatch();
-    const ready = !!match && Crafting.canCraftGrid();
-    output.disabled = !ready;
-    output.className = 'craft-output' + (ready ? ' ready' : '');
-    output.innerHTML = match
-      ? `<img src="${Textures.blockIcon(match.outputId)}" alt=""><span>${match.name}<b>×${match.count}</b></span>`
+    }
+    const match=Crafting.getMatch();
+    const curDef=match?getItemDef(match.outputId):null;
+    const gear=!!(curDef?.toolType||curDef?.armorType);
+    const canStack=!inventoryCursor ||
+      (!gear && inventoryCursor.id===match?.outputId &&
+        inventoryCursor.count+match.count<=Inventory.MAX_STACK);
+    const ready=!!match && Crafting.canTakeGridResult() && canStack;
+    output.disabled=!ready;
+    output.className='craft-output'+(ready?' ready':'');
+    output.innerHTML=match
+      ? '<img src="'+Textures.blockIcon(match.outputId)+'" alt=""><span>'+match.name+'<b>×'+match.count+'</b></span>'
       : '<span class="craft-output-empty">?</span>';
-    output.onclick = () => {
-      if (!Crafting.craftGrid()) {
-        showToast('재료가 부족하거나 2×2로 만들 수 없습니다');
-        return;
+    output.title=match?match.name+' · 결과를 들기':'제작법을 맞춰 주세요';
+    output.onclick=e=>{
+      if(e.shiftKey && !inventoryCursor){
+        if(!Crafting.craftGrid()){
+          showToast('결과 아이템을 넣을 공간이 없습니다');
+          return;
+        }
+      }else{
+        const matched=Crafting.getMatch();
+        if(!matched || !Crafting.canTakeGridResult() ||
+           (inventoryCursor && (inventoryCursor.id!==matched.outputId ||
+             getToolDef(matched.outputId)||getArmorDef(matched.outputId)||
+             inventoryCursor.count+matched.count>Inventory.MAX_STACK))){
+          showToast('커서에 든 아이템을 먼저 내려놓으세요');
+          return;
+        }
+        const made=Crafting.takeGridResult();
+        if(!made)return;
+        if(!inventoryCursor)inventoryCursor=made;
+        else inventoryCursor.count+=made.count;
       }
-      renderInventoryCrafting();
-      renderHotbar();
-      renderInventory();
+      renderInventory();renderHotbar();
+      updateInventoryCursor(e.clientX,e.clientY);
       showToast('제작 완료');
     };
   }
 
-  function openInventory() {
-    if (Crafting.getGridSize() !== 2 && !returnCraftingMaterials()) {
-      showToast('3×3 제작 칸의 재료를 돌려줄 공간이 없습니다');
+  function openInventory(){
+    if(Crafting.getGridSize()!==2 && !returnCraftingMaterials()){
+      showToast('제작대 재료를 돌려줄 공간이 부족합니다');
       return false;
     }
-    if (Crafting.getGridSize() !== 2) Crafting.resetGrid(2);
-    inventoryOpen = true;
-    selectedInventoryMaterial = null;
-    document.querySelectorAll('.equip-slot:not(.disabled)').forEach(btn => {
-      if (btn.dataset.bound) return;
-      btn.dataset.bound = '1';
-      btn.addEventListener('mousedown', e => {
-        e.preventDefault();
-        e.stopPropagation();
-        handleEquipment(btn.dataset.equip);
+    if(Crafting.getGridSize()!==2)Crafting.resetGrid(2);
+    inventoryOpen=true;
+    const creativeButton=$('inventory-creative-toggle');
+    const creativePanel=$('inventory-creative-panel');
+    if(creativeButton){
+      creativeButton.hidden=!Inventory.isCreative();
+      creativeButton.setAttribute('aria-expanded','false');
+    }
+    creativePanel?.classList.add('hidden');
+    hoveredInventorySlot=null;
+    mobileSplitMode=false;
+    selectedInventoryMaterial=null;
+    document.querySelectorAll('#overlay-inventory .equip-slot').forEach(btn=>{
+      if(btn.dataset.bound)return;
+      btn.dataset.bound='1';
+      btn.addEventListener('mousedown',e=>{
+        if(document.body.classList.contains('touch-device'))return;
+        if(e.button!==0&&e.button!==2)return;
+        e.preventDefault();e.stopPropagation();
+        handleEquipment(btn.dataset.equip,e.button===2);
       });
-      btn.addEventListener('contextmenu', e => e.preventDefault());
+      btn.addEventListener('click',e=>{
+        if(!document.body.classList.contains('touch-device'))return;
+        e.preventDefault();e.stopPropagation();
+        handleEquipment(btn.dataset.equip,mobileSplitMode);
+      });
+      btn.addEventListener('contextmenu',e=>e.preventDefault());
     });
+    const openCreative=$('inventory-creative-toggle');
+    if(openCreative && !openCreative.dataset.bound){
+      openCreative.dataset.bound='1';
+      openCreative.addEventListener('click',()=>{
+        const panel=$('inventory-creative-panel');
+        if(!Inventory.isCreative()||!panel)return;
+        const expanded=openCreative.getAttribute('aria-expanded')==='true';
+        openCreative.setAttribute('aria-expanded',String(!expanded));
+        panel.classList.toggle('hidden',expanded);
+        if(!expanded)renderCreativeCatalog();
+      });
+    }
+    const creativeSearch=$('inventory-creative-search');
+    if(creativeSearch && !creativeSearch.dataset.bound){
+      creativeSearch.dataset.bound='1';
+      creativeSearch.addEventListener('input',renderCreativeCatalog);
+    }
+    const book=$('inventory-recipe-toggle'),panel=$('inventory-recipe-panel');
+    if(book && !recipeBookBound){
+      recipeBookBound=true;
+      book.addEventListener('click',()=>{
+        const expanded=book.getAttribute('aria-expanded')==='true';
+        book.setAttribute('aria-expanded',String(!expanded));
+        panel?.classList.toggle('hidden',expanded);
+        if(!expanded)renderInventoryRecipes();
+      });
+    }
+    const split=$('inventory-touch-split');
+    if(split && !split.dataset.bound){
+      split.dataset.bound='1';
+      split.addEventListener('click',()=>{
+        mobileSplitMode=!mobileSplitMode;
+        split.setAttribute('aria-pressed',String(mobileSplitMode));
+        split.textContent='한 개씩 놓기: '+(mobileSplitMode?'켬':'끔');
+      });
+    }
     renderInventory();
+    renderCharacterEditor();
     $('overlay-inventory').classList.remove('hidden');
     return true;
   }
 
-  function closeInventory() {
-    if (!returnCraftingMaterials()) { showToast('재료를 돌려줄 공간이 부족합니다'); return false; }
-    if (!inventoryCursorReturn()) return false;
-    inventoryOpen = false;
-    selectedInventoryMaterial = null;
+  function closeInventory(){
+    if(!returnCraftingMaterials()){
+      showToast('제작 재료를 되돌릴 빈 공간이 필요합니다');
+      return false;
+    }
+    if(!inventoryCursorReturn())return false;
+    inventoryOpen=false;
+    hoveredInventorySlot=null;
+    selectedInventoryMaterial=null;
+    mobileSplitMode=false;
     $('overlay-inventory').classList.add('hidden');
     return true;
   }
@@ -845,7 +1044,8 @@ const UI = (() => {
   return {
     renderHotbar, setSelected, showItemName, showOverlay, showToast, setHUD, setTime, setMiningProgress,
     setModeLabel, renderWorlds, renderCrafting, openCrafting, closeCrafting, isCraftingOpen,
-    renderInventory, openInventory, closeInventory, isInventoryOpen, getInventoryCursor, restoreInventoryCursor,
+    renderInventory, openInventory, closeInventory, isInventoryOpen, quickSwapHotbar,
+    getInventoryCursor, restoreInventoryCursor,
     renderFurnace, openFurnace, closeFurnace, isFurnaceOpen, dropSelected, updateInventoryCursor,
     updateSurvival, showDeath, hideDeath, openPicker, closePicker, isPickerOpen, setStartEnabled, flashVignette
   };
