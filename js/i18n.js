@@ -14,13 +14,13 @@ const originals=new WeakMap();
 const clean=s=>s.trim().replace(/\s+/g,' ');
 const compound=Object.keys(lookup).filter(k=>/[가-힣]/.test(k)).sort((a,b)=>b.length-a.length);
 const escapeRegex=s=>Array.from(s).map(c=>'\\.^$*+?()[]{}|'.includes(c)?'\\'+c:c).join('');
-function localize(source){
- if(current==='ko')return source;
- if(lookup[source])return lookup[source][current]||source;
+function localize(source,lang=current){
+ if(lang==='ko')return source;
+ if(lookup[source])return lookup[source][lang]||source;
  let out=source;
  for(const k of compound){
   if(!out.includes(k))continue;
-  const value=lookup[k][current];
+  const value=lookup[k][lang];
   if(!value||value===k)continue;
   // Avoid changing the middle of longer Korean words.
   const re=new RegExp('(?<![가-힣])'+escapeRegex(k)+'(?![가-힣])','g');
@@ -33,7 +33,7 @@ function translateText(node){
  const raw=node.nodeValue,trim=clean(raw);
  if(!trim)return;
  let source=originals.get(node);
- if(!source||(!source.includes('가')&&!/[가-힣]/.test(source))||(trim!==source&&trim!==clean(localize(source)))){
+ if(!source||(trim!==source&&!['ko','en','ja'].some(lang=>trim===clean(localize(source,lang))))){
   source=lookup[trim]?trim:(reverse[trim]||trim);
   originals.set(node,source);
  }
