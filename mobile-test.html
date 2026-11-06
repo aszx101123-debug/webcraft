@@ -175,7 +175,10 @@
         <div class="java-inventory-kicker">WEBCRAFT · PLAYER INVENTORY</div>
         <h2 id="inventory-title">인벤토리 <small>2×2 개인 제작</small></h2>
       </div>
-      <button id="inventory-close" class="btn ghost" type="button" aria-label="인벤토리 닫기">✕ <span>E</span></button>
+      <div class="java-inventory-head-actions">
+        <button id="inventory-creative-toggle" class="btn" type="button" aria-expanded="false" aria-controls="inventory-creative-panel" hidden>▦ 전체 아이템</button>
+        <button id="inventory-close" class="btn ghost" type="button" aria-label="인벤토리 닫기">✕ <span>E</span></button>
+      </div>
     </div>
     <div class="java-inventory-top">
       <section class="java-player-panel" aria-label="캐릭터와 장비">
@@ -216,6 +219,10 @@
         <p class="inventory-craft-tip">2×2에서는 기본 제작만 가능해요. 무기·갑옷 등은 제작대를 이용하세요.</p>
       </section>
     </div>
+    <section id="inventory-creative-panel" class="java-creative-panel hidden" aria-label="크리에이티브 아이템 목록">
+      <input id="inventory-creative-search" type="search" placeholder="블록·아이템 검색" aria-label="블록과 아이템 검색" autocomplete="off">
+      <div id="inventory-creative-grid" class="java-creative-grid" role="group" aria-label="아이템을 선택하면 커서로 가져옵니다"></div>
+    </section>
     <section class="inventory-main java-inventory-bottom" aria-label="내 소지품">
       <div class="inventory-section-title">가방 <span>27칸</span></div>
       <div id="inventory-grid" class="inventory-grid"></div>
