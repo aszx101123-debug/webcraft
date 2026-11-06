@@ -399,6 +399,10 @@ const UI = (() => {
       split.setAttribute('aria-pressed',String(mobileSplitMode));
       split.textContent='한 개씩 놓기: '+(mobileSplitMode?'켬':'끔');
     }
+    const held=$('inventory-held-readout');
+    if(held)held.textContent=inventoryCursor
+      ? '들고 있음: '+getItemName(inventoryCursor.id)+' ×'+stackLabel(inventoryCursor)
+      : '커서: 비어 있음';
   }
 
   function returnCraftingMaterials() {
