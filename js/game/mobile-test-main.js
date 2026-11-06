@@ -538,12 +538,20 @@
       }
       return;
     }
-    keys[e.code] = true;
-    if (e.code === 'Space') e.preventDefault();
-    if (e.code === 'Escape' && UI.isInventoryOpen()) {
-      if (UI.closeInventory()) resumeInput();
+    // The open inventory captures E / Escape and Minecraft-style 1–9 swaps.
+    // No movement or other game shortcuts should fire behind its dialog.
+    if(UI.isInventoryOpen()){
+      if(e.code==='KeyE'||e.code==='Escape'){
+        e.preventDefault();
+        if(!e.repeat && UI.closeInventory())resumeInput();
+      }else if(/^Digit[1-9]$/.test(e.code) && !e.target?.closest?.('input,textarea,select')){
+        e.preventDefault();
+        UI.quickSwapHotbar(Number(e.code.slice(-1))-1);
+      }
       return;
     }
+    keys[e.code] = true;
+    if (e.code === 'Space') e.preventDefault();
     if (e.code === 'Escape' && UI.isCraftingOpen()) {
       if (UI.closeCrafting()) resumeInput();
       return;
