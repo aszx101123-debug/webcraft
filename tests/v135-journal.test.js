@@ -73,7 +73,7 @@ check('journal panel populates eight readable tiles and supports close callback'
 check('PC/mobile pages load journal and helpful controls',()=>{
   for(const page of ['play.html','mobile-test.html']){
     const html=source(page);
-    assert.ok(html.includes('world-journal.js?v=v135'));
+    assert.ok(html.includes('world-journal.js?v=v136'));
     assert.ok(html.includes('id="overlay-journal"'));
     assert.ok(html.includes('id="journal-set-home"'));
     assert.ok(html.includes('id="save-indicator"'));
