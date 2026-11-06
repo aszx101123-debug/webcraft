@@ -135,4 +135,15 @@ check('desktop and mobile use four touch HUD buttons and advanced pause actions'
    assert.ok(html.includes('id="inventory-hotbar-grid"'));
  }
 });
+check('creative E inventory includes searchable item tab without extra HUD keys',()=>{
+ const html=src('play.html');
+ const ui=src('js/game/mobile-test-ui.js');
+ const main=src('js/game/mobile-test-main.js');
+ assert.ok(html.includes('id="inventory-creative-toggle"'));
+ assert.ok(html.includes('id="inventory-creative-search"'));
+ assert.ok(html.includes('id="inventory-creative-grid"'));
+ assert.ok(ui.includes('function renderCreativeCatalog()'));
+ assert.ok(ui.includes("openCreative.addEventListener('click'"));
+ assert.ok(main.includes("e.target?.closest?.('input,textarea,select')"));
+});
 console.log('All '+passed+' inventory and touch-control checks passed.');
