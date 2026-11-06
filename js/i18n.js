@@ -10,9 +10,9 @@ const params=new URLSearchParams(location.search);
 const initial=params.get('lang');
 let current=languages[initial]?initial:(()=>{try{return languages[localStorage.getItem(key)]?localStorage.getItem(key):'ko';}catch{return 'ko';}})();
 const originals=new WeakMap();
-const clean=s=>s.trim().replace(/\\s+/g,' ');
+const clean=s=>s.trim().replace(/\s+/g,' ');
 const compound=Object.keys(lookup).filter(k=>/[가-힣]/.test(k)).sort((a,b)=>b.length-a.length);
-const escapeRegex=s=>s.replace(/[.*+?^\u0024{}()|[\\]\\]/g,'\\\\$&');
+const escapeRegex=s=>Array.from(s).map(c=>'\\.^$*+?()[]{}|'.includes(c)?'\\'+c:c).join('');
 function localize(source){
  if(current==='ko')return source;
  if(lookup[source])return lookup[source][current]||source;
