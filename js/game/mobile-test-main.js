@@ -349,7 +349,7 @@
       '<div id="touch-pad" role="group" aria-label="이동 조이스틱"><div id="touch-knob"></div></div>'+
       '<div id="touch-actions" role="group" aria-label="이동 동작">'+
       '<button type="button" data-act="jump" aria-label="점프">↥</button>'+
-      '<button type="button" data-act="sneak" aria-pressed="false" aria-label="웅크리기">⌄</button></div>'+
+      '</div>'+
       '<div id="touch-topbar" role="group" aria-label="게임 메뉴">'+
       '<button type="button" data-act="inventory" aria-label="인벤토리 열기">▦</button>'+
       '<button type="button" data-act="pause" aria-label="일시정지 메뉴">Ⅱ</button></div>';
@@ -357,11 +357,10 @@
     document.body.classList.add('touch-device');
     const pad = touchControls.querySelector('#touch-pad');
     const knob = touchControls.querySelector('#touch-knob');
-    const moveKeys = ['KeyW','KeyA','KeyS','KeyD','ShiftLeft','ControlLeft'];
+    const moveKeys = ['KeyW','KeyA','KeyS','KeyD','ShiftLeft'];
     const resetPad = () => {
       moveKeys.forEach(k=>keys[k]=false);
       knob.style.transform='';
-      touchControls.querySelector('[data-act="sneak"]')?.setAttribute('aria-pressed','false');
     };
     resetTouchPad = resetPad;
     function movePad(e) {
@@ -372,7 +371,7 @@
       keys.KeyA=x<-.28;keys.KeyD=x>.28;
       keys.KeyW=y<-.28;keys.KeyS=y>.28;
       // Pushing the stick all the way up runs, no separate sprint button.
-      keys.ShiftLeft=y<-.86 && Math.abs(x)<.52 && !keys.ControlLeft;
+      keys.ShiftLeft=y<-.86 && Math.abs(x)<.52;
       knob.style.transform='translate(calc(-50% + '+(x*r.width*.29)+'px),calc(-50% + '+(y*r.height*.29)+'px))';
     }
     pad.addEventListener('pointerdown',e=>{
@@ -402,11 +401,6 @@
             lastJumpTap=0;
           }else{keys.Space=true;lastJumpTap=now;}
         }
-        if(act==='sneak'){
-          keys.ControlLeft=!keys.ControlLeft;
-          if(keys.ControlLeft)keys.ShiftLeft=false;
-          button.setAttribute('aria-pressed',String(keys.ControlLeft));
-        }
         if(act==='inventory'){
           state.suppressPause=true;
           disableTouchInput();
@@ -425,6 +419,8 @@
       }
     }
 
+    // Mobile control uses only joystick, jump, inventory and pause.
+    // Touch the world to place/use or hit a mob, hold to mine, drag to look.
     // Minecraft-style "joystick and tap to interact" on the world surface.
     let lookId=null,startX=0,startY=0,lastX=0,lastY=0;
     let holdTimer=null,repeatTimer=null,wasDrag=false,wasHold=false;
