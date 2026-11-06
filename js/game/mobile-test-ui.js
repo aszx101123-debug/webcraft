@@ -160,101 +160,144 @@ const UI = (() => {
     return true;
   }
 
-  function renderInventorySlot(index, target) {
-    const s = Inventory.getSlots()[index];
-    const btn = document.createElement('button');
-    btn.className = 'inventory-slot' + (!s ? ' empty' : '') + (index < Inventory.HOTBAR_SIZE ? ' inventory-hotbar-slot' : '') + (selectedInventoryMaterial === index ? ' material-selected' : '');
-    btn.setAttribute('aria-label', s ? getItemName(s.id) + ' 슬롯 ' + (index + 1) : '빈 슬롯');
-    btn.innerHTML = `<span class="inv-num">${index < Inventory.HOTBAR_SIZE ? index + 1 : index - Inventory.HOTBAR_SIZE + 1}</span>`;
-    if (s) {
-      const td = getToolDef(s.id);
-      const dur = td && s.durability ? `<span class="inv-dur"><i style="transform:scaleX(${Math.max(0, Math.min(1, s.durability / td.maxDurability))})"></i></span>` : '';
-      btn.innerHTML += `<img src="${Textures.blockIcon(s.id)}" alt=""><span class="inv-count">${stackLabel(s)}</span>${dur}`;
-      btn.title = td ? `${getItemName(s.id)} · 내구도 ${s.durability}/${td.maxDurability}` : getItemName(s.id);
-    } else btn.title = '빈 슬롯';
+  let hoveredInventorySlot=null;
+  let mobileSplitMode=false;
+  let recipeBookBound=false;
 
-    btn.addEventListener('click', e => {
-      if (!inventoryOpen || !document.body.classList.contains('touch-device')) return;
-      e.preventDefault();
-      if (!s) return;
-      selectedInventoryMaterial = index;
-      showToast(getItemName(s.id) + ' 선택 · 위의 제작 칸을 눌러 넣으세요');
+  function clickInventorySlot(index,right=false,shift=false,double=false,clientX=0,clientY=0){
+    if(!inventoryOpen)return false;
+    const src=Inventory.getSlots()[index];
+    if(shift && !inventoryCursor){
+      const moved=Inventory.quickMove(index);
+      if(!moved)showToast('이동할 공간이 없습니다');
       renderInventory();
-    });
-    btn.addEventListener('mousedown', e => {
-      if (inventoryOpen && document.body.classList.contains('touch-device')) return;
-      e.preventDefault();
-      e.stopPropagation();
-      if (e.button === 0 && e.shiftKey && inventoryOpen && Crafting.getGridSize() === 2) {
-        const src = Inventory.getSlots()[index];
-        if(src){const taken=Inventory.takeFromSlot(index,1);if(taken&&Crafting.addToFirstEmpty(taken.id)>=0){
-          renderInventory();
-          showToast(getItemName(src.id) + '을 2×2 제작칸에 넣었습니다');
-        } else if(taken) Inventory.add(taken.id,1); }
-        return;
+      return moved;
+    }
+    if(double && inventoryCursor && !getToolDef(inventoryCursor.id) &&
+       !getArmorDef(inventoryCursor.id) && inventoryCursor.count!==Infinity){
+      const max=Inventory.MAX_STACK||64;
+      for(let i=0;i<Inventory.SIZE && inventoryCursor.count<max;i++){
+        const stack=Inventory.getSlots()[i];
+        if(!stack||stack.id!==inventoryCursor.id||stack.count===Infinity)continue;
+        const taken=Inventory.takeFromSlot(i,max-inventoryCursor.count);
+        if(taken)inventoryCursor.count+=taken.count;
       }
-      if (e.button === 2) {
-        if (!inventoryCursor) {
-          const src = Inventory.getSlots()[index];
-          if (!src) return;
-          if (src.count === Infinity) inventoryCursor = { id: src.id, count: 1 };
-          else inventoryCursor = Inventory.takeFromSlot(index, Math.ceil(src.count / 2));
-        } else {
-          const one = { id: inventoryCursor.id, count: 1 };
-          if (getToolDef(one.id)) one.durability = inventoryCursor.durability || getToolDef(one.id).maxDurability;
-          const left = Inventory.putIntoSlot(index, one);
-          if (!left) {
-            inventoryCursor.count -= 1;
-            if (inventoryCursor.count <= 0) inventoryCursor = null;
+    }else if(right){
+      if(!inventoryCursor){
+        if(!src)return false;
+        const gear=!!(getToolDef(src.id)||getArmorDef(src.id));
+        inventoryCursor=Inventory.takeFromSlot(index,gear?1:Math.ceil(src.count/2));
+      }else{
+        if(getToolDef(inventoryCursor.id)||getArmorDef(inventoryCursor.id)){
+          if(!src)inventoryCursor=Inventory.swapWithSlot(index,inventoryCursor);
+        }else if(!src || (src.id===inventoryCursor.id && src.count<Inventory.MAX_STACK)){
+          const one={id:inventoryCursor.id,count:1};
+          if(!Inventory.putIntoSlot(index,one)){
+            inventoryCursor.count--;
+            if(inventoryCursor.count<=0)inventoryCursor=null;
           }
         }
-      } else if (e.button === 0) {
-        const current = Inventory.getSlots()[index];
-        if (!inventoryCursor) {
-          if (current) inventoryCursor = Inventory.takeFromSlot(index);
-        } else if (!current) {
-          inventoryCursor = Inventory.putIntoSlot(index, inventoryCursor);
-        } else if (current.id === inventoryCursor.id && !getToolDef(current.id) && !getArmorDef(current.id)) {
-          inventoryCursor = Inventory.putIntoSlot(index, inventoryCursor);
-        } else {
-          const old = Inventory.takeFromSlot(index);
-          const left = Inventory.putIntoSlot(index, inventoryCursor);
-          inventoryCursor = left || old;
-        }
       }
-      renderInventory();
-      updateInventoryCursor(e.clientX, e.clientY);
+    }else inventoryCursor=Inventory.swapWithSlot(index,inventoryCursor);
+    renderInventory();
+    updateInventoryCursor(clientX,clientY);
+    return true;
+  }
+
+  function quickSwapHotbar(hotbarIndex){
+    if(!inventoryOpen || inventoryCursor || hoveredInventorySlot===null || hotbarIndex<0 || hotbarIndex>=9)return false;
+    if(Inventory.swapSlots(hoveredInventorySlot,hotbarIndex)){
+      renderInventory();renderHotbar();
+      return true;
+    }
+    return false;
+  }
+
+  function renderInventorySlot(index,target) {
+    const s=Inventory.getSlots()[index];
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='inventory-slot'+(!s?' empty':'')+
+      (index<Inventory.HOTBAR_SIZE?' inventory-hotbar-slot':'')+
+      (index===Inventory.getSelected()?' java-selected-hotbar':'')+
+      (selectedInventoryMaterial===index?' material-selected':'')+
+      (hoveredInventorySlot===index?' java-hovered':'');
+    btn.dataset.slot=String(index);
+    btn.setAttribute('aria-label',s?getItemName(s.id)+' '+stackLabel(s)+'개, '+(index+1)+'번 칸':'빈 '+(index+1)+'번 칸');
+    btn.innerHTML='<span class="inv-num">'+(index<Inventory.HOTBAR_SIZE?index+1:index-Inventory.HOTBAR_SIZE+1)+'</span>';
+    if(s){
+      const td=getToolDef(s.id);
+      const dur=td&&s.durability
+        ? '<span class="inv-dur"><i style="transform:scaleX('+Math.max(0,Math.min(1,s.durability/td.maxDurability))+')"></i></span>':'';
+      btn.innerHTML+='<img src="'+Textures.blockIcon(s.id)+'" alt=""><span class="inv-count">'+
+        (s.count===1?'':stackLabel(s))+'</span>'+dur;
+      btn.title=getItemName(s.id)+(td?' · 내구도 '+s.durability+'/'+td.maxDurability:'');
+    }else btn.title='빈 칸';
+    btn.addEventListener('mousedown',e=>{
+      if(document.body.classList.contains('touch-device'))return;
+      if(e.button!==0 && e.button!==2)return;
+      e.preventDefault();e.stopPropagation();
+      clickInventorySlot(index,e.button===2,e.shiftKey,e.detail>=2,e.clientX,e.clientY);
     });
-    btn.addEventListener('mouseenter', e => updateInventoryCursor(e.clientX, e.clientY));
-    btn.addEventListener('contextmenu', e => e.preventDefault());
+    btn.addEventListener('click',e=>{
+      if(!document.body.classList.contains('touch-device'))return;
+      e.preventDefault();e.stopPropagation();
+      clickInventorySlot(index,mobileSplitMode,false,false,e.clientX,e.clientY);
+    });
+    btn.addEventListener('mouseenter',e=>{
+      hoveredInventorySlot=index;
+      updateInventoryCursor(e.clientX,e.clientY);
+    });
+    btn.addEventListener('mouseleave',()=>{
+      if(hoveredInventorySlot===index)hoveredInventorySlot=null;
+    });
+    btn.addEventListener('contextmenu',e=>e.preventDefault());
     target.appendChild(btn);
   }
 
-  function renderEquipment() {
-    const equipment = Inventory.getEquipment();
-    document.querySelectorAll('.equip-slot').forEach(btn => {
-      const key = btn.dataset.equip;
-      const s = equipment[key];
-      const b = btn.querySelector('b');
-      if (!s) {
-        b.innerHTML = btn.classList.contains('disabled') ? '준비중' : '빈 슬롯';
+  function renderEquipment(){
+    const equipment=Inventory.getEquipment();
+    document.querySelectorAll('.equip-slot').forEach(btn=>{
+      const key=btn.dataset.equip,s=equipment[key],b=btn.querySelector('b');
+      if(!b)return;
+      if(!s){
+        b.replaceChildren();
+        btn.title=btn.querySelector('span')?.textContent||'빈 장비 슬롯';
+        btn.setAttribute('aria-label',btn.title+' · 비어 있음');
         return;
       }
-      b.innerHTML = `<img src="${Textures.blockIcon(s.id)}" alt="">`;
-      b.title = getItemName(s.id);
+      const img=document.createElement('img');
+      img.src=Textures.blockIcon(s.id);
+      img.alt='';
+      b.replaceChildren(img);
+      btn.title=getItemName(s.id)+(s.durability?' · 내구도 '+s.durability:'');
+      btn.setAttribute('aria-label',btn.title+' · '+key+' 장비 슬롯');
     });
   }
 
-  function handleEquipment(key) {
-    if (!inventoryCursor) {
-      const got = Inventory.takeEquipment(key);
-      if (got) inventoryCursor = got;
-    } else {
-      const left = Inventory.putEquipment(key, inventoryCursor);
-      inventoryCursor = left || null;
+  function handleEquipment(key,right=false){
+    if(!inventoryOpen)return;
+    const current=Inventory.getEquipment()[key];
+    if(right && inventoryCursor && (!current || (current.id===inventoryCursor.id && !getToolDef(current.id) && !getArmorDef(current.id)))){
+      const one={...inventoryCursor,count:1};
+      const left=Inventory.putEquipment(key,one);
+      if(!left){
+        inventoryCursor.count--;
+        if(inventoryCursor.count<=0)inventoryCursor=null;
+      }
+    }else if(right && !inventoryCursor && current && !getToolDef(current.id) &&
+      !getArmorDef(current.id) && current.count>1){
+      const removed=Inventory.takeEquipment(key);
+      const half=Math.ceil(removed.count/2);
+      inventoryCursor={...removed,count:half};
+      Inventory.putEquipment(key,{...removed,count:removed.count-half});
+    }else{
+      const previous=inventoryCursor;
+      inventoryCursor=Inventory.swapEquipmentWithCursor(key,inventoryCursor);
+      if(previous===inventoryCursor && previous)showToast('장비 종류가 맞지 않습니다');
     }
     renderInventory();
-    updateInventoryCursor(innerWidth / 2, innerHeight / 2);
+    updateInventoryCursor(innerWidth/2,innerHeight/2);
   }
 
   const characterFields = [
