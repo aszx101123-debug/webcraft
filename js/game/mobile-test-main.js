@@ -653,6 +653,7 @@
     // The open inventory captures E / Escape and Minecraft-style 1–9 swaps.
     // No movement or other game shortcuts should fire behind its dialog.
     if(UI.isInventoryOpen()){
+      if(e.code==='KeyE' && e.target?.closest?.('input,textarea,select'))return;
       if(e.code==='KeyE'||e.code==='Escape'){
         e.preventDefault();
         if(!e.repeat && UI.closeInventory())resumeInput();
