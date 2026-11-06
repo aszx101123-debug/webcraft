@@ -10,20 +10,35 @@ const params=new URLSearchParams(location.search);
 const initial=params.get('lang');
 let current=languages[initial]?initial:(()=>{try{return languages[localStorage.getItem(key)]?localStorage.getItem(key):'ko';}catch{return 'ko';}})();
 const originals=new WeakMap();
-const clean=s=>s.trim().replace(/\s+/g,' ');
+const clean=s=>s.trim().replace(/\\s+/g,' ');
+const compound=Object.keys(lookup).filter(k=>/[가-힣]/.test(k)).sort((a,b)=>b.length-a.length);
+const escapeRegex=s=>s.replace(/[.*+?^\u0024{}()|[\\]\\]/g,'\\\\$&');
+function localize(source){
+ if(current==='ko')return source;
+ if(lookup[source])return lookup[source][current]||source;
+ let out=source;
+ for(const k of compound){
+  if(!out.includes(k))continue;
+  const value=lookup[k][current];
+  if(!value||value===k)continue;
+  // Avoid changing the middle of longer Korean words.
+  const re=new RegExp('(?<![가-힣])'+escapeRegex(k)+'(?![가-힣])','g');
+  out=out.replace(re,value);
+ }
+ return out;
+}
 function translateText(node){
  if(node.nodeType!==3)return;
- const value=node.nodeValue,trim=clean(value);
+ const raw=node.nodeValue,trim=clean(raw);
  if(!trim)return;
  let source=originals.get(node);
- if(!source||!(lookup[source])||(!Object.values(lookup[source]).includes(trim)&&trim!==source)){
-  source=lookup[trim]?trim:reverse[trim];
-  if(!source)return;
+ if(!source||(!source.includes('가')&&!/[가-힣]/.test(source))||(trim!==source&&trim!==clean(localize(source)))){
+  source=lookup[trim]?trim:(reverse[trim]||trim);
   originals.set(node,source);
  }
- const translated=lookup[source]?.[current]||source;
- if(trim===translated)return;
- node.nodeValue=value.replace(value.trim(),translated);
+ const value=localize(source);
+ if(trim===value)return;
+ node.nodeValue=raw.replace(raw.trim(),value);
 }
 function translateElement(el){
  if(el.nodeType!==1)return;
@@ -38,6 +53,7 @@ function translateElement(el){
    if(source)el.setAttribute(field,source);
   }
   if(source&&lookup[source])el.setAttribute(name,lookup[source][current]||source);
+  else if(!source&&/[가-힣]/.test(val))el.setAttribute(name,localize(val));
  }
  for(const child of Array.from(el.childNodes)){
   if(child.nodeType===3)translateText(child);
@@ -89,10 +105,20 @@ function init(){
  apply();
  // Game UI is rebuilt while playing; observe menus only, not the live rendering/HUD tree.
  const roots=document.body.classList.contains('classic-home')?[document.querySelector('#skin-studio')]:Array.from(document.querySelectorAll('[id^="overlay-"],#update-badge'));
- for(const root of roots.filter(Boolean)){
-  let queued=false;
-  new MutationObserver(()=>{if(queued)return;queued=true;queueMicrotask(()=>{queued=false;translateElement(root);});}).observe(root,{subtree:true,childList:true,characterData:true});
- }
+ // Translate interface elements created at runtime (inventory, crafting, HUD, toast, journal).
+ const observer=new MutationObserver(records=>{
+  const elements=new Set(),texts=new Set();
+  for(const record of records){
+   if(record.type==='characterData'){texts.add(record.target);continue;}
+   for(const node of record.addedNodes){
+    if(node.nodeType===3)texts.add(node);
+    else if(node.nodeType===1)elements.add(node);
+   }
+  }
+  for(const node of elements)if(node.isConnected)translateElement(node);
+  for(const node of texts)if(node.isConnected)translateText(node);
+ });
+ observer.observe(document.body,{subtree:true,childList:true,characterData:true});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 window.WebCraftLanguage={get:()=>current,set(code){if(!languages[code])return;current=code;try{localStorage.setItem(key,code);}catch{}apply();}};
