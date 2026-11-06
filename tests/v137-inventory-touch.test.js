@@ -114,12 +114,12 @@ check('player gear and inventory survive serialization with original item number
  assert.equal(Inventory.getSlots()[3].count,63);
  assert.equal(Inventory.getEquipment().head.durability,120);
 });
-check('desktop and mobile use four touch HUD buttons and advanced pause actions',()=>{
+check('desktop and mobile use three action buttons plus joystick and advanced pause actions',()=>{
  const main=src('js/game/mobile-test-main.js');
  const hud=main.match(/touchControls\.innerHTML\s*=([\s\S]*?);\s*document\.body\.append/);
  assert.ok(hud);
- for(const action of ['jump','sneak','inventory','pause']) assert.ok(hud[1].includes('data-act="'+action+'"'));
- for(const removed of ['mine','place','run','journal','camera','blocks','fly','drop'])
+ for(const action of ['jump','inventory','pause']) assert.ok(hud[1].includes('data-act="'+action+'"'));
+ for(const removed of ['sneak','mine','place','run','journal','camera','blocks','fly','drop'])
    assert.ok(!hud[1].includes('data-act="'+removed+'"'));
  assert.ok(main.includes('holdTimer=setTimeout('));
  assert.ok(main.includes('Interac'.replace('Interac','Interact.setTouchAim(')));
