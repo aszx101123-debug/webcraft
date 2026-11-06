@@ -6,6 +6,7 @@ const Interact = (() => {
   let miningElapsed = 0;
   let miningDuration = 0;
   let miningKey = '';
+  let touchDirection = null;
 
   function init(camera_, scene) {
     camera = camera_;
@@ -39,10 +40,23 @@ const Interact = (() => {
     scene.add(cracks);
   }
 
+  function setTouchAim(clientX,clientY,canvas) {
+    if(!camera || !canvas)return false;
+    const r=canvas.getBoundingClientRect();
+    if(!r.width || !r.height)return false;
+    touchDirection=new THREE.Vector3(
+      ((clientX-r.left)/r.width)*2-1,
+      1-((clientY-r.top)/r.height)*2,
+      .5
+    ).unproject(camera).sub(camera.position).normalize();
+    return true;
+  }
+  function clearTouchAim(){touchDirection=null;}
+  function getTouchDirection(){return touchDirection?touchDirection.clone():null;}
   function raycast(maxDist) {
     const o = camera.position;
-    const d = new THREE.Vector3();
-    camera.getWorldDirection(d);
+    const d = touchDirection?touchDirection.clone():new THREE.Vector3();
+    if(!touchDirection)camera.getWorldDirection(d);
     let x = Math.floor(o.x), y = Math.floor(o.y), z = Math.floor(o.z);
     const stepX = d.x > 0 ? 1 : -1, stepY = d.y > 0 ? 1 : -1, stepZ = d.z > 0 ? 1 : -1;
     const tdx = Math.abs(1 / d.x), tdy = Math.abs(1 / d.y), tdz = Math.abs(1 / d.z);
@@ -194,7 +208,8 @@ const Interact = (() => {
   function getTarget() { return target; }
 
   return {
-    init, update, raycast, getTarget, startBreak, updateMining, miningProgress,
+    init, update, raycast, getTarget, setTouchAim, clearTouchAim, getTouchDirection,
+    startBreak, updateMining, miningProgress,
     cancelBreak: resetMining, tryBreak: breakNow, tryPlace, pickBlock
   };
 })();
