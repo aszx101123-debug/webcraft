@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.3.6-world-progress-20261106';
+const VERSION = 'webcraft-v1.3.7-inventory-touch-20261106';
 const CORE = [
   "./",
   "./index.html",
@@ -22,7 +22,9 @@ const CORE = [
   "./css/v134-combat.css?v=v134",
   "./css/v135-adventure.css?v=v135",
   "./css/v136-progress.css?v=v136",
-  "./js/game/config.js?v=v136",
+  "./css/v137-inventory.css?v=v137",
+  "./css/v137-touch.css?v=v137",
+  "./js/game/config.js?v=v137",
   "./js/game/noise.js",
   "./js/game/terrain.js?v=v132",
   "./js/game/mobile-test-textures.js?v=v133",
@@ -31,18 +33,18 @@ const CORE = [
   "./js/game/world-milestones.js?v=v136",
   "./js/game/block-furniture.js?v=v133",
   "./js/game/block-physics.js?v=v132",
-  "./js/game/player.js?v=v133",
+  "./js/game/player.js?v=v137",
   "./js/skin-studio.js?v=v131",
   "./js/game/mobile-test-player-model.js?v=v131",
   "./js/game/fluids.js?v=v129",
-  "./js/game/interaction.js?v=v136",
-  "./js/game/items.js?v=v129",
+  "./js/game/interaction.js?v=v137",
+  "./js/game/items.js?v=v137",
   "./js/game/drops.js",
   "./js/game/mobs.js?v=v135",
   "./js/game/save.js?v=v129",
-  "./js/game/mobile-test-crafting.js?v=v136",
-  "./js/game/mobile-test-ui.js?v=v132",
-  "./js/game/mobile-test-main.js?v=v136",
+  "./js/game/mobile-test-crafting.js?v=v137",
+  "./js/game/mobile-test-ui.js?v=v137",
+  "./js/game/mobile-test-main.js?v=v137",
   "./css/style.css",
   "./css/skin-studio.css?v=v131",
   "./css/v133-home.css?v=v133",
