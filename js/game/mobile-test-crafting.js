@@ -309,11 +309,25 @@ const Crafting = (() => {
       out.forEach((id, i) => { grid[activeIndices()[i]] = id; });
       return true;
     }
-    const shape = recipe.pattern[0];
+    const shape = recipe.pattern.find(p=>{
+      if(gridSize===3)return true;
+      const occupied=p.map((v,i)=>v?i:-1).filter(i=>i>=0);
+      if(!occupied.length)return false;
+      const xs=occupied.map(i=>i%3),ys=occupied.map(i=>Math.floor(i/3));
+      return Math.max(...xs)-Math.min(...xs)<2 && Math.max(...ys)-Math.min(...ys)<2;
+    });
+    if(!shape){
+      for(const refund of removed)Inventory.add(refund.id,refund.count);
+      return false;
+    }
     const ids = recipe.ingredients.map(x=>x.id);
-    for (let i = 0; i < 9; i++) {
-      const v = shape[i];
-      grid[i] = v ? (ids[v-1] || null) : null;
+    const occupied=shape.map((v,i)=>v?i:-1).filter(i=>i>=0);
+    const dx=gridSize===2?Math.min(...occupied.map(i=>i%3)):0;
+    const dy=gridSize===2?Math.min(...occupied.map(i=>Math.floor(i/3))):0;
+    for(let i=0;i<9;i++){
+      if(!shape[i])continue;
+      const nx=(i%3)-dx,ny=Math.floor(i/3)-dy;
+      grid[ny*3+nx]=ids[shape[i]-1]||null;
     }
     return true;
   }
@@ -325,6 +339,6 @@ const Crafting = (() => {
   return {
     getRecipes, getGrid, getVisibleCells, getGridSize, setGridSize,
     setCell, addToFirstEmpty, removeCell, resetGrid,
-    getMatch, canCraft, canCraftGrid, craftGrid, autofill, summary
+    getMatch, canCraft, canCraftGrid, craftGrid, autofill, summary, recipeFitsGrid
   };
 })();
