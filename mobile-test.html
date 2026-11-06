@@ -18,10 +18,11 @@
 <link rel="stylesheet" href="css/v133-build.css?v=v133">
 <link rel="stylesheet" href="css/v134-combat.css?v=v134">
 <link rel="stylesheet" href="css/v135-adventure.css?v=v135">
+<link rel="stylesheet" href="css/v136-progress.css?v=v136">
 </head>
 <body>
 
-<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.3.5 · 계단·반 블록·문·상자 추가 + 월드 건축 확장</div>
+<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.3.6 · 계단·반 블록·문·상자 추가 + 월드 건축 확장</div>
 <div id="boot-error" class="boot-error hidden" role="alert">
   <div class="boot-error-panel">
     <div class="boot-error-icon">!</div>
@@ -262,6 +263,11 @@
       <button id="journal-set-home" type="button" class="btn">현재 위치를 집으로 지정</button>
     </div>
     <div id="journal-biomes" class="journal-biome-grid" aria-label="발견한 바이옴"></div>
+    <div class="milestone-header">
+      <div><p class="journal-kicker">WORLD PROGRESSION</p><h3>모험의 기록</h3></div>
+      <span id="milestone-summary">목표 불러오는 중...</span>
+    </div>
+    <div id="journal-milestones" class="milestone-grid" aria-label="진행 목표"></div>
     <p class="journal-note">실제 위치가 아닌 게임 안의 블록 좌표만 기록됩니다.</p>
   </section>
 </div>
@@ -296,6 +302,7 @@
 <script src="js/game/mobile-test-textures.js?v=v133"></script>
 <script src="js/game/world.js?v=v135"></script>
 <script src="js/game/world-journal.js?v=v135"></script>
+<script src="js/game/world-milestones.js?v=v136"></script>
 <script src="js/game/block-furniture.js?v=v133"></script>
 <script src="js/game/block-physics.js?v=v132"></script>
 <script src="js/game/player.js?v=v133"></script>
