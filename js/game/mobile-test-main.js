@@ -759,8 +759,8 @@
     if (e.button === 0) {
       miningSwingElapsed = 0;
       PlayerModel.swing();
-      const dir = new THREE.Vector3();
-      camera.getWorldDirection(dir);
+      const dir = Interact.getTouchDirection() || new THREE.Vector3();
+      if(!Interact.getTouchDirection())camera.getWorldDirection(dir);
       const hitMob = Mobs.tryAttack(camera.position, dir, 3.6);
       if (hitMob) {
         if (Mobs.getLastAttackResult()?.landed)
