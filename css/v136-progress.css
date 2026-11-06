@@ -57,3 +57,28 @@
 @media(prefers-reduced-motion:reduce){
  .milestone-progress i,#milestone-unlock{transition:none}
 }
+
+/* Compact location bookmarks: coordinates belong only to the game world. */
+.journal-bookmark-section{margin:23px 0 6px;padding:18px;border:1px solid #436a61;background:#152e34;border-radius:12px}
+.journal-bookmark-heading{display:flex;justify-content:space-between;align-items:end;gap:10px;margin:0 0 12px}
+.journal-bookmark-heading h3{margin:0;color:#e7f5e8;font:850 20px system-ui,sans-serif}
+#journal-bookmark-count{border-radius:6px;padding:6px 9px;background:#315144;color:#d4efda;font-size:11px;font-weight:800}
+.journal-bookmark-actions{display:flex;gap:9px;margin-bottom:12px}
+#journal-bookmark-name{min-width:80px;flex:1;min-height:41px;padding:9px 11px;background:#11232d;border:1px solid #5d8176;border-radius:8px;color:#e4f6ed;font:500 13px system-ui,sans-serif}
+#journal-bookmark-name:focus-visible{outline:2px solid #b8e5af;outline-offset:2px}
+#journal-bookmark-add{padding:9px 12px;flex:none;background:#356b52;border:1px solid #8dc9a4;font-weight:800;font-size:11px}
+.journal-bookmark-list{display:grid;gap:8px}
+.journal-bookmark{display:flex;align-items:center;justify-content:space-between;gap:11px;padding:11px 12px;border:1px solid #526f6b;background:#223b3c;border-radius:9px}
+.journal-bookmark strong,.journal-bookmark small{display:block}
+.journal-bookmark strong{color:#e3f8e5;font-size:13px;margin-bottom:4px}
+.journal-bookmark small{color:#a6c2c4;font-size:11px;line-height:1.5}
+.journal-remove{font-size:11px;min-width:52px;padding:7px 9px}
+.journal-bookmark-empty{font-size:12px;color:#9bb6b6;text-align:center;margin:12px 0}
+@media(max-width:700px){
+  .journal-bookmark-section{padding:12px}
+  .journal-bookmark-actions{flex-wrap:wrap}
+  #journal-bookmark-name{flex:1 1 100%}
+  #journal-bookmark-add{width:100%}
+  .journal-bookmark strong{font-size:12px}
+  .journal-bookmark small{font-size:10px}
+}
