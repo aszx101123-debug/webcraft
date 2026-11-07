@@ -20,3 +20,14 @@
 .classic-home .credit-board #credit-status{min-height:20px;color:#d5eab3;font-size:12px}
 .classic-home .credit-board .credit-preview{border:2px dashed #8b806b;padding:15px;white-space:pre-wrap;font-size:12px;line-height:1.7;overflow-wrap:anywhere;background:#211c18}
 @media(max-width:650px){.classic-home .credit-options{grid-template-columns:1fr}.classic-home .credit-board{padding:16px}.classic-home .credit-balances{gap:8px}.classic-home .credit-wallet strong{font-size:19px}}
+
+/* Phase 2 sandbox panel */
+.classic-home .credit-sandbox{background:#302b26;border-color:#8e7552;grid-column:1/-1;gap:14px}
+.classic-home .credit-sandbox .credit-head h3{margin:0}
+.classic-home .credit-sandbox-actions{display:flex;gap:10px;flex-wrap:wrap}
+.classic-home .credit-sandbox .btn:disabled{opacity:.45;cursor:not-allowed}
+.classic-home .credit-transaction-list{margin:0;padding:0;list-style:none;display:grid;gap:6px;max-height:260px;overflow:auto}
+.classic-home .credit-transaction-list li{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;background:#201c18;padding:9px 12px;font-size:12px}
+.classic-home .credit-transaction-list small{font-size:11px;color:#b6a996}
+.classic-home #credit-sandbox-status{min-height:20px;color:#d4f2b7;font-size:12px}
+@media(max-width:600px){.classic-home .credit-sandbox-actions .btn{width:100%}}
