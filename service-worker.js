@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.4.0-community-20261107-b';
+const VERSION = 'webcraft-v1.4.0-community-20261107-c';
 const CORE = [
   "./",
   "./index.html",
@@ -27,7 +27,7 @@ const CORE = [
   "./css/classic-furnace.css?v=v140",
   "./css/classic.css?v=v140",
   "./css/classic-home.css?v=v140",
-  "./css/community-credits.css?v=phase2",
+  "./css/community-credits.css?v=phase3",
   "./pogl-game/vendor/three.min.js",
   "./js/game/config.js?v=v140",
   "./js/game/classic-settings.js?v=v140",
@@ -59,7 +59,9 @@ const CORE = [
   "./js/skin-studio-page.js?v=v131",
   "./js/community-credits.js?v=phase2",
   "./js/community-credits-sandbox.js?v=phase2",
-  "./js/i18n.js?v=20261107-community2"
+  "./js/community-credits-server.js?v=phase3",
+  "./js/wc-backend-config.js",
+  "./js/i18n.js?v=20261107-community3"
 ];
 
 self.addEventListener('install', e => {
