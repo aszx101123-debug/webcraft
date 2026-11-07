@@ -1,0 +1,22 @@
+/* Phase 1: WebCraft community credits preview; browser-only, not a server wallet. */
+.classic-home .credit-board{background:#24201b;border:3px solid #111;box-shadow:inset 2px 2px #ffffff16,0 6px 0 #13100d;padding:24px;display:grid;gap:18px}
+.classic-home .credit-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.classic-home .credit-head h2{font-size:22px;margin:0}
+.classic-home .credit-tag{border:1px solid #947948;color:#f6da95;padding:5px 8px;font-size:11px}
+.classic-home .credit-balances{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.classic-home .credit-wallet{padding:17px;background:#35465a;border:2px solid #101010;display:grid;gap:8px}
+.classic-home .credit-wallet.paid{background:#58462e}
+.classic-home .credit-wallet strong{font-size:23px;color:#fff}
+.classic-home .credit-board p,.classic-home .credit-board label,.classic-home .credit-board small{color:#e4ded6}
+.classic-home .credit-board .credit-note{font-size:12px;color:#dccba9;line-height:1.7;margin:0}
+.classic-home .credit-options{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.classic-home .credit-card{padding:18px;border:2px solid #100e0c;background:#3d342b;display:grid;gap:10px;align-content:start}
+.classic-home .credit-card h3{font-size:17px;margin:0}
+.classic-home .credit-card p{font-size:12px;line-height:1.7;margin:0}
+.classic-home .credit-board .btn{width:max-content;max-width:100%}
+.classic-home .credit-board :is(input,textarea,select){display:block;width:100%;box-sizing:border-box;background:#1a1715;border:2px solid #92908b;padding:11px;color:#fff;font:inherit;font-size:13px;border-radius:0}
+.classic-home .credit-form{display:grid;gap:12px}
+.classic-home .credit-form label{display:grid;gap:7px;font-size:13px}
+.classic-home .credit-board #credit-status{min-height:20px;color:#d5eab3;font-size:12px}
+.classic-home .credit-board .credit-preview{border:2px dashed #8b806b;padding:15px;white-space:pre-wrap;font-size:12px;line-height:1.7;overflow-wrap:anywhere;background:#211c18}
+@media(max-width:650px){.classic-home .credit-options{grid-template-columns:1fr}.classic-home .credit-board{padding:16px}.classic-home .credit-balances{gap:8px}.classic-home .credit-wallet strong{font-size:19px}}
