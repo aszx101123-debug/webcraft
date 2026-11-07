@@ -48,7 +48,7 @@ revoke all on public.wc_wallets,public.wc_credit_ledger,public.wc_daily_checkins
 grant select on public.wc_wallets,public.wc_credit_ledger,public.wc_suggestions,public.wc_admins to authenticated;
 -- Users may insert their own suggestions. Status and review fields are protected by an INSERT policy.
 grant insert(author_id,category,title,description) on public.wc_suggestions to authenticated;
-grant usage,select on all sequences in schema public to authenticated;
+grant usage,select on sequence public.wc_suggestions_id_seq to authenticated;
 drop policy if exists wc_wallet_read on public.wc_wallets;
 create policy wc_wallet_read on public.wc_wallets for select to authenticated using (user_id=auth.uid());
 drop policy if exists wc_ledger_read on public.wc_credit_ledger;
