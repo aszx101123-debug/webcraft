@@ -1,10 +1,14 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.4.0-community-20261107-c';
+const VERSION = 'webcraft-v1.4.0-credits-production-20261107';
 const CORE = [
   "./",
   "./index.html",
   "./play.html",
+  "./auth.html",
+  "./js/auth-page.js?v=2",
+  "./js/supabase-client.js",
+  "./js/community-credits-server.js?v=production1",
   "./mobile-test.html",
   "./manifest.webmanifest",
   "./img/icon-192.png",
@@ -57,10 +61,6 @@ const CORE = [
   "./css/v133-home.css?v=v133",
   "./js/v133-home.js?v=v133",
   "./js/skin-studio-page.js?v=v131",
-  "./js/community-credits.js?v=phase2",
-  "./js/community-credits-sandbox.js?v=phase2",
-  "./js/community-credits-server.js?v=phase3",
-  "./js/wc-backend-config.js",
   "./js/i18n.js?v=20261107-community3"
 ];
 
