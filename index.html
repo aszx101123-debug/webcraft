@@ -25,7 +25,7 @@
 <link rel="stylesheet" href="css/skin-studio.css?v=v131">
 <link rel="stylesheet" href="css/v133-home.css?v=v133">
 <link rel="stylesheet" href="css/classic-home.css?v=v140">
-<link rel="stylesheet" href="css/community-credits.css?v=phase1">
+<link rel="stylesheet" href="css/community-credits.css?v=phase2">
 </head>
 <body class="classic-home">
 
@@ -194,17 +194,37 @@
 <section id="community-credits" aria-labelledby="community-credits-title">
   <div class="wrap">
     <div class="credit-board">
-      <div class="credit-head"><h2 id="community-credits-title">WebCraft 크레딧 · 제안 게시판</h2><span class="credit-tag">1단계 체험판 · 결제 없음</span></div>
-      <p class="credit-note">크레딧은 이 브라우저에만 저장되는 체험용 포인트입니다. 계정 간 공유·실제 결제·운영자 우선 검토 기능은 아직 지원하지 않습니다.</p>
+      <div class="credit-head"><h2 id="community-credits-title">WebCraft 크레딧 · 제안 게시판</h2><span class="credit-tag">2단계 모의 결제 · 실제 결제 없음</span></div>
+      <p class="credit-note">이 기능은 브라우저에 저장되는 체험판입니다. 모의 결제는 실제 돈을 청구하지 않으며 테스트 PC는 구매 상품이나 실제 우선 검토권이 아닙니다.</p>
       <div class="credit-balances">
         <div class="credit-wallet"><span>무료 크레딧 (FC)</span><strong><span id="credit-free-balance">0</span> FC</strong><small>출석으로 획득</small></div>
-        <div class="credit-wallet paid"><span>유료 크레딧 (PC)</span><strong><span id="credit-paid-balance">0</span> PC</strong><small>정식 결제 미지원</small></div>
+        <div class="credit-wallet paid"><span>유료 크레딧 (PC)</span><strong><span id="credit-paid-balance">0</span> PC</strong><small>테스트 PC · 결제 없음</small></div>
       </div>
       <div class="credit-options">
         <div class="credit-card"><h3>무료 크레딧 얻기</h3><p>매일 한 번 출석하고 10 FC를 받아보세요. 출석 기록은 이 브라우저에서만 유지됩니다.</p><button type="button" id="credit-checkin" class="btn btn-green">오늘 출석 +10 FC</button></div>
         <div class="credit-card"><h3>제안 강조 배지</h3><p>100 FC로 제안서에 넣을 체험 배지 1개를 받을 수 있어요. 실제 운영자의 우선 검토나 채택을 보장하지 않습니다.</p><p>보유 배지: <strong id="credit-badges">0</strong>개</p><button type="button" id="credit-highlight" class="btn">100 FC 사용</button></div>
       </div>
-      <form id="credit-proposal-form" class="credit-form">
+      <div class="credit-card credit-sandbox" id="credit-sandbox">
+  <div class="credit-head"><h3>크레딧 충전 테스트</h3><span class="credit-tag">샌드박스 · 실제 금전 거래 없음</span></div>
+  <p>테스트 PC를 충전하고, 거래 내역과 취소 과정을 체험할 수 있습니다. 카드 정보나 개인정보를 입력하지 않습니다.</p>
+  <p><strong>테스트 잔액: <span id="credit-test-balance">0</span> PC</strong> · 테스트 우선 검토권 <strong id="credit-test-priority">0</strong>개</p>
+  <label>테스트 충전량
+    <select id="credit-test-pack">
+      <option value="small">50 PC (모의 결제)</option>
+      <option value="medium" selected>100 PC (모의 결제)</option>
+      <option value="large">300 PC (모의 결제)</option>
+    </select>
+  </label>
+  <div class="credit-sandbox-actions">
+    <button type="button" class="btn btn-green" id="credit-test-charge">모의 결제 진행</button>
+    <button type="button" class="btn" id="credit-test-refund">최근 충전 취소</button>
+    <button type="button" class="btn" id="credit-test-redeem">100 PC로 테스트 검토권 받기</button>
+  </div>
+  <p class="credit-note">테스트 검토권에는 실제 제안 우선 처리 효력이 없습니다. 브라우저 데이터를 삭제하거나 변경하면 기록이 사라지거나 바뀔 수 있습니다.</p>
+  <p id="credit-sandbox-status" role="status" aria-live="polite"></p>
+  <h3>테스트 거래 내역</h3><ol id="credit-transaction-list" class="credit-transaction-list"><li>아직 테스트 거래가 없습니다.</li></ol>
+</div>
+<form id="credit-proposal-form" class="credit-form">
         <h3>게임 업데이트 제안하기</h3>
         <label>제안 종류<select id="credit-category"><option>게임 기능</option><option>버그 신고</option><option>UI 및 편의성</option><option>기타</option></select></label>
         <label>제안 제목<input id="credit-title" type="text" minlength="3" maxlength="100" required placeholder="예: 신규 동굴 바이옴 추가"></label>
@@ -252,10 +272,11 @@
 <script src="js/skin-studio-page.js?v=v131"></script>
 <script>
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-  addEventListener('load', () => navigator.serviceWorker.register('service-worker.js?v=community1').catch(() => {}));
+  addEventListener('load', () => navigator.serviceWorker.register('service-worker.js?v=community2').catch(() => {}));
 }
 </script>
-<script src="js/community-credits.js?v=phase1"></script>
-<script src="js/i18n.js?v=20261107-community1"></script>
+<script src="js/community-credits.js?v=phase2"></script>
+<script src="js/community-credits-sandbox.js?v=phase2"></script>
+<script src="js/i18n.js?v=20261107-community2"></script>
 </body>
 </html>
