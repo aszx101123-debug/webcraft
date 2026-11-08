@@ -22,11 +22,11 @@
 <link rel="stylesheet" href="css/v137-inventory.css?v=v137">
 <link rel="stylesheet" href="css/v137-touch.css?v=v137">
 <link rel="stylesheet" href="css/classic-furnace.css?v=v140">
-<link rel="stylesheet" href="css/classic.css?v=v170">
+<link rel="stylesheet" href="css/classic.css?v=v171">
 </head>
 <body>
 
-<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.7.0 · 아이템 53종 · 블록 29종 · 농사 · 활 · 낚시 · 요리</div>
+<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.7.1 · 재료 자동 사용 · 바로 제작 · 최대 제작</div>
 <div id="boot-error" class="boot-error hidden" role="alert">
   <div class="boot-error-panel">
     <div class="boot-error-icon">!</div>
@@ -227,14 +227,21 @@
           <span class="craft-arrow" aria-hidden="true">➜</span>
           <button id="inventory-craft-output" class="craft-output" disabled aria-label="제작 결과"></button>
         </div>
-        <button id="inventory-recipe-toggle" class="btn java-recipe-toggle" type="button" aria-expanded="false" aria-controls="inventory-recipe-panel">▤ 제작법 책</button>
-        <div id="inventory-recipe-panel" class="java-recipe-panel hidden">
-          <p>현재 재료로 만들 수 있는 제작법이 먼저 표시돼요.</p>
-          <div id="inventory-recipe-list" class="java-recipe-list"></div>
-        </div>
+        <button id="inventory-recipe-toggle" class="btn java-recipe-toggle" type="button" aria-expanded="true" aria-controls="inventory-recipe-panel">▤ 제작법으로 바로 만들기</button>
         <p class="inventory-craft-tip">2×2에서는 기본 제작만 가능해요. 무기·갑옷 등은 제작대를 이용하세요.</p>
       </section>
     </div>
+    <section id="inventory-recipe-panel" class="recipe-book personal-recipe-book" aria-label="개인 제작법">
+      <div class="recipe-browser">
+        <div class="recipe-tools">
+          <input id="inventory-recipe-search" class="recipe-search" type="search" placeholder="제작법·재료 검색" aria-label="개인 제작법과 재료 검색" autocomplete="off">
+          <button id="inventory-recipe-filter" class="recipe-filter" type="button" aria-pressed="false">제작 가능만</button>
+        </div>
+        <p id="inventory-recipe-count" class="recipe-count" role="status"></p>
+        <div id="inventory-recipe-list" class="recipe-choices" aria-label="2×2 제작법 목록"></div>
+      </div>
+      <div id="inventory-recipe-detail" class="quick-recipe-detail" aria-label="선택한 제작법과 제작 버튼"></div>
+    </section>
     <section id="inventory-creative-panel" class="java-creative-panel hidden" aria-label="크리에이티브 아이템 목록">
       <input id="inventory-creative-search" type="search" placeholder="블록·아이템 검색" aria-label="블록과 아이템 검색" autocomplete="off">
       <div id="inventory-creative-grid" class="java-creative-grid" role="group" aria-label="아이템을 선택하면 커서로 가져옵니다"></div>
@@ -264,28 +271,35 @@
     <div id="inventory-cursor" class="inventory-cursor hidden" aria-hidden="true"></div>
   </div>
 </div>
-<div id="overlay-crafting" class="overlay hidden">
+<div id="overlay-crafting" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="craft-heading">
   <div class="panel crafting-panel">
-    <h2>제작대</h2>
-    <p class="sub">아래에서 재료를 선택한 뒤 위의 3×3 격자에서 원하는 칸을 누르세요. 레시피 북의 배치 버튼으로 자동 배치도 가능합니다.</p>
-    <div class="craft-layout">
+    <div class="crafting-heading">
+      <h2 id="craft-heading">제작대</h2>
+      <button id="crafting-close" class="btn ghost" type="button">닫기 (Esc)</button>
+    </div>
+    <p class="sub">제작법을 고르고 제작 버튼을 누르세요. 재료는 자동으로 사용되고 완성품은 가방에 들어갑니다.</p>
+    <div class="craft-layout easy-craft-layout">
+      <section class="craft-recipes recipe-browser" aria-label="제작대 제작법">
+        <div class="recipe-tools">
+          <input id="recipe-search" class="recipe-search" type="search" placeholder="제작법·재료 검색" aria-label="제작법과 재료 검색" autocomplete="off">
+          <button id="recipe-filter" class="recipe-filter" type="button" aria-pressed="false">제작 가능만</button>
+        </div>
+        <p id="recipe-count" class="recipe-count" role="status"></p>
+        <div id="recipe-grid" class="recipe-choices" aria-label="3×3 제작법 목록"></div>
+      </section>
       <div class="craft-left">
-        <div class="craft-board">
-          <div class="craft-grid" id="craft-grid"></div>
-          <div class="craft-arrow">→</div>
-          <button id="craft-output" class="craft-output" disabled aria-label="제작 결과"></button>
-        </div>
-        <div class="craft-inventory-title">재료</div>
-        <div id="craft-inventory" class="craft-inventory"></div>
-        <div class="craft-actions">
-          <button id="craft-clear" class="btn small">격자 비우기</button>
-          <button id="crafting-close" class="btn ghost">닫기</button>
-        </div>
-      </div>
-      <div class="craft-recipes">
-        <div class="craft-recipes-title">레시피 북</div>
-        <input id="recipe-search" class="recipe-search" type="search" placeholder="제작법·재료 검색" aria-label="제작법과 재료 검색" autocomplete="off">
-        <div id="recipe-grid"></div>
+        <div id="recipe-detail" class="quick-recipe-detail" aria-label="선택한 제작법과 제작 버튼"></div>
+        <details id="craft-manual" class="manual-crafting">
+          <summary>격자에 직접 배치하기 · 3×3</summary>
+          <div class="craft-board">
+            <div class="craft-grid" id="craft-grid"></div>
+            <div class="craft-arrow" aria-hidden="true">→</div>
+            <button id="craft-output" class="craft-output" disabled aria-label="제작 결과 · Shift 클릭으로 최대 제작"></button>
+          </div>
+          <div class="craft-inventory-title">가방에서 재료 선택</div>
+          <div id="craft-inventory" class="craft-inventory"></div>
+          <div class="craft-actions"><button id="craft-clear" class="btn small" type="button">재료 돌려받기</button></div>
+        </details>
       </div>
     </div>
   </div>
@@ -392,7 +406,7 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
   addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(() => {}));
 }
 </script>
-<script type="module" src="js/auth-play.js?v=v170"></script>
+<script type="module" src="js/auth-play.js?v=v171"></script>
 <script src="js/i18n.js?v=20261106-languages5"></script>
 </body>
 </html>

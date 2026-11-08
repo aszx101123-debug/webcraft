@@ -404,10 +404,135 @@ const Crafting = (() => {
     return recipe.ingredients.map(x => getItemName(x.id) + ' x' + x.count).join(' + ');
   }
 
+  const findRecipe = value => typeof value==='string' ? recipes.find(r=>r.id===value) : recipes.find(r=>r===value);
+  function recipeIngredients(recipe) {
+    const totals=new Map();
+    for(const item of recipe.ingredients)totals.set(item.id,(totals.get(item.id)||0)+item.count);
+    return [...totals].map(([id,count])=>({id,count}));
+  }
+  function previewGrid(value) {
+    const recipe=findRecipe(value),cells=new Array(9).fill(null);
+    if(!recipe||!recipeFitsGrid(recipe))return cells;
+    if(recipe.shapeless){
+      const inputs=recipe.ingredients.flatMap(item=>new Array(item.count).fill(item.id));
+      inputs.forEach((id,i)=>cells[activeIndices()[i]]=id);
+    }else{
+      const shape=recipe.pattern.find(pattern=>{
+        const occupied=pattern.map((v,i)=>v?i:-1).filter(i=>i>=0);
+        return occupied.length&&Math.max(...occupied.map(i=>i%3))-Math.min(...occupied.map(i=>i%3))<gridSize&&
+          Math.max(...occupied.map(i=>i/3|0))-Math.min(...occupied.map(i=>i/3|0))<gridSize;
+      });
+      if(!shape)return cells;
+      const occupied=shape.map((v,i)=>v?i:-1).filter(i=>i>=0);
+      const dx=Math.min(...occupied.map(i=>i%3)),dy=Math.min(...occupied.map(i=>i/3|0));
+      shape.forEach((v,i)=>{if(v)cells[((i/3|0)-dy)*3+i%3-dx]=recipe.ingredients[v-1].id;});
+    }
+    return cells;
+  }
+  function ingredientStock(id,cursor) {
+    const bag=Inventory.getSlots().filter(s=>s?.id===id);
+    if(bag.some(s=>s.count===Infinity)||cursor?.id===id&&cursor.count===Infinity)return Infinity;
+    return bag.reduce((total,s)=>total+s.count,0)+activeIndices().filter(i=>grid[i]===id).length+
+      (cursor?.id===id?cursor.count:0);
+  }
+  function addToPlan(plan,id,count) {
+    const def=getItemDef(id),gear=!!(def?.toolType||def?.armorType),limit=getMaxStack(id);
+    if(!def)return false;
+    if(!gear){
+      for(const stack of plan.slots){
+        if(stack?.id!==id)continue;
+        if(stack.count===Infinity)return true;
+        const put=Math.min(count,limit-stack.count);stack.count+=put;count-=put;
+        if(!count)return true;
+      }
+    }
+    for(let i=0;i<plan.slots.length&&count;i++)if(!plan.slots[i]){
+      const put=Math.min(count,limit);
+      plan.slots[i]={id,count:put,...(gear?{durability:def.maxDurability||1}:{})};count-=put;
+    }
+    return count===0;
+  }
+  function makeRecipePlan(recipe,batches,cursor,arrange=false) {
+    // Plan the complete exchange before committing: full bags must never eat materials.
+    for(const bagFirst of [false,true]){
+      const plan={slots:Inventory.getSlots().map(s=>s?{...s}:null),grid:grid.slice(),cursor:cursor?{...cursor}:null};
+      let affordable=true;
+      for(const item of recipeIngredients(recipe)){
+        let left=item.count*batches;
+        const takeBag=()=>{
+          // Small stacks first lets consumed ingredients free a slot for the result.
+          const indices=plan.slots.map((s,i)=>s?.id===item.id?i:-1).filter(i=>i>=0)
+            .sort((a,b)=>plan.slots[a].count-plan.slots[b].count);
+          for(const i of indices){
+            const s=plan.slots[i],take=Math.min(left,s.count);left-=take;
+            if(s.count!==Infinity){s.count-=take;if(!s.count)plan.slots[i]=null;}
+            if(!left)break;
+          }
+        };
+        const takeHeld=()=>{
+          for(const i of activeIndices())if(left&&plan.grid[i]===item.id){plan.grid[i]=null;left--;}
+          if(left&&plan.cursor?.id===item.id){
+            const take=Math.min(left,plan.cursor.count);left-=take;
+            if(plan.cursor.count!==Infinity){plan.cursor.count-=take;if(!plan.cursor.count)plan.cursor=null;}
+          }
+        };
+        if(bagFirst){takeBag();takeHeld();}else{takeHeld();takeBag();}
+        if(left){affordable=false;break;}
+      }
+      if(!affordable)return null;
+      if(arrange){
+        let fits=true;
+        for(const id of plan.grid)if(id&&!addToPlan(plan,id,1)){fits=false;break;}
+        if(fits){plan.grid=previewGrid(recipe);return plan;}
+      }else if(addToPlan(plan,recipe.outputId,recipe.count*batches))return plan;
+    }
+    return null;
+  }
+  function getRecipeState(value,cursor=null) {
+    const recipe=findRecipe(value);
+    if(!recipe)return {recipe:null,ingredients:[],fits:false,canCraft:false,maxBatches:0,maxCount:0,reason:'recipe'};
+    const ingredients=recipeIngredients(recipe).map(item=>({...item,have:ingredientStock(item.id,cursor)}));
+    const fits=recipeFitsGrid(recipe),missing=ingredients.some(item=>item.have<item.count);
+    if(!fits||missing)return {recipe,ingredients,fits,canCraft:false,maxBatches:0,maxCount:0,reason:fits?'materials':'station'};
+    const upper=Math.min(Math.floor(Inventory.SIZE*getMaxStack(recipe.outputId)/recipe.count),
+      ...ingredients.map(item=>Math.floor(item.have/item.count)));
+    const canCraft=!!makeRecipePlan(recipe,1,cursor);
+    let maxBatches=upper;
+    while(maxBatches>0&&!(maxBatches===1?canCraft:makeRecipePlan(recipe,maxBatches,cursor)))maxBatches--;
+    return {recipe,ingredients,fits,canCraft,maxBatches,maxCount:maxBatches*recipe.count,reason:maxBatches?'':'space'};
+  }
+  function commitPlan(plan) {
+    const slots=Inventory.getSlots();
+    plan.slots.forEach((s,i)=>{
+      const before=slots[i];
+      if(before?.id!==s?.id||before?.count!==s?.count||before?.durability!==s?.durability)slots[i]=s;
+    });
+    grid=plan.grid;
+  }
+  function craftRecipe(value,amount=1,cursor=null) {
+    const state=getRecipeState(value,cursor),batches=amount==='all'?state.maxBatches:amount;
+    if(!state.fits||!Number.isInteger(batches)||batches<1||batches>state.maxBatches)return {success:false,reason:state.reason||'space'};
+    const plan=makeRecipePlan(state.recipe,batches,cursor);
+    if(!plan)return {success:false,reason:'space'};
+    commitPlan(plan);
+    if(typeof WorldMilestones!=='undefined')for(let i=0;i<batches;i++)
+      WorldMilestones.record('craft',state.recipe.outputId,Inventory.isCreative()?'creative':'survival');
+    return {success:true,id:state.recipe.outputId,count:state.recipe.count*batches,batches,cursor:plan.cursor};
+  }
+  function arrangeRecipe(value,cursor=null) {
+    const recipe=findRecipe(value);
+    if(!recipe||!recipeFitsGrid(recipe))return {success:false,reason:'station'};
+    if(recipeIngredients(recipe).some(item=>ingredientStock(item.id,cursor)<item.count))return {success:false,reason:'materials'};
+    const plan=makeRecipePlan(recipe,1,cursor,true);
+    if(!plan)return {success:false,reason:'space'};
+    commitPlan(plan);return {success:true,cursor:plan.cursor};
+  }
+
   return {
     getRecipes, getGrid, getVisibleCells, getGridSize, setGridSize,
     setCell, addToFirstEmpty, removeCell, resetGrid,
     getMatch, canCraft, canCraftGrid, canTakeGridResult, takeGridResult,
-    craftGrid, autofill, summary, recipeFitsGrid
+    craftGrid, autofill, summary, recipeFitsGrid,
+    previewGrid, getRecipeState, craftRecipe, arrangeRecipe
   };
 })();

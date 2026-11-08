@@ -218,8 +218,8 @@ check('PC/mobile pages load classic controls and retain saved-world inventory su
     assert.ok(html.includes('js/game/player.js?v=v170'));
     assert.ok(html.includes('js/game/interaction.js?v=v170'));
     assert.ok(html.includes('js/game/items.js?v=v170'));
-    assert.ok(html.includes('js/game/mobile-test-ui.js?v=v170'));
-    assert.ok(html.includes('js/game/mobile-test-crafting.js?v=v170'));
+    assert.ok(html.includes('js/game/mobile-test-ui.js?v=v171'));
+    assert.ok(html.includes('js/game/mobile-test-crafting.js?v=v171'));
     assert.ok(html.includes('css/v137-touch.css?v=v137'));
     assert.ok(html.includes('css/v137-inventory.css?v=v137'));
     assert.ok(html.includes('id="mobile-pause-actions"'));
@@ -241,7 +241,7 @@ check('PC/mobile pages load classic controls and retain saved-world inventory su
     assert.ok(html.indexOf('js/skin-studio.js?v=v131') < html.indexOf('js/game/mobile-test-player-model.js?v=v150'));
 
   }
-  assert.ok(src('index.html').includes('v1.7.0'));
+  assert.ok(src('index.html').includes('v1.7.1'));
   assert.ok(src('index.html').includes('id="skin-studio"'));
   assert.ok(src('index.html').includes('js/skin-studio-page.js?v=v131'));
 });

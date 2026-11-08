@@ -165,6 +165,7 @@ const UI = (() => {
   let hoveredInventorySlot=null;
   let mobileSplitMode=false;
   let recipeBookBound=false;
+  const selectedRecipe={inventory:null,table:null};
 
   function clickInventorySlot(index,right=false,shift=false,double=false,clientX=0,clientY=0){
     if(!inventoryOpen)return false;
@@ -448,43 +449,123 @@ const UI = (() => {
     return complete;
   }
 
-  function renderInventoryRecipes(){
-    const list=$('inventory-recipe-list');
-    if(!list)return;
+  function recipeNode(tag,className,text) {
+    const node=document.createElement(tag);node.className=className;
+    if(text!==undefined)node.textContent=text;
+    return node;
+  }
+  function recipeIcon(id) {
+    const icon=recipeNode('img','recipe-item-icon');icon.src=Textures.blockIcon(id);icon.alt='';return icon;
+  }
+  function recipeIds(context) {
+    return context==='inventory'
+      ? {list:'inventory-recipe-list',search:'inventory-recipe-search',filter:'inventory-recipe-filter',detail:'inventory-recipe-detail',count:'inventory-recipe-count'}
+      : {list:'recipe-grid',search:'recipe-search',filter:'recipe-filter',detail:'recipe-detail',count:'recipe-count'};
+  }
+  function bindRecipeBook(context) {
+    const ids=recipeIds(context),search=$(ids.search),filter=$(ids.filter);
+    if(search)search.oninput=()=>{selectedRecipe[context]=null;renderRecipeBook(context);};
+    if(filter)filter.onclick=()=>{
+      filter.setAttribute('aria-pressed',String(filter.getAttribute('aria-pressed')!=='true'));
+      selectedRecipe[context]=null;renderRecipeBook(context);
+    };
+  }
+  function refreshCraftingView(context) {
+    if(context==='inventory')renderInventory();else renderCrafting();
+    renderHotbar();updateInventoryCursor(innerWidth/2,innerHeight/2);
+  }
+  function quickCraft(context,id,amount=1) {
+    const made=Crafting.craftRecipe(id,amount,inventoryCursor);
+    if(!made.success){
+      showToast(made.reason==='materials'?'제작 재료가 부족합니다':made.reason==='station'?'이 제작법은 제작대가 필요합니다':'완성품을 넣을 가방 공간이 부족합니다');
+      renderRecipeBook(context);return;
+    }
+    inventoryCursor=made.cursor;
+    refreshCraftingView(context);
+    showToast(getItemName(made.id)+' ×'+made.count+' 제작 · 가방에 넣었습니다');
+  }
+  function renderRecipeBook(context) {
+    const ids=recipeIds(context),list=$(ids.list),detail=$(ids.detail);
+    if(!list||!detail)return;
+    const active=document.activeElement;
+    const keepFocus=list.contains?.(active)||detail.contains?.(active);
+    const focusRecipe=keepFocus?active?.dataset?.recipeId:null;
+    const focusAction=keepFocus?['quick-craft-one','quick-craft-all','recipe-arrange'].find(name=>active?.classList?.contains(name)):null;
+    let focusTarget=null;
+    const scroll=list.scrollTop;
+    const normalize=text=>text.toLocaleLowerCase('ko-KR').replace(/\s+/g,'');
+    const needle=normalize(($(ids.search)?.value||'').trim());
+    const onlyReady=$(ids.filter)?.getAttribute('aria-pressed')==='true';
+    const entries=Crafting.getRecipes().filter(r=>Crafting.recipeFitsGrid(r)&&(!needle||normalize(r.name+' '+Crafting.summary(r)).includes(needle)))
+      .map(recipe=>({recipe,state:Crafting.getRecipeState(recipe,inventoryCursor)}));
+    const visible=entries.filter(({state})=>!onlyReady||state.maxBatches>0)
+      .sort((a,b)=>Number(b.state.maxBatches>0)-Number(a.state.maxBatches>0));
+    if(!selectedRecipe[context])selectedRecipe[context]=visible[0]?.recipe.id||null;
+    const chosen=entries.find(entry=>entry.recipe.id===selectedRecipe[context]);
     list.replaceChildren();
-    const recipes=Crafting.getRecipes()
-      .filter(r=>Crafting.recipeFitsGrid(r))
-      .sort((a,b)=>Number(Crafting.canCraft(b))-Number(Crafting.canCraft(a)));
-    for(const r of recipes){
-      const available=Crafting.canCraft(r);
-      const btn=document.createElement('button');
-      btn.type='button';
-      btn.className='java-recipe-item'+(available?'':' unavailable');
-      const img=document.createElement('img');
-      img.src=Textures.blockIcon(r.outputId);
-      img.alt='';
-      const name=document.createElement('span');
-      name.textContent=r.name+' ×'+r.count;
-      btn.title=r.note||Crafting.summary(r);
-      btn.setAttribute('aria-label',btn.title);
-      btn.disabled=!available;
-      btn.append(img,name);
-      btn.addEventListener('click',()=>{
-        if(Crafting.getVisibleCells().some(cell=>cell.id) && !returnCraftingMaterials()){
-          showToast('제작 재료를 돌려줄 공간이 없습니다');
-          return;
-        }
-        if(!Crafting.autofill(r.id)){
-          showToast('해당 제작법을 배치할 수 없습니다');
-          renderInventory();
-          return;
-        }
-        renderInventory();
-        showToast('제작법 배치 완료 · 결과 아이템을 누르세요');
-      });
-      list.appendChild(btn);
+    for(const {recipe,state} of visible){
+      const choice=recipeNode('button','recipe-choice'+(state.maxBatches?' ready':' unavailable'));
+      choice.type='button';choice.dataset.recipeId=recipe.id;
+      if(recipe.id===focusRecipe)focusTarget=choice;
+      choice.setAttribute('aria-pressed',String(chosen?.recipe.id===recipe.id));
+      choice.setAttribute('aria-label',recipe.name+' · '+Crafting.summary(recipe));
+      choice.title=recipe.note||Crafting.summary(recipe);
+      const label=recipeNode('span','recipe-choice-label');
+      label.append(recipeNode('strong','',getItemName(recipe.outputId)),recipeNode('small','',
+        '×'+recipe.count+' · '+(state.maxBatches?'제작 가능':state.reason==='space'?'가방 공간 부족':'재료 부족')));
+      choice.append(recipeIcon(recipe.outputId),label);
+      choice.addEventListener('click',()=>{selectedRecipe[context]=recipe.id;renderRecipeBook(context);});
+      list.appendChild(choice);
+    }
+    if(!visible.length)list.appendChild(recipeNode('p','recipe-empty',onlyReady?'지금 만들 수 있는 제작법이 없습니다. 필터를 끄면 필요한 재료를 볼 수 있어요.':'검색 결과가 없습니다. 다른 이름이나 재료로 찾아보세요.'));
+    list.scrollTop=scroll;
+    const counter=$(ids.count);if(counter)counter.textContent=visible.length+'개 제작법';
+    detail.replaceChildren();
+    if(!chosen){detail.appendChild(recipeNode('p','recipe-empty','제작법을 선택하면 필요한 재료와 제작 버튼이 표시됩니다.'));return;}
+    const {recipe,state}=chosen;
+    const heading=recipeNode('div','quick-recipe-heading'),label=recipeNode('div','');
+    label.append(recipeNode('strong','',getItemName(recipe.outputId)),recipeNode('small','','한 번에 '+recipe.count+'개'));
+    heading.append(recipeIcon(recipe.outputId),label);detail.appendChild(heading);
+    const requirements=recipeNode('div','recipe-ingredients');
+    for(const item of state.ingredients){
+      const missing=item.have<item.count;
+      const row=recipeNode('div','recipe-ingredient'+(missing?' missing':''));
+      const text=recipeNode('span','',getItemName(item.id));
+      text.appendChild(recipeNode('b','',(item.have===Infinity?'∞':item.have)+' / '+item.count+(missing?' · '+(item.count-item.have)+'개 부족':'')));
+      row.append(recipeIcon(item.id),text);requirements.appendChild(row);
+    }
+    detail.appendChild(requirements);
+    const status=recipeNode('p','recipe-status',state.maxBatches
+      ? '지금 최대 '+state.maxCount+'개 만들 수 있어요.':state.reason==='space'?'완성품을 넣을 가방 공간이 필요합니다.':'빨간색으로 표시된 재료를 더 모아 주세요.');
+    status.setAttribute('role','status');detail.appendChild(status);
+    const actions=recipeNode('div','quick-craft-actions');
+    const one=recipeNode('button','btn quick-craft-one','1회 제작 ×'+recipe.count);
+    one.type='button';one.disabled=!state.canCraft;
+    if(focusAction==='quick-craft-one')focusTarget=one;
+    one.addEventListener('click',()=>quickCraft(context,recipe.id));
+    const all=recipeNode('button','btn quick-craft-all','최대 제작'+(state.maxCount?' ×'+state.maxCount:''));
+    all.type='button';all.disabled=!state.maxBatches;
+    if(focusAction==='quick-craft-all')focusTarget=all;
+    all.addEventListener('click',()=>quickCraft(context,recipe.id,'all'));
+    actions.append(one,all);detail.appendChild(actions);
+    const arrange=recipeNode('button','recipe-arrange','격자에 자동 배치');arrange.type='button';
+    if(focusAction==='recipe-arrange')focusTarget=arrange;
+    arrange.disabled=state.ingredients.some(item=>item.have<item.count);
+    arrange.addEventListener('click',()=>{
+      const placed=Crafting.arrangeRecipe(recipe,inventoryCursor);
+      if(!placed.success){showToast('기존 재료를 보관할 가방 공간이 필요합니다');return;}
+      inventoryCursor=placed.cursor;refreshCraftingView(context);
+      if(context==='table'&&$('craft-manual'))$('craft-manual').open=true;
+      showToast('재료를 배치했습니다 · 결과를 누르면 제작됩니다');
+    });
+    detail.appendChild(arrange);
+    if(focusTarget){
+      if(focusTarget.disabled){heading.tabIndex=-1;focusTarget=heading;}
+      focusTarget.focus?.({preventScroll:true});
     }
   }
+
+  function renderInventoryRecipes(){renderRecipeBook('inventory');}
 
   function renderInventoryCrafting(){
     const grid=$('inventory-craft-grid'),output=$('inventory-craft-output');
@@ -544,10 +625,9 @@ const UI = (() => {
     output.title=match?match.name+' · 결과를 들기':'제작법을 맞춰 주세요';
     output.onclick=e=>{
       if(e.shiftKey && !inventoryCursor){
-        if(!Crafting.craftGrid()){
-          showToast('결과 아이템을 넣을 공간이 없습니다');
-          return;
-        }
+        const recipe=Crafting.getMatch();
+        if(recipe)quickCraft('inventory',recipe.id,'all');
+        return;
       }else{
         const matched=Crafting.getMatch();
         if(!matched || !Crafting.canTakeGridResult() ||
@@ -575,6 +655,7 @@ const UI = (() => {
     }
     if(Crafting.getGridSize()!==2)Crafting.resetGrid(2);
     inventoryOpen=true;
+    bindRecipeBook('inventory');
     const creativeButton=$('inventory-creative-toggle');
     const creativePanel=$('inventory-creative-panel');
     if(creativeButton){
@@ -702,8 +783,7 @@ const UI = (() => {
   function renderCrafting() {
     const craftGrid = $('craft-grid');
     const output = $('craft-output');
-    const recipeList = $('recipe-grid');
-    if (!craftGrid || !output || !recipeList) return;
+    if (!craftGrid || !output) return;
 
     craftGrid.innerHTML = '';
     Crafting.getVisibleCells().forEach(cellData => {
@@ -749,43 +829,17 @@ const UI = (() => {
       ? `<img src="${Textures.blockIcon(match.outputId)}" alt=""><span>${match.name}<b>×${match.count}</b></span>`
       : '<span class="craft-output-empty">?</span>';
     output.title = ready ? '클릭하여 제작' : (match ? '재료가 부족합니다' : '제작법을 맞춰 주세요');
-    output.onclick = () => {
-      if (!Crafting.craftGrid()) {
-        showToast('재료가 부족하거나 제작법이 맞지 않습니다');
-        return;
-      }
-      renderCrafting();
-      renderHotbar();
-      const made = Crafting.getMatch();
-      showToast('제작 완료');
+    output.onclick = e => {
+      const recipe=Crafting.getMatch();
+      if(recipe)quickCraft('table',recipe.id,e?.shiftKey?'all':1);
     };
-
-    recipeList.innerHTML = '';
-    const needle=($('recipe-search')?.value||'').trim().toLocaleLowerCase('ko-KR');
-    Crafting.getRecipes().filter(recipe=>!needle||(recipe.name+' '+Crafting.summary(recipe)).toLocaleLowerCase('ko-KR').includes(needle)).forEach(recipe => {
-      const ready = Crafting.canCraft(recipe);
-      const card = document.createElement('div');
-      card.className = 'recipe-card' + (ready ? ' ready' : '');
-      card.innerHTML = `<div class="recipe-icon"><img src="${Textures.blockIcon(recipe.outputId)}" alt=""></div>
-        <div><div class="recipe-name">${recipe.name}</div><div class="recipe-ing">${Crafting.summary(recipe)} · ${recipe.note || ''}</div></div>`;
-      const btn = document.createElement('button');
-      btn.className = 'btn small';
-      btn.textContent = '배치';
-      btn.disabled = !ready;
-      btn.addEventListener('click', () => {
-        if (!returnCraftingMaterials()) { showToast('재료를 되돌릴 공간이 없습니다'); return; }
-        if (!Crafting.autofill(recipe.id)) showToast('재료가 부족합니다');
-        renderCrafting();
-      });
-      card.appendChild(btn);
-      recipeList.appendChild(card);
-    });
+    renderRecipeBook('table');
 
     renderCraftingInventory();
     if (inventoryOpen) renderInventory();
   }
   function openCrafting() {
-    const search=$('recipe-search');if(search)search.oninput=renderCrafting;
+    bindRecipeBook('table');
     if (Crafting.getGridSize() !== 3 && !returnCraftingMaterials()) {
       showToast('2×2 제작 칸의 재료를 돌려줄 공간이 없습니다');
       return false;

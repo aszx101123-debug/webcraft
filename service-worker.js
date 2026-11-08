@@ -1,12 +1,12 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.7.0-items-and-survival-20261108';
+const VERSION = 'webcraft-v1.7.1-easier-crafting-20261108';
 const CORE = [
   "./",
   "./index.html",
   "./play.html",
   "./auth.html",
-  "./js/auth-play.js?v=v170",
+  "./js/auth-play.js?v=v171",
   "./js/auth-page.js?v=2",
   "./js/supabase-client.js",
   "./js/community-credits-server.js?v=production1",
@@ -34,11 +34,11 @@ const CORE = [
   "./css/v137-inventory.css?v=v137",
   "./css/v137-touch.css?v=v137",
   "./css/classic-furnace.css?v=v140",
-  "./css/classic.css?v=v170",
+  "./css/classic.css?v=v171",
   "./css/classic-home.css?v=v140",
   "./css/community-credits.css?v=phase3",
   "./pogl-game/vendor/three.min.js",
-  "./js/game/config.js?v=v170",
+  "./js/game/config.js?v=v171",
   "./js/game/classic-settings.js?v=v140",
   "./js/game/furnace-system.js?v=v170",
   "./js/game/noise.js",
@@ -62,8 +62,8 @@ const CORE = [
   "./js/game/farming.js?v=v170",
   "./js/game/item-actions.js?v=v170",
   "./js/game/save.js?v=v170",
-  "./js/game/mobile-test-crafting.js?v=v170",
-  "./js/game/mobile-test-ui.js?v=v170",
+  "./js/game/mobile-test-crafting.js?v=v171",
+  "./js/game/mobile-test-ui.js?v=v171",
   "./js/game/mobile-test-main.js?v=v170",
   "./css/style.css",
   "./css/skin-studio.css?v=v131",
