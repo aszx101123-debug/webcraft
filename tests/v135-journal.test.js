@@ -1,4 +1,6 @@
 'use strict';
+
+const gamePage = require('./helpers/game-page');
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
 const source=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
@@ -72,7 +74,7 @@ check('journal panel populates eight readable tiles and supports close callback'
 });
 check('classic pages preserve old journal saves without the custom gameplay shortcut',()=>{
   for(const page of ['play.html','mobile-test.html']){
-    const html=source(page);
+    const html=gamePage(page);
     assert.ok(html.includes('world-journal.js?v=v136'));
     assert.ok(html.includes('id="overlay-journal"'));
     assert.ok(html.includes('id="journal-set-home"'));

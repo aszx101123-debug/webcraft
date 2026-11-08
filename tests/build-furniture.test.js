@@ -1,4 +1,6 @@
 'use strict';
+
+const gamePage = require('./helpers/game-page');
 // Run with node tests/build-furniture.test.js (no third-party dependencies).
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const src=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
@@ -134,7 +136,7 @@ check('old world without furniture metadata boots safely',()=>{
 });
 check('desktop and mobile pages load new storage UI scripts',()=>{
  for(const name of ['play.html','mobile-test.html']){
-  const html=src(name);
+  const html=gamePage(name);
   assert.ok(html.includes('id="overlay-chest"'));
   assert.ok(html.includes('block-furniture.js?v=v133'));
   assert.ok(html.includes('v133-build.css?v=v133'));

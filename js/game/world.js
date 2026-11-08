@@ -18,13 +18,47 @@ const World = (() => {
   const key = (cx, cz) => cx + ',' + cz;
 
   const FACES = [
-    { key: 'side',   n: [1, 0, 0],  shade: .72, c: [[1, 0, 1], [1, 0, 0], [1, 1, 0], [1, 1, 1]], uv: [[0, 0], [1, 0], [1, 1], [0, 1]] },
-    { key: 'side',   n: [-1, 0, 0], shade: .72, c: [[0, 0, 0], [0, 0, 1], [0, 1, 1], [0, 1, 0]], uv: [[0, 0], [1, 0], [1, 1], [0, 1]] },
+    { key: 'side',   n: [1, 0, 0],  shade: .8,  c: [[1, 0, 1], [1, 0, 0], [1, 1, 0], [1, 1, 1]], uv: [[0, 0], [1, 0], [1, 1], [0, 1]] },
+    { key: 'side',   n: [-1, 0, 0], shade: .8,  c: [[0, 0, 0], [0, 0, 1], [0, 1, 1], [0, 1, 0]], uv: [[0, 0], [1, 0], [1, 1], [0, 1]] },
     { key: 'top',    n: [0, 1, 0],  shade: 1,   c: [[0, 1, 1], [1, 1, 1], [1, 1, 0], [0, 1, 0]], uv: [[0, 0], [1, 0], [1, 1], [0, 1]] },
     { key: 'bottom', n: [0, -1, 0], shade: .55, c: [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1]], uv: [[0, 0], [1, 0], [1, 1], [0, 1]] },
-    { key: 'side',   n: [0, 0, 1],  shade: .85, c: [[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]], uv: [[0, 0], [1, 0], [1, 1], [0, 1]] },
-    { key: 'side',   n: [0, 0, -1], shade: .85, c: [[1, 0, 0], [0, 0, 0], [0, 1, 0], [1, 1, 0]], uv: [[0, 0], [1, 0], [1, 1], [0, 1]] }
+    { key: 'side',   n: [0, 0, 1],  shade: .9,  c: [[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]], uv: [[0, 0], [1, 0], [1, 1], [0, 1]] },
+    { key: 'side',   n: [0, 0, -1], shade: .9,  c: [[1, 0, 0], [0, 0, 0], [0, 1, 0], [1, 1, 0]], uv: [[0, 0], [1, 0], [1, 1], [0, 1]] }
   ];
+
+  // Sample the two side voxels and diagonal outside each face corner.
+  // Compute offsets once; the mesh builder does no per-vertex allocations.
+  for (const face of FACES) {
+    const axes = face.n[0] ? [1, 2] : face.n[1] ? [0, 2] : [0, 1];
+    face.ao = face.c.map(corner => {
+      const a = face.n.slice(), b = face.n.slice(), diagonal = face.n.slice();
+      a[axes[0]] += corner[axes[0]] * 2 - 1;
+      b[axes[1]] += corner[axes[1]] * 2 - 1;
+      diagonal[axes[0]] = a[axes[0]];
+      diagonal[axes[1]] = b[axes[1]];
+      return [a, b, diagonal];
+    });
+  }
+  const AO = [.55, .7, .85, 1];
+  function occludes(id) {
+    const block = BLOCKS[id];
+    return !!block && !block.cutout && !block.liquid && !block.nonSolid && !block.shape;
+  }
+
+  function cornerLight(get, x, y, z, offsets) {
+    const a = offsets[0], b = offsets[1], c = offsets[2];
+    const sideA = +occludes(get(x + a[0], y + a[1], z + a[2]));
+    const sideB = +occludes(get(x + b[0], y + b[1], z + b[2]));
+    if (sideA && sideB) return AO[0];
+    const corner = +occludes(get(x + c[0], y + c[1], z + c[2]));
+    return AO[3 - sideA - sideB - corner];
+  }
+
+  const BIOME_TINTS = {
+    plains: [1, 1, 1], forest: [.9, 1, .88], jungle: [.86, 1.08, .78],
+    swamp: [.8, .87, .68], taiga: [.8, .96, 1], snowy: [.85, .97, 1],
+    desert: [1.12, .96, .68], highland: [.93, 1, .9]
+  };
 
   function faceVisible(id, nb) {
     if (nb === -1) return false;
@@ -66,7 +100,7 @@ const World = (() => {
       matTorch = new THREE.MeshBasicMaterial({ map: Textures.getTexture(), vertexColors: true, alphaTest: .5 });
       matWater = new THREE.MeshLambertMaterial({
         map: Textures.getTexture(), vertexColors: true, transparent: true,
-        opacity: .72, depthWrite: false, side: THREE.DoubleSide
+        opacity: .64, depthWrite: false, side: THREE.DoubleSide
       });
     }
     if (!torchLights.length) {
@@ -120,11 +154,7 @@ const World = (() => {
       if (!edits.has(k)) edits.set(k, new Map());
       edits.get(k).set(li, id);
     }
-    markDirty(cx, cz);
-    if (lx === 0) markDirty(cx - 1, cz);
-    if (lx === 15) markDirty(cx + 1, cz);
-    if (lz === 0) markDirty(cx, cz - 1);
-    if (lz === 15) markDirty(cx, cz + 1);
+    invalidateAt(x, y, z);
     blockChangeListeners.forEach(listener => listener(x,y,z,id,previous));
     return true;
   }
@@ -136,6 +166,9 @@ const World = (() => {
     if((x&15)===15)markDirty(cx+1,cz);
     if((z&15)===0)markDirty(cx,cz-1);
     if((z&15)===15)markDirty(cx,cz+1);
+    // Corner lighting also crosses diagonal chunk boundaries.
+    if(((x&15)===0||(x&15)===15)&&((z&15)===0||(z&15)===15))
+      markDirty(cx+((x&15)===0?-1:1),cz+((z&15)===0?-1:1));
   }
 
   function onBlockChanged(listener) {
@@ -161,6 +194,8 @@ const World = (() => {
         disposeChunk(ch);
         chunks.delete(k);
         dirtySet.delete(k);
+        for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++)
+          markDirty(ch.cx + dx, ch.cz + dz);
       }
     }
     if (pending.length) {
@@ -182,11 +217,8 @@ const World = (() => {
     const e = edits.get(k);
     if (e) for (const [li, id] of e) data[li] = id;
     chunks.set(k, { cx: p.cx, cz: p.cz, data, mesh: null, waterMesh: null });
-    markDirty(p.cx, p.cz);
-    markDirty(p.cx - 1, p.cz);
-    markDirty(p.cx + 1, p.cz);
-    markDirty(p.cx, p.cz - 1);
-    markDirty(p.cx, p.cz + 1);
+    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++)
+      markDirty(p.cx + dx, p.cz + dz);
     return true;
   }
 
@@ -196,6 +228,9 @@ const World = (() => {
     const wp = [], wn = [], wu = [], wc = [], wi = [];
     const tp = [], tn = [], tu = [], tc = [], ti = [];
     const ox = ch.cx * C, oz = ch.cz * C;
+    const biomeTints = Array.from({ length: C * C }, (_, i) =>
+      BIOME_TINTS[gen.biomeAt ? gen.biomeAt(ox + (i >> 4), oz + (i & 15)) : 'plains'] || BIOME_TINTS.plains);
+    const light = [1, 1, 1, 1];
     ch.torches = [];
 
     function getNb(lx, y, lz) {
@@ -213,7 +248,8 @@ const World = (() => {
       const B = BLOCKS[id];
       const liquid = !!B.liquid;
       const torch = id === BLOCK.TORCH;
-      if (torch) ch.torches.push([ox + x + .5, y + .55, oz + z + .5]);
+      const emissive = torch || id === BLOCK.GLOWSTONE;
+      if (emissive) ch.torches.push([ox + x + .5, y + .55, oz + z + .5]);
       if (B.shape) {
         // Multi-box mesh for stairs, half blocks, opened doors and chests.
         // These shapes share the original texture atlas and chunk vertex buffer.
@@ -249,9 +285,11 @@ const World = (() => {
         const nb = getNb(x + f.n[0], y + f.n[1], z + f.n[2]);
         if (!torch && !faceVisible(id, nb)) continue;
         const t = Textures.tileFor(id, f.key);
-        const P = torch ? tp : (liquid ? wp : pos), N = torch ? tn : (liquid ? wn : nor);
-        const U = torch ? tu : (liquid ? wu : uv), CC = torch ? tc : (liquid ? wc : col), I = torch ? ti : (liquid ? wi : ind);
+        const P = emissive ? tp : (liquid ? wp : pos), N = emissive ? tn : (liquid ? wn : nor);
+        const U = emissive ? tu : (liquid ? wu : uv), CC = emissive ? tc : (liquid ? wc : col), I = emissive ? ti : (liquid ? wi : ind);
         const vi = P.length / 3;
+        const tint = (id === BLOCK.GRASS && f.key === 'top') || id === BLOCK.LEAVES ||
+          id === BLOCK.BIRCH_LEAVES || id === BLOCK.SPRUCE_LEAVES ? biomeTints[x * C + z] : null;
         for (let i = 0; i < 4; i++) {
           const c = f.c[i];
           let vy = y + c[1];
@@ -270,9 +308,14 @@ const World = (() => {
           N.push(f.n[0], f.n[1], f.n[2]);
           const q = f.uv[i];
           U.push(q[0] ? t.u1 : t.u0, q[1] ? t.v1 : t.v0);
-          CC.push(f.shade, f.shade, f.shade);
+          light[i] = emissive ? 1 : f.shade * (liquid || B.cutout ? 1 : cornerLight(getNb, x, y, z, f.ao[i]));
+          const shade = light[i];
+          CC.push(shade * (tint ? tint[0] : 1), shade * (tint ? tint[1] : 1), shade * (tint ? tint[2] : 1));
         }
-        I.push(vi, vi + 1, vi + 2, vi, vi + 2, vi + 3);
+        // Choose the diagonal that avoids a visible crease through the AO gradient.
+        if (light[0] + light[2] > light[1] + light[3])
+          I.push(vi, vi + 1, vi + 3, vi + 1, vi + 2, vi + 3);
+        else I.push(vi, vi + 1, vi + 2, vi, vi + 2, vi + 3);
       }
     }
 

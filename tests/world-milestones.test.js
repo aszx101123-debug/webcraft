@@ -1,4 +1,6 @@
 'use strict';
+
+const gamePage = require('./helpers/game-page');
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
 const src=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
@@ -102,7 +104,7 @@ check('game scripts and both pages include the milestone lifecycle',()=>{
   assert.ok(interactions.includes("WorldMilestones.record('mine'"));
   assert.ok(interactions.includes("WorldMilestones.record('place'"));
   for(const page of ['play.html','mobile-test.html']){
-    const html=src(page);
+    const html=gamePage(page);
     assert.ok(html.includes('js/game/world-milestones.js?v=v136'));
     assert.ok(html.includes('id="journal-milestones"'));
     assert.ok(html.includes('id="milestone-unlock"'));

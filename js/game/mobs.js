@@ -49,6 +49,7 @@ const Mobs = (() => {
       ctx.fillRect(x,y,1,1);
     }
     const texture=new THREE.CanvasTexture(canvas);
+    texture.encoding=THREE.sRGBEncoding;
     texture.magFilter=THREE.NearestFilter;
     texture.minFilter=THREE.NearestFilter;
     texture.generateMipmaps=false;

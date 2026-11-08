@@ -15,7 +15,10 @@ const Textures = (() => {
     const rng = Noise.mulberry32(20260101);
     const P = (col, row, x, y, style) => { if (!style) return; ctx.fillStyle = style; ctx.fillRect(col * TS + x, row * TS + y, 1, 1); };
     const vary = (r, g, b, amt) => { const d = (rng() * 2 - 1) * amt; return css(r + d, g + d, b + d); };
-    const fill = (col, row, fn) => { for (let y = 0; y < TS; y++) for (let x = 0; x < TS; x++) P(col, row, x, y, fn(x, y)); };
+    const fill = (col, row, fn, overlay = false) => {
+      if (!overlay) ctx.clearRect(col * TS, row * TS, TS, TS);
+      for (let y = 0; y < TS; y++) for (let x = 0; x < TS; x++) P(col, row, x, y, fn(x, y));
+    };
 
     fill(0, 0, (x, y) => { const d = ((x * 17 + y * 29) % 11 === 0) ? -24 : ((x * 7 + y * 3) % 13 === 0 ? 15 : 0); return vary(91 + d, 143 + d, 61 + d * .7, 10); });
     fill(1, 0, (x, y) => (y < 3 || (y === 3 && rng() < .5)) ? vary(91, 143, 61, 11) : vary(128, 91, 59, 10));
@@ -39,15 +42,16 @@ const Textures = (() => {
       return vary(219, 207, 163, 10);
     });
     fill(6, 0, (x, y) => {
-      const groove = x % 4 === 0 || (x % 4 === 3 && rng() < .3);
-      if (y % 7 === 0 && !groove) return vary(151, 110, 66, 7);
-      return groove ? vary(78, 56, 36, 6) : vary(122, 90, 55, 8);
+      const groove = (x + (y >> 3)) % 5 === 0;
+      if (groove) return vary(65, 51, 31, 6);
+      if ((x * 3 + (y >> 1) * 5) % 13 < 2) return vary(132, 104, 64, 7);
+      return vary(102, 80, 47, 8);
     });
     fill(7, 0, (x, y) => {
-      const d = Math.hypot(x - 7.5, y - 7.5);
+      const d = Math.max(Math.abs(x - 7.5), Math.abs(y - 7.5));
       if (d > 7.2) return vary(78, 56, 34, 6);
-      const ring = Math.floor(d * 1.35) % 3;
-      return ring === 0 ? vary(148, 108, 66, 8) : ring === 1 ? vary(113, 78, 47, 8) : vary(132, 94, 57, 7);
+      const ring = Math.floor(d) % 3;
+      return ring === 0 ? vary(174, 142, 88, 7) : ring === 1 ? vary(128, 100, 59, 6) : vary(157, 126, 77, 6);
     });
     fill(0, 1, (x, y) => {
       if ((x + y) % 11 === 0) return null;
@@ -83,8 +87,8 @@ const Textures = (() => {
       return rng() < .36 ? vary(248, 220, 120, 12) : vary(146, 108, 58, 10);
     });
     fill(5, 1, (x, y) => {
-      const wave = Math.sin((x + y * .7) * .8) > .55;
-      return wave ? vary(76, 135, 210, 10) : vary(54, 109, 184, 12);
+      const ripple = (y + Math.floor(Math.sin(x * .5) * 2)) % 7 === 0;
+      return ripple ? vary(67, 119, 211, 5) : vary(47, 91, 185, 5);
     });
     fill(6, 1, () => { const v = rng() < .5 ? 52 : 88; return vary(v, v, v, 14); });
     fill(7, 1, (x, y) => {
@@ -107,7 +111,7 @@ const Textures = (() => {
     fill(3, 2, (x, y) => {
       if (x >= 11 && y >= 7 && y <= 9 && Math.hypot(x - 11.5, y - 8) < 2.6) return vary(236, 229, 211, 8);
       return null;
-    });
+    }, true);
     fill(4, 2, (x, y) => {
       const dx = (x - 7.5) / 5.5, dy = (y - 8.5) / 3.6;
       if (dx * dx + dy * dy > 1) return null;
@@ -217,59 +221,59 @@ const Textures = (() => {
       z = Math.imul(z^(z>>>13),1274126177); z ^= z>>>16;
       return (z>>>0) / 4294967295;
     };
+    const dirtPixel = (x, y) => {
+      const cluster = pixelNoise(x >> 1, y >> 1, 12), grain = pixelNoise(x, y, 15);
+      if (grain < .07) return vary(175, 137, 98, 4);
+      if (cluster < .2) return vary(104, 75, 53, 6);
+      return vary(137 + cluster * 12, 98 + cluster * 8, 67 + cluster * 5, 6);
+    };
     fill(0,0,(x,y)=>{
-      const v=pixelNoise(x,y,1), blade=((x*3+y*7)%17===0);
-      if(blade)return vary(119,167,66,6);
-      if(v<.12)return vary(60,105,46,9);
-      if(v>.87)return vary(104,151,56,8);
-      return vary(79,135,58,8);
+      const v=pixelNoise(x>>1,y>>1,1), blade=pixelNoise(x,y,8);
+      if(blade<.08)return vary(141,181,78,4);
+      if(v<.2)return vary(86,137,46,6);
+      if(v>.8)return vary(123,171,65,5);
+      return vary(108,158,56,6);
     });
     fill(1,0,(x,y)=>{
-      const top=2+(pixelNoise(x,0,41)>.55?1:0);
-      if(y<top)return css(80+(x%3)*7,141+(x%4)*4,57+(x%2)*4);
-      if(y<top+2&&pixelNoise(x,y,4)>.35)return vary(89,128,57,8);
-      const n=pixelNoise(x,y,12);
-      return n<.13?vary(82,58,41,7):n>.88?vary(154,108,70,9):vary(127,91,62,9);
+      const top=3+Math.floor(pixelNoise(x>>1,0,41)*3);
+      if(y<top)return vary(100+(x%3)*6,151+(x%4)*4,50+(x%2)*5,6);
+      if(y===top)return vary(92,83,44,5);
+      return dirtPixel(x,y);
     });
-    fill(2,0,(x,y)=>{
-      const n=pixelNoise(x,y,12);
-      if(n<.12)return vary(87,65,48,5);
-      if(n>.9)return vary(160,115,71,6);
-      return vary(126,90,62,10);
-    });
+    fill(2,0,dirtPixel);
     fill(3,0,(x,y)=>{
-      const n=pixelNoise(x,y,27), dark=(x+y*3)%17===0;
-      if(dark||n<.12)return vary(86,92,97,5);
-      if(n>.83)return vary(151,158,161,9);
-      return vary(120,128,131,6);
+      const n=pixelNoise(x>>1,y>>1,27), grain=pixelNoise(x,y,28);
+      if(grain<.09)return vary(105,104,102,4);
+      if(n>.78)return vary(147,146,142,5);
+      if(n<.18)return vary(112,111,108,4);
+      return vary(128,127,123,5);
     });
     fill(4,0,(x,y)=>{
       const sx=Math.floor((x+((y>>2)&1)*2)/5),sy=Math.floor(y/4);
       const n=pixelNoise(sx,sy,3);
       const line=(y%4===0)||((x+((y>>2)&1)*2)%5===0);
-      if(line)return vary(60,66,70,5);
-      const v=106+n*48;
-      return vary(v,v+1,v+3,7);
+      if(line)return vary(69,68,65,5);
+      const v=112+n*40;
+      return vary(v,v-1,v-4,6);
     });
     fill(5,0,(x,y)=>{
-      const n=pixelNoise(x,y,22), grain=y%7===0;
-      if(grain)return vary(202,190,145,7);
-      if(n<.12)return vary(187,177,135,6);
-      if(n>.87)return vary(240,229,188,6);
-      return vary(218,207,166,5);
+      const n=pixelNoise(x,y,22), cluster=pixelNoise(x>>1,y>>1,23);
+      if(n<.08)return vary(196,185,137,4);
+      if(cluster>.8)return vary(235,225,180,4);
+      return vary(223,213,164,5);
     });
     fill(0,1,(x,y)=>{
-      const n=pixelNoise(x,y,50);
-      if(n<.17 || ((x+y*3)%13===0))return null;
-      if(n>.83)return vary(119,168,74,8);
-      if(n<.34)return vary(37,92,35,8);
-      return vary(67,125,55,8);
+      const n=pixelNoise(x,y,50), cluster=pixelNoise(x>>1,y>>1,51);
+      if(n<.12)return null;
+      if(cluster>.78)return vary(105,150,57,6);
+      if(cluster<.25)return vary(45,91,32,6);
+      return vary(73,123,43,7);
     });
     fill(1,1,(x,y)=>{
       const joint=(y%4===0)||(x===((Math.floor(y/4)%2)*7+3)%16);
-      if(joint)return vary(100,75,48,4);
-      if((x*7+y*13)%29===0)return vary(204,167,110,5);
-      return vary(165,130,82,8);
+      if(joint)return vary(117,89,51,4);
+      if((x*7+(y>>1)*13)%29<2)return vary(193,157,96,4);
+      return vary(168+(y%4)*3,137+(y%4)*2,82,6);
     });
     // Ores are recognizable colored mineral clusters, instead of isolated noise dots.
     const orePalettes=[
@@ -437,6 +441,7 @@ const Textures = (() => {
     function hashCell(cx, cy) { return (cx * 7 + cy * 13) % 5 / 5; }
 
     texture = new THREE.CanvasTexture(canvas);
+    texture.encoding = THREE.sRGBEncoding;
     texture.magFilter = THREE.NearestFilter;
     texture.minFilter = THREE.NearestFilter;
     texture.generateMipmaps = false;

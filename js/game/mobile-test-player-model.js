@@ -232,6 +232,7 @@ const PlayerModel = (() => {
     }
     if (!getItemDef(id)) return null;
     const iconTexture = new THREE.TextureLoader().load(Textures.blockIcon(id));
+    iconTexture.encoding = THREE.sRGBEncoding;
     iconTexture.magFilter = THREE.NearestFilter;
     iconTexture.minFilter = THREE.NearestFilter;
     const item = new THREE.Mesh(

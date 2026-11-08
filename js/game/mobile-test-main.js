@@ -42,9 +42,7 @@
   // Camera-attached first-person arms only render when the camera is in the scene graph.
   scene.add(camera);
 
-  renderer.outputEncoding = THREE.sRGBEncoding;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.18;
+  Graphics.configureRenderer(renderer);
   const hemi = new THREE.HemisphereLight(0xdfeaff, 0x54492e, .8);
   scene.add(hemi);
   const sun = new THREE.DirectionalLight(0xfff3d0, .65);
@@ -222,10 +220,8 @@
     updatePoints(weather.snowPoints, 2.8, .25);
   }
 
-  const skyDay = new THREE.Color(0x8ecfef);
-  const skyNight = new THREE.Color(0x0a0e1a);
-  const skyDusk = new THREE.Color(0xe8956b);
   const skyNow = new THREE.Color();
+  const atmosphere = Graphics.create(scene, renderer, hemi, sun, seed);
   function applyFog() {
     const far = state.renderDist * 16 + 10;
     scene.fog = new THREE.Fog(skyNow.getHex(), far * .55, far);
@@ -235,15 +231,7 @@
 
   function updateSky(dt) {
     state.time = (state.time + dt / CONFIG.DAY_LENGTH) % 1;
-    const e = Math.sin(state.time * Math.PI * 2);
-    const f = Math.max(0, Math.min(1, (e + .15) / .75));
-    skyNow.copy(skyNight).lerp(skyDay, f);
-    const dusk = Math.max(0, 1 - Math.abs(e) / .22) * .5;
-    if (dusk > 0) skyNow.lerp(skyDusk, dusk);
-    scene.background = skyNow;
-    scene.fog.color.copy(skyNow);
-    sun.intensity = .22 + .82 * f;
-    hemi.intensity = .38 + .55 * f;
+    const f = atmosphere.update(state.time, Player.pos, weather.type, state.renderDist, Player.headSubmerged);
     Mobs.setEnv(f < .28, f);
     const hours = (state.time * 24 + 6) % 24;
     const hh = String(Math.floor(hours)).padStart(2, '0');
