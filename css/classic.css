@@ -532,3 +532,7 @@ body.touch-device #touch-topbar button {
   body.touch-device #touch-actions button { flex-basis: 46px; width: 46px; height: 46px; min-height: 46px; font-size: 24px; }
   #classic-options { max-height: 58dvh; }
 }
+
+/* Item use hints and searchable recipe book. */
+#item-name { white-space: pre-line; max-width: min(90vw, 640px); text-align: center; line-height: 1.5; }
+.recipe-search { width: 100%; min-height: 36px; margin: 8px 0 12px; padding: 8px; font: inherit; }

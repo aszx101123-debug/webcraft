@@ -176,6 +176,52 @@ const Crafting = (() => {
     });
   }
 
+  const simple=(id,name,output,count,ingredients,note='')=>add(id,name,output,count,{shapeless:true,ingredients:ingredients.map(([id,count])=>({id,count})),note});
+  simple('white-wool','실로 양털 만들기',BLOCK.WOOL_WHITE,1,[[ITEM.STRING,4]]);
+  for(const wool of WOOL_TYPES){
+    if(wool.key!=='WHITE'){
+      simple('wool-'+wool.key.toLowerCase(),wool.name+' 양털',wool.block,1,[[BLOCK.WOOL_WHITE,1],[wool.dye,1]]);
+      simple('bleach-'+wool.key.toLowerCase(),'양털 탈색',BLOCK.WOOL_WHITE,1,[[wool.block,1],[ITEM.DYE_WHITE,1]]);
+    }
+  }
+  for(const material of STORAGE_TYPES){
+    add('pack-'+material.key,material.name+' 블록',material.block,1,{
+      pattern:[[1,1,1,1,1,1,1,1,1]],ingredients:[{id:material.item,count:9}],note:'3×3 · 자원 9개를 보관 블록으로 압축'
+    });
+    simple('unpack-'+material.key,material.name+' 꺼내기',material.item,9,[[material.block,1]]);
+  }
+  simple('bone-meal','뼛가루',ITEM.BONE_MEAL,3,[[ITEM.BONE,1]]);
+  for(const [key,input,output,count] of [
+    ['white',ITEM.BONE_MEAL,ITEM.DYE_WHITE,1],['red',ITEM.POPPY,ITEM.DYE_RED,2],
+    ['yellow',ITEM.DAISY,ITEM.DYE_YELLOW,2],['blue',ITEM.LAPIS,ITEM.DYE_BLUE,1],
+    ['black',ITEM.CHARCOAL,ITEM.DYE_BLACK,1],['brown',ITEM.COCOA,ITEM.DYE_BROWN,1]
+  ])simple('dye-'+key,getItemName(output),output,count,[[input,1]]);
+  for(const [key,a,b] of [
+    ['ORANGE','RED','YELLOW'],['PURPLE','RED','BLUE'],['PINK','RED','WHITE'],
+    ['LIGHT_BLUE','BLUE','WHITE'],['LIME','GREEN','WHITE'],['GRAY','BLACK','WHITE'],
+    ['LIGHT_GRAY','GRAY','WHITE'],['CYAN','BLUE','GREEN'],['MAGENTA','PURPLE','PINK']
+  ])simple('dye-'+key.toLowerCase(),getItemName(ITEM['DYE_'+key]),ITEM['DYE_'+key],2,[[ITEM['DYE_'+a],1],[ITEM['DYE_'+b],1]]);
+  for(const [key,ingot,nugget] of [['iron',ITEM.IRON_INGOT,ITEM.IRON_NUGGET],['gold',ITEM.GOLD_INGOT,ITEM.GOLD_NUGGET]]){
+    simple(key+'-nuggets',getItemName(nugget),nugget,9,[[ingot,1]]);
+    add(key+'-from-nuggets',getItemName(ingot),ingot,1,{pattern:[[1,1,1,1,1,1,1,1,1]],ingredients:[{id:nugget,count:9}]});
+  }
+  simple('bark-paper','자작나무 종이',ITEM.PAPER,3,[[BLOCK.BIRCH_PLANKS,3]],'자작나무 판자 3개 → 종이 3장');
+  simple('book','책',ITEM.BOOK,1,[[ITEM.PAPER,3],[ITEM.LEATHER,1]]);
+  simple('charcoal-torches','목탄 횃불',BLOCK.TORCH,4,[[ITEM.CHARCOAL,1],[ITEM.STICK,1]]);
+  add('bread','빵',ITEM.BREAD,1,{pattern:[[1,1,1,0,0,0,0,0,0]],ingredients:[{id:ITEM.WHEAT,count:3}]});
+  add('cookies','쿠키',ITEM.COOKIE,8,{pattern:[[1,2,1,0,0,0,0,0,0]],ingredients:[{id:ITEM.WHEAT,count:2},{id:ITEM.COCOA,count:1}]});
+  add('bookshelf-books','책으로 책장 만들기',BLOCK.BOOKSHELF,1,{pattern:[[1,1,1,2,2,2,1,1,1]],ingredients:[{id:BLOCK.PLANK,count:6},{id:ITEM.BOOK,count:3}]});
+  add('bucket','양동이',ITEM.BUCKET,1,{pattern:[[1,0,1,0,1,0,0,0,0]],ingredients:[{id:ITEM.IRON_INGOT,count:3}]});
+  add('bow','활',ITEM.BOW,1,{pattern:[[0,1,2,1,0,2,0,1,2]],ingredients:[{id:ITEM.STICK,count:3},{id:ITEM.STRING,count:3}]});
+  add('arrows','화살',ITEM.ARROW,4,{pattern:[[1,0,0,2,0,0,3,0,0]],ingredients:[{id:ITEM.FLINT,count:1},{id:ITEM.STICK,count:1},{id:ITEM.FEATHER,count:1}]});
+  add('shears','가위',ITEM.SHEARS,1,{pattern:[[0,1,0,1,0,0,0,0,0]],ingredients:[{id:ITEM.IRON_INGOT,count:2}]});
+  add('fishing-rod','낚싯대',ITEM.FISHING_ROD,1,{pattern:[[0,0,1,0,1,2,1,0,2]],ingredients:[{id:ITEM.STICK,count:3},{id:ITEM.STRING,count:2}]});
+  add('shield','방패',ITEM.SHIELD,1,{pattern:[[1,2,1,1,1,1,0,1,0]],ingredients:[{id:BLOCK.PLANK,count:6},{id:ITEM.IRON_INGOT,count:1}]});
+  for(const [key,material,output] of [['compass',ITEM.IRON_INGOT,ITEM.COMPASS],['clock',ITEM.GOLD_INGOT,ITEM.CLOCK]])
+    add(key,getItemName(output),output,1,{pattern:[[0,1,0,1,2,1,0,1,0]],ingredients:[{id:material,count:4},{id:ITEM.REDSTONE,count:1}]});
+  add('golden-apple','황금 사과',ITEM.GOLDEN_APPLE,1,{pattern:[[1,1,1,1,2,1,1,1,1]],ingredients:[{id:ITEM.GOLD_INGOT,count:8},{id:ITEM.APPLE,count:1}]});
+  add('lantern','랜턴',BLOCK.LANTERN,1,{pattern:[[1,1,1,1,2,1,1,1,1]],ingredients:[{id:ITEM.IRON_NUGGET,count:8},{id:BLOCK.TORCH,count:1}]});
+
   function getRecipes() { return recipes.slice(); }
   function resetGrid(size = gridSize) {
     gridSize = size === 2 ? 2 : 3;

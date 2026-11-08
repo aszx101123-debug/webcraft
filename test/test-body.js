@@ -218,13 +218,13 @@ let mobsOk = true;
 for (const [type, def] of Object.entries(MOB_DEFS)) {
   if (!def.name || def.hp <= 0 || def.speed <= 0) mobsOk = false;
   if (def.hostile && !def.dmg) mobsOk = false;
-  (def.drops || []).forEach(d => { if (!ITEMS[d.id] || d.min > d.max) mobsOk = false; });
+  (def.drops || []).forEach(d => { if (!getItemDef(d.id) || d.min > d.max) mobsOk = false; });
 }
 ok(mobsOk, '모든 몹 정의 유효');
 ok(Object.values(MOB_DEFS).filter(d => d.hostile).length === 3, '적대 몹 3종');
 ok(Object.values(MOB_DEFS).filter(d => !d.hostile).length === 4, '동물 몹 4종');
 ok(Object.values(ITEMS).filter(i => typeof i.food === 'number').every(i => i.food > 0 && i.tiles.all), '모든 음식 정의 유효');
-ok(Object.values(ITEMS).filter(i => i.toolType).length === 25, '5단계 × 5종 도구와 무기 정의');
+ok(Object.keys(ITEMS).filter(id => Number(id)>=200&&Number(id)<300&&ITEMS[id].toolType).length === 25, '5단계 × 5종 도구와 무기 정의');
 
 console.log(fails ? '\n' + fails + '개 실패' : '\n모든 테스트 통과');
 if (fails) process.exit(1);

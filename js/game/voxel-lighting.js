@@ -13,7 +13,7 @@ const VoxelLighting = (() => {
     let read = 0, write = 0, pending = 0;
     const index = (x, y, z) => (x + PAD) * stride + (z + PAD) * H + y;
     const loss = BLOCKS.map((def, id) => !id ? 1 : def.liquid || def.cutout ? 2 : def.nonSolid || def.shape ? 1 : 15);
-    const emission = BLOCKS.map((_, id) => id === BLOCK.GLOWSTONE ? 15 : id === BLOCK.TORCH ? 14 : 0);
+    const emission = BLOCKS.map((def, id) => def?.emission || (id === BLOCK.GLOWSTONE ? 15 : id === BLOCK.TORCH ? 14 : 0));
 
     function enqueue(i) {
       if (queued[i]) return;

@@ -208,7 +208,7 @@ test('Ctrl+Q drops a complete stack while Shift+Q drops only one item', () => {
   assert.deepEqual(game.calls['drop-selected'], [[true], [false]]);
   assert.equal(game.calls['spawn-drop'][0][1], 17);
   assert.equal(game.calls['spawn-drop'][1][1], 1);
-  assert.deepEqual(game.calls['spawn-drop'][0].slice(2), [4, 30.7, 6]);
+  assert.deepEqual(game.calls['spawn-drop'][0].slice(2,5), [4, 30.7, 6]);
   game.press('KeyQ', { ctrlKey: true, repeat: true });
   assert.equal(game.count('drop-selected'), 2);
   assert.equal(game.count('spawn-drop'), 2);

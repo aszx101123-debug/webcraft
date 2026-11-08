@@ -1,7 +1,7 @@
 'use strict';
 
 const CONFIG = {
-  VERSION: '1.6.0',
+  VERSION: '1.7.0',
   MOB_HEALTH_BARS: false,
   CHUNK: 16,
   HEIGHT: 64,
@@ -30,7 +30,15 @@ const BLOCK = Object.freeze({
   GRAVEL: 27, CLAY: 28, SANDSTONE: 29, STONE_BRICKS: 30, POLISHED_STONE: 31,
   MOSSY_COBBLE: 32, BIRCH_LOG: 33, BIRCH_LEAVES: 34, BIRCH_PLANKS: 35,
   SPRUCE_LOG: 36, SPRUCE_LEAVES: 37, SPRUCE_PLANKS: 38, CACTUS: 39, BOOKSHELF: 40,
-  STONE_SLAB: 41, WOOD_STAIRS: 42, WOOD_DOOR: 43, CHEST: 44, WOOD_DOOR_TOP: 45
+  STONE_SLAB: 41, WOOD_STAIRS: 42, WOOD_DOOR: 43, CHEST: 44, WOOD_DOOR_TOP: 45,
+  FARMLAND:46, WHEAT_CROP:47, CARROT_CROP:48, POTATO_CROP:49,
+  WOOL_WHITE:50, WOOL_ORANGE:51, WOOL_MAGENTA:52, WOOL_LIGHT_BLUE:53,
+  WOOL_YELLOW:54, WOOL_LIME:55, WOOL_PINK:56, WOOL_GRAY:57,
+  WOOL_LIGHT_GRAY:58, WOOL_CYAN:59, WOOL_PURPLE:60, WOOL_BLUE:61,
+  WOOL_BROWN:62, WOOL_GREEN:63, WOOL_RED:64, WOOL_BLACK:65,
+  COAL_BLOCK:66, IRON_BLOCK:67, GOLD_BLOCK:68, COPPER_BLOCK:69,
+  DIAMOND_BLOCK:70, EMERALD_BLOCK:71, REDSTONE_BLOCK:72, LAPIS_BLOCK:73,
+  LANTERN:74
 });
 
 const BLOCKS = [
@@ -93,7 +101,18 @@ const ITEM = Object.freeze({
   WOODEN_CUTTER: 205, STONE_CUTTER: 206, IRON_CUTTER: 207, GOLD_CUTTER: 208, DIAMOND_CUTTER: 209,
   WOODEN_SHOVEL: 210, STONE_SHOVEL: 211, IRON_SHOVEL: 212, GOLD_SHOVEL: 213, DIAMOND_SHOVEL: 214,
   WOODEN_HOE:215,STONE_HOE:216,IRON_HOE:217,GOLD_HOE:218,DIAMOND_HOE:219,LEATHER_HELMET:220,LEATHER_CHESTPLATE:221,LEATHER_LEGGINGS:222,LEATHER_BOOTS:223,STONE_HELMET:224,STONE_CHESTPLATE:225,STONE_LEGGINGS:226,STONE_BOOTS:227,IRON_HELMET:228,IRON_CHESTPLATE:229,IRON_LEGGINGS:230,IRON_BOOTS:231,GOLD_HELMET:232,GOLD_CHESTPLATE:233,GOLD_LEGGINGS:234,GOLD_BOOTS:235,DIAMOND_HELMET:236,DIAMOND_CHESTPLATE:237,DIAMOND_LEGGINGS:238,DIAMOND_BOOTS:239,
-  WOODEN_SWORD:240, STONE_SWORD:241, IRON_SWORD:242, GOLD_SWORD:243, DIAMOND_SWORD:244
+  WOODEN_SWORD:240, STONE_SWORD:241, IRON_SWORD:242, GOLD_SWORD:243, DIAMOND_SWORD:244,
+  WHEAT_SEEDS:300,WHEAT:301,CARROT:302,POTATO:303,BAKED_POTATO:304,BREAD:305,
+  COOKED_PORK:306,COOKED_BEEF:307,COOKED_CHICKEN:308,COOKED_MUTTON:309,
+  RAW_FISH:310,COOKED_FISH:311,COCOA:312,COOKIE:313,BONE:314,BONE_MEAL:315,
+  STRING:316,FEATHER:317,FLINT:318,PAPER:319,BOOK:320,IRON_NUGGET:321,
+  GOLD_NUGGET:322,CHARCOAL:323,POPPY:324,DAISY:325,BUCKET:326,WATER_BUCKET:327,
+  MILK_BUCKET:328,BOW:329,ARROW:330,SHEARS:331,COMPASS:332,CLOCK:333,
+  FISHING_ROD:334,SHIELD:335,GOLDEN_APPLE:336,
+  DYE_WHITE:400,DYE_ORANGE:401,DYE_MAGENTA:402,DYE_LIGHT_BLUE:403,
+  DYE_YELLOW:404,DYE_LIME:405,DYE_PINK:406,DYE_GRAY:407,
+  DYE_LIGHT_GRAY:408,DYE_CYAN:409,DYE_PURPLE:410,DYE_BLUE:411,
+  DYE_BROWN:412,DYE_GREEN:413,DYE_RED:414,DYE_BLACK:415
 });
 
 const ITEMS = {
@@ -139,6 +158,70 @@ const ITEMS = {
   [ITEM.DIAMOND_SWORD]: swordItem('다이아몬드 검', 8, 1562, [4, 7])
 };
 
+// New content uses append-only IDs so existing worlds keep their items and blocks.
+const WOOL_TYPES = [
+  ['WHITE','흰색',0xe8e8e3],['ORANGE','주황색',0xe58524],['MAGENTA','자홍색',0xb64cbb],
+  ['LIGHT_BLUE','하늘색',0x65aaca],['YELLOW','노란색',0xe5c638],['LIME','연두색',0x77b532],
+  ['PINK','분홍색',0xd67b94],['GRAY','회색',0x42464c],['LIGHT_GRAY','연회색',0x9c9d94],
+  ['CYAN','청록색',0x208b93],['PURPLE','보라색',0x7939a9],['BLUE','파란색',0x343b9e],
+  ['BROWN','갈색',0x72503a],['GREEN','초록색',0x536a24],['RED','빨간색',0xa62f2b],['BLACK','검은색',0x202126]
+].map(([key,name,color],i)=>({key,name,color,block:BLOCK['WOOL_'+key],dye:ITEM['DYE_'+key],tile:[i,12]}));
+const STORAGE_TYPES = [
+  ['coal','석탄',ITEM.COAL,BLOCK.COAL_BLOCK,0x333337,1],
+  ['iron','철',ITEM.IRON_INGOT,BLOCK.IRON_BLOCK,0xcbd1d3,2],
+  ['gold','금',ITEM.GOLD_INGOT,BLOCK.GOLD_BLOCK,0xeac64b,3],
+  ['copper','구리',ITEM.COPPER_INGOT,BLOCK.COPPER_BLOCK,0xb9754a,2],
+  ['diamond','다이아몬드',ITEM.DIAMOND,BLOCK.DIAMOND_BLOCK,0x58cdd4,3],
+  ['emerald','에메랄드',ITEM.EMERALD,BLOCK.EMERALD_BLOCK,0x3ab46a,3],
+  ['redstone','레드스톤',ITEM.REDSTONE,BLOCK.REDSTONE_BLOCK,0xa82b26,2],
+  ['lapis','청금석',ITEM.LAPIS,BLOCK.LAPIS_BLOCK,0x3155a2,2]
+].map(([key,name,item,block,color,tier],i)=>({key,name,item,block,color,tier,tile:[12+i%4,Math.floor(i/4)]}));
+const CROP_TYPES = {
+  [BLOCK.WHEAT_CROP]:{key:'wheat',name:'밀',seed:ITEM.WHEAT_SEEDS,produce:ITEM.WHEAT,seconds:180,tiles:[12,3]},
+  [BLOCK.CARROT_CROP]:{key:'carrot',name:'당근',seed:ITEM.CARROT,produce:ITEM.CARROT,seconds:150,tiles:[12,4]},
+  [BLOCK.POTATO_CROP]:{key:'potato',name:'감자',seed:ITEM.POTATO,produce:ITEM.POTATO,seconds:160,tiles:[12,5]}
+};
+BLOCKS.push({name:'경작지',tiles:{top:[12,2],side:[13,2],bottom:[2,0]},shape:'farmland',hidden:true,miningTime:.4,tool:'shovel'});
+for(const crop of Object.values(CROP_TYPES))BLOCKS.push({name:crop.name+' 작물',tiles:{all:crop.tiles},crop:true,nonSolid:true,cutout:true,hidden:true,miningTime:.05});
+for(const wool of WOOL_TYPES)BLOCKS.push({name:wool.name+' 양털',color:wool.color,tiles:{all:wool.tile},miningTime:.6,tool:'shears',category:'장식'});
+for(const material of STORAGE_TYPES)BLOCKS.push({name:material.name+' 블록',color:material.color,tiles:{all:material.tile},miningTime:1.8,tool:'pickaxe',minTier:material.tier,category:'광석'});
+BLOCKS.push({name:'랜턴',tiles:{top:[12,6],bottom:[12,6],side:[13,6]},shape:'lantern',emission:15,miningTime:.45,tool:'pickaxe',category:'장식'});
+
+const newItem = (id,name,category,extra={}) => {
+  const n=id-300, tile=n<20?[12+n%4,7+Math.floor(n/4)]:[(n-20)%16,13+Math.floor((n-20)/16)];
+  ITEMS[id]={name,category,tiles:{all:tile},...extra};
+};
+newItem(ITEM.WHEAT_SEEDS,'밀 씨앗','농사',{plant:BLOCK.WHEAT_CROP,useHint:'경작지에 우클릭하여 심기'});
+newItem(ITEM.WHEAT,'밀','농사',{useHint:'빵과 쿠키의 제작 재료'});
+newItem(ITEM.CARROT,'당근','농사',{plant:BLOCK.CARROT_CROP,food:3,useHint:'경작지에 심거나 우클릭하여 먹기'});
+newItem(ITEM.POTATO,'감자','농사',{plant:BLOCK.POTATO_CROP,food:1,useHint:'경작지에 심거나 화로에 굽기'});
+for(const [id,name,food] of [
+  [ITEM.BAKED_POTATO,'구운 감자',5],[ITEM.BREAD,'빵',5],[ITEM.COOKED_PORK,'구운 돼지고기',8],
+  [ITEM.COOKED_BEEF,'스테이크',8],[ITEM.COOKED_CHICKEN,'구운 닭고기',6],[ITEM.COOKED_MUTTON,'구운 양고기',6],
+  [ITEM.RAW_FISH,'생선',2],[ITEM.COOKED_FISH,'구운 생선',6],[ITEM.COOKIE,'쿠키',2]
+])newItem(id,name,'음식',{food});
+for(const [id,name] of [
+  [ITEM.COCOA,'코코아 콩'],[ITEM.BONE,'뼈'],[ITEM.STRING,'실'],[ITEM.FEATHER,'깃털'],
+  [ITEM.FLINT,'부싯돌'],[ITEM.PAPER,'종이'],[ITEM.BOOK,'책'],[ITEM.IRON_NUGGET,'철 조각'],
+  [ITEM.GOLD_NUGGET,'금 조각'],[ITEM.CHARCOAL,'목탄'],[ITEM.POPPY,'양귀비'],[ITEM.DAISY,'데이지']
+])newItem(id,name,'재료');
+newItem(ITEM.BONE_MEAL,'뼛가루','농사',{useHint:'작물에 우클릭하여 성장 촉진'});
+newItem(ITEM.BUCKET,'양동이','도구',{maxStack:16,useHint:'물에 우클릭하여 담기 · 소에게 우클릭하여 우유 얻기'});
+newItem(ITEM.WATER_BUCKET,'물 양동이','도구',{maxStack:1,useHint:'블록 면에 우클릭하여 물 붓기'});
+newItem(ITEM.MILK_BUCKET,'우유 양동이','음식',{maxStack:1,food:4,heals:2,container:ITEM.BUCKET,useHint:'우클릭: 체력과 배고픔 회복 · 양동이 반환'});
+for(const [id,name,toolType,maxDurability,useHint] of [
+  [ITEM.BOW,'활','bow',384,'우클릭: 화살 발사 · 화살 필요'],
+  [ITEM.SHEARS,'가위','shears',238,'양에게 우클릭: 양털 · 잔디에 우클릭: 채집'],
+  [ITEM.FISHING_ROD,'낚싯대','fishing',64,'물에 우클릭: 던지기 · 입질 후 다시 우클릭'],
+  [ITEM.SHIELD,'방패','shield',336,'우클릭: 잠시 정면 공격 방어 · 보조 손 사용 가능']
+])newItem(id,name,'도구',{toolType,tier:toolType==='shears'?1:0,speed:toolType==='shears'?6:1,maxDurability,useHint});
+newItem(ITEM.ARROW,'화살','재료',{useHint:'활로 발사하는 탄약'});
+newItem(ITEM.COMPASS,'나침반','도구',{maxStack:1,useHint:'우클릭: 리스폰 지점의 방향과 거리'});
+newItem(ITEM.CLOCK,'시계','도구',{maxStack:1,useHint:'우클릭: 현재 월드 시간'});
+newItem(ITEM.GOLDEN_APPLE,'황금 사과','음식',{food:4,heals:8,useHint:'우클릭: 체력 8과 배고픔 4 회복'});
+for(const wool of WOOL_TYPES)ITEMS[wool.dye]={name:wool.name+' 염료',category:'염료',tiles:{all:[wool.dye-400,15]},color:wool.color,useHint:'양털 염색과 색 혼합 제작'};
+ITEMS[ITEM.PORK].food=3;ITEMS[ITEM.BEEF].food=3;ITEMS[ITEM.CHICKEN].food=2;ITEMS[ITEM.MUTTON].food=2;
+
 function swordItem(name, attackDamage, maxDurability, tile) {
   return { name, toolType: 'sword', tier: 1, speed: 1, attackDamage, maxDurability, tiles: { all: tile } };
 }
@@ -159,7 +242,10 @@ const PLACEABLE_IDS = [
   BLOCK.COPPER_ORE, BLOCK.REDSTONE_ORE, BLOCK.LAPIS_ORE, BLOCK.DIAMOND_ORE, BLOCK.EMERALD_ORE, BLOCK.SNOW
 ];
 
+PLACEABLE_IDS.push(...WOOL_TYPES.map(x=>x.block),...STORAGE_TYPES.map(x=>x.block),BLOCK.LANTERN);
+
 const BLOCK_DROPS = {
+  [BLOCK.FARMLAND]:BLOCK.DIRT,[BLOCK.WHEAT_CROP]:0,[BLOCK.CARROT_CROP]:0,[BLOCK.POTATO_CROP]:0,
   [BLOCK.GRASS]: BLOCK.DIRT,
   [BLOCK.STONE]: BLOCK.COBBLE,
   [BLOCK.GLASS]: 0,
@@ -181,7 +267,11 @@ function getBlockDrop(id, rnd, tool) {
   if (!def) return 0;
   // Hoes let survival players collect leaf blocks for mossy-stone crafting.
   if ([BLOCK.LEAVES,BLOCK.BIRCH_LEAVES,BLOCK.SPRUCE_LEAVES].includes(id) && tool?.toolType==='hoe') return id;
-  if (id === BLOCK.LEAVES || id === BLOCK.BIRCH_LEAVES) return rnd && rnd() < 0.04 ? ITEM.APPLE : 0;
+  if (id === BLOCK.LEAVES || id === BLOCK.BIRCH_LEAVES) {
+    const roll=rnd?rnd():1;
+    return roll<.04?ITEM.APPLE:roll<.065?ITEM.COCOA:0;
+  }
+  if(id===BLOCK.GRAVEL&&rnd&&rnd()<.1)return ITEM.FLINT;
   if (id === BLOCK.SPRUCE_LEAVES) return rnd && rnd() < 0.08 ? ITEM.STICK : 0;
   if (id === BLOCK.GLASS) return 0;
   if (def.minTier !== undefined) {
@@ -190,7 +280,7 @@ function getBlockDrop(id, rnd, tool) {
   return Object.prototype.hasOwnProperty.call(BLOCK_DROPS,id) ? BLOCK_DROPS[id] : id;
 }
 
-function isToolId(id){return ((id>=200&&id<220)||(id>=240&&id<=244))&&!!ITEMS[id]&&!!ITEMS[id].toolType;} function isArmorId(id){return id>=220&&id<=239&&!!ITEMS[id]&&!!ITEMS[id].armorType;}
+function isToolId(id){return !!ITEMS[id]?.toolType;} function isArmorId(id){return !!ITEMS[id]?.armorType;}
 function getToolDef(id){return isToolId(id)?ITEMS[id]:null;} function getArmorDef(id){return isArmorId(id)?ITEMS[id]:null;}
 function isFoodId(id) { return id >= 100 && !!ITEMS[id] && typeof ITEMS[id].food === 'number'; }
 
@@ -212,17 +302,19 @@ const MOB_CAPS = { hostile: 12, passive: 10 };
 const MOB_DEFS = {
   pig:      { name: '돼지',    hostile: false, hp: 10, speed: 1.5, height: .9, width: .82,  drops: [{ id: ITEM.PORK, min: 1, max: 2 }] },
   cow:{name:'소',hostile:false,hp:10,speed:1.4,height:1.28,width:.9,drops:[{id:ITEM.BEEF,min:1,max:3},{id:ITEM.LEATHER,min:0,max:2,chance:.75}]},
-  sheep:    { name: '양',      hostile: false, hp: 8, speed: 1.4, height: 1.22, width: .82, drops: [{ id: ITEM.MUTTON, min: 1, max: 2 }] },
-  chicken:  { name: '닭',      hostile: false, hp: 4,  speed: 1.3, height: .65, width: .45, drops: [{ id: ITEM.CHICKEN, min: 1, max: 1 }] },
-  zombie:   { name: '좀비',    hostile: true,  hp: 20, speed: 2.35, height: 1.9,  width: .62, dmg: 3, aggro: 24, drops: [{ id: ITEM.ROTTEN, min: 1, max: 1, chance: .45 }] },
-  skeleton: { name: '스켈레톤', hostile: true, hp: 20, speed: 2.15, height: 1.9, width: .56, dmg: 3, aggro: 26, ranged: true, drops: [] },
-  spider:   { name: '거미',    hostile: true,  hp: 16, speed: 3.2, height: .75, width: 1.0,  dmg: 2.5, aggro: 18, drops: [] }
+  sheep:    { name: '양',      hostile: false, hp: 8, speed: 1.4, height: 1.22, width: .82, drops: [{ id: ITEM.MUTTON, min: 1, max: 2 }, {id:BLOCK.WOOL_WHITE,min:1,max:1}] },
+  chicken:  { name: '닭',      hostile: false, hp: 4,  speed: 1.3, height: .65, width: .45, drops: [{ id: ITEM.CHICKEN, min: 1, max: 1 }, {id:ITEM.FEATHER,min:1,max:2}] },
+  zombie:   { name: '좀비',    hostile: true,  hp: 20, speed: 2.35, height: 1.9,  width: .62, dmg: 3, aggro: 24, drops: [{ id: ITEM.ROTTEN, min: 1, max: 1, chance: .45 }, {id:ITEM.CARROT,min:1,max:1,chance:.12}, {id:ITEM.POTATO,min:1,max:1,chance:.12}] },
+  skeleton: { name: '스켈레톤', hostile: true, hp: 20, speed: 2.15, height: 1.9, width: .56, dmg: 3, aggro: 26, ranged: true, drops: [{id:ITEM.BONE,min:1,max:2}, {id:ITEM.ARROW,min:1,max:3}] },
+  spider:   { name: '거미',    hostile: true,  hp: 16, speed: 3.2, height: .75, width: 1.0,  dmg: 2.5, aggro: 18, drops: [{id:ITEM.STRING,min:1,max:2}] }
 };
 
 // Local voxel AABBs, used consistently by world meshing, player movement and placement.
 // Each box is [minX,minY,minZ,maxX,maxY,maxZ] within its owning voxel.
 function getBlockBoxes(id, state = null) {
   const s=state||{};
+  if(id===BLOCK.FARMLAND)return [[0,0,0,1,.9375,1]];
+  if(id===BLOCK.LANTERN)return [[.25,.08,.25,.75,.7,.75],[.2,.04,.2,.8,.12,.8],[.2,.7,.2,.8,.8,.8],[.43,.8,.43,.57,.98,.57]];
   if(id===BLOCK.STONE_SLAB)
     return [s.half==='top'?[0,.5,0,1,1,1]:[0,0,0,1,.5,1]];
   if(id===BLOCK.WOOD_STAIRS) {
@@ -284,4 +376,9 @@ function getItemDef(id) {
 function getItemName(id) {
   const d = getItemDef(id);
   return d ? d.name : '?';
+}
+
+function getMaxStack(id) {
+  const def=getItemDef(id);
+  return def?.toolType||def?.armorType?1:(def?.maxStack||64);
 }

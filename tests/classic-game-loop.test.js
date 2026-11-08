@@ -81,6 +81,8 @@ function createGame(options = {}) {
     Fluids: { update: record('fluids') },
     BlockPhysics: { update: record('physics') },
     FurnaceSystem: { update: record('furnace') },
+    Farming:{update:record('farming')},
+    ItemActions:{update:record('items')},
     Mobs: {
       getAttackCharge: () => 1, update: record('mobs'),
       counts: () => ({ total: 0, passive: 0, hostile: 0 })
@@ -107,7 +109,7 @@ function createGame(options = {}) {
   };
 }
 
-const simulation = ['sky', 'weather', 'fluids', 'physics', 'furnace', 'survival', 'mobs', 'drops'];
+const simulation = ['sky', 'weather', 'fluids', 'physics', 'furnace', 'farming', 'items', 'survival', 'mobs', 'drops'];
 
 function assertFrozen(game) {
   for (const name of simulation) assert.equal(game.count(name), 0, name + ' must stay paused');

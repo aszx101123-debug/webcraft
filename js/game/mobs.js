@@ -10,6 +10,7 @@ const Mobs = (() => {
   let lastPlayerAttackAt = -Infinity;
   let lastAttackResult = null;
   let onEvent = null;
+  let simulationTime=0;
 
   function init(scene_) {
     scene = scene_;
@@ -24,6 +25,7 @@ const Mobs = (() => {
     spawnTimer = 3;
     lastPlayerAttackAt = -Infinity;
     lastAttackResult = null;
+    simulationTime=0;
   }
 
   function setEnv(night, brightness) { env.night = night; env.brightness = brightness; }
@@ -527,6 +529,36 @@ const Mobs = (() => {
     if (onEvent) onEvent('shoot', m);
   }
 
+  function firePlayerArrow(eye,direction,damage=6) {
+    if(!group||arrows.length>=64||!direction||!['x','y','z'].every(k=>Number.isFinite(direction[k])&&Number.isFinite(eye[k])))return false;
+    const dir=new THREE.Vector3(direction.x,direction.y,direction.z);
+    if(dir.lengthSq()<.001)return false;
+    dir.normalize();
+    const from=new THREE.Vector3(eye.x,eye.y,eye.z).addScaledVector(dir,.4);
+    const mesh=new THREE.Mesh(new THREE.BoxGeometry(.065,.065,.6),mat(0xb59c70));
+    mesh.position.copy(from);group.add(mesh);
+    arrows.push({pos:from,vel:dir.multiplyScalar(26),mesh,life:5,player:true,damage});
+    if(onEvent)onEvent('shoot',null);
+    return true;
+  }
+
+  function interactRay(eye,dir,reach,action) {
+    const type=action==='milk'?'cow':action==='shear'?'sheep':null;
+    if(!type)return null;
+    let best=null,distance=reach;
+    for(const m of mobs){
+      if(m.dead||m.type!==type)continue;
+      const half=m.def.width/2;
+      const hit=rayBox(eye,dir,{x:m.pos.x-half,y:m.pos.y,z:m.pos.z-half},{x:m.pos.x+half,y:m.pos.y+m.def.height,z:m.pos.z+half});
+      if(hit!==null&&hit<distance&&hasLineOfSight(eye,{x:m.pos.x,y:m.pos.y+m.def.height*.6,z:m.pos.z})){best=m;distance=hit;}
+    }
+    if(!best)return null;
+    const cooldown=action==='shear'?'shearedUntil':'milkUntil';
+    if((best[cooldown]||0)>simulationTime)return {success:false,cooldown:true};
+    best[cooldown]=simulationTime+(action==='shear'?90:5);
+    return {success:true,type};
+  }
+
   function surfaceY(x, z) {
     for (let y = CONFIG.HEIGHT - 1; y > 0; y--) {
       const id = World.getBlock(x, y, z);
@@ -574,6 +606,7 @@ const Mobs = (() => {
   }
 
   function update(dt, active) {
+    if(active)simulationTime+=dt;
     if (!group) return;
     const pp = Player.pos;
     const survival = mode === GAME_MODE.SURVIVAL;
@@ -745,20 +778,29 @@ const Mobs = (() => {
       if (!active) break;
       a.life -= dt;
       if (a.life <= 0) { removeArrow(i); continue; }
-      a.vel.y -= 12 * dt;
-      a.pos.addScaledVector(a.vel, dt);
+      const steps=Math.max(1,Math.ceil(Math.hypot(a.vel.x,a.vel.y,a.vel.z)*dt/.16));
+      let hit=false;
+      for(let step=0;step<steps&&!hit;step++){
+        a.vel.y-=12*dt/steps;a.pos.addScaledVector(a.vel,dt/steps);
+        if(isSolidBlock(World.getBlock(Math.floor(a.pos.x),Math.floor(a.pos.y),Math.floor(a.pos.z)))){
+          if(a.player&&mode===GAME_MODE.SURVIVAL)Drops.spawn(ITEM.ARROW,1,a.pos.x,a.pos.y,a.pos.z);
+          hit=true;break;
+        }
+        if(a.player){
+          for(const mob of mobs){
+            if(mob.dead)continue;
+            const half=mob.def.width/2+.04;
+            if(Math.abs(a.pos.x-mob.pos.x)<=half&&Math.abs(a.pos.z-mob.pos.z)<=half&&a.pos.y>=mob.pos.y&&a.pos.y<=mob.pos.y+mob.def.height){
+              hurtMob(mob,a.damage,Player.pos);hit=true;break;
+            }
+          }
+        }else if(mode===GAME_MODE.SURVIVAL&&!Player.dead&&Math.abs(a.pos.x-pp.x)<.45&&Math.abs(a.pos.z-pp.z)<.45&&a.pos.y>pp.y&&a.pos.y<pp.y+1.9){
+          Player.damage(3,'스켈레톤의 화살',a.pos);hit=true;
+        }
+      }
+      if(hit){removeArrow(i);continue;}
       a.mesh.position.copy(a.pos);
-      a.mesh.lookAt(a.pos.x + a.vel.x, a.pos.y + a.vel.y, a.pos.z + a.vel.z);
-      if (isSolidBlock(World.getBlock(Math.floor(a.pos.x), Math.floor(a.pos.y), Math.floor(a.pos.z)))) {
-        removeArrow(i);
-        continue;
-      }
-      if (mode === GAME_MODE.SURVIVAL && !Player.dead &&
-          Math.abs(a.pos.x - pp.x) < .45 && Math.abs(a.pos.z - pp.z) < .45 &&
-          a.pos.y > pp.y && a.pos.y < pp.y + 1.9) {
-        Player.damage(3, '스켈레톤의 화살', a.pos);
-        removeArrow(i);
-      }
+      a.mesh.lookAt(a.pos.x+a.vel.x,a.pos.y+a.vel.y,a.pos.z+a.vel.z);
     }
 
     if (active) {
@@ -776,6 +818,7 @@ const Mobs = (() => {
   function removeArrow(i) {
     group.remove(arrows[i].mesh);
     arrows[i].mesh.geometry.dispose();
+    arrows[i].mesh.material.dispose();
     arrows.splice(i, 1);
   }
 
@@ -794,7 +837,7 @@ const Mobs = (() => {
   }
 
   return {
-    init, reset, spawn, update, tryAttack, getAttackCharge, getLastAttackResult,
+    init, reset, spawn, update, tryAttack, firePlayerArrow, interactRay, getAttackCharge, getLastAttackResult,
     setEnv, setMode, counts,
     set onEvent(fn) { onEvent = fn; }
   };

@@ -138,7 +138,7 @@ check('desktop and mobile pages load new storage UI scripts',()=>{
  for(const name of ['play.html','mobile-test.html']){
   const html=gamePage(name);
   assert.ok(html.includes('id="overlay-chest"'));
-  assert.ok(html.includes('block-furniture.js?v=v133'));
+  assert.ok(html.includes('block-furniture.js?v=v170'));
   assert.ok(html.includes('v133-build.css?v=v133'));
  }
 });

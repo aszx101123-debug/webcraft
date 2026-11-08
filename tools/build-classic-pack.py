@@ -8,7 +8,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1] / "img" / "classic"
 pack = json.loads((ROOT / "pack.json").read_text())
-atlas = Image.new("RGBA", (192, 192))
+atlas = Image.new("RGBA", (256, 256))
 
 
 def tinted(image, rgb):

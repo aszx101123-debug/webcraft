@@ -230,6 +230,7 @@ const World = (() => {
       BIOME_TINTS[gen.biomeAt ? gen.biomeAt(ox + (i >> 4), oz + (i & 15)) : 'plains'] || BIOME_TINTS.plains);
     const light = [1, 1, 1, 1];
     ch.torches = [];
+    ch.crops=[];
     lightMap.build(ox, oz, (wx, wz) => {
       const neighbor = chunks.get(key(wx >> 4, wz >> 4));
       return neighbor ? { data: neighbor.data, offset: Terrain.idx(wx & 15, 0, wz & 15) } : null;
@@ -248,9 +249,10 @@ const World = (() => {
       const id = ch.data[Terrain.idx(x, y, z)];
       if (!id) continue;
       const B = BLOCKS[id];
+      if(B.crop){ch.crops.push([x,y,z,id]);continue;}
       const liquid = !!B.liquid;
       const torch = id === BLOCK.TORCH;
-      const emissive = torch || id === BLOCK.GLOWSTONE;
+      const emissive = torch || id === BLOCK.GLOWSTONE || B.emission>0;
       if (emissive) ch.torches.push([ox + x + .5, y + .55, oz + z + .5]);
       if (B.shape) {
         // Multi-box mesh for stairs, half blocks, opened doors and chests.
@@ -364,11 +366,32 @@ const World = (() => {
     const positions = [], normals = [], uvs = [], colors = [], lights = [], indices = [];
     const ox = ch.cx * C, oz = ch.cz * C;
     const changed = edits.get(key(ch.cx, ch.cz));
+    const emit=(cx,baseY,cz,height,tile,tint,brightness)=>{
+      for(const direction of [-1,1]){
+        const base=positions.length/3;
+        for(let i=0;i<4;i++){
+          const right=i===1||i===2,top=i>=2;
+          positions.push(cx+(right ? .43 : -.43),baseY+(top?height:0),cz+(right ? .43 : -.43)*direction);
+          normals.push(-direction*.707,0,.707);
+          uvs.push(right?tile.u1:tile.u0,top?tile.v1:tile.v0);
+          const shade=top?1:.85;
+          colors.push(tint[0]*shade,tint[1]*shade,tint[2]*shade);
+          lights.push(brightness[0],brightness[1]);
+        }
+        indices.push(base,base+1,base+2,base,base+2,base+3);
+      }
+    };
+    for(const [x,y,z,id] of ch.crops||[]){
+      const stage=typeof Farming==='undefined'?0:Farming.stageAt(ox+x,y,oz+z);
+      const tile=BLOCKS[id].tiles.all;
+      emit(ox+x+.5,y-.0625,oz+z+.5,.25+stage*.18,Textures.tileUV(tile[0]+stage,tile[1]),[1,1,1],lightMap.sample(x,y,z));
+    }
     for (let x = 0; x < C; x++) for (let z = 0; z < C; z++) {
       const wx = ox + x, wz = oz + z;
       const roll = Noise.hash2(wx, wz, seed + 473);
       if (roll > .3) continue;
       const y = gen.heightAt(wx, wz);
+      if(typeof Farming!=='undefined'&&Farming.isForaged(wx,y,wz))continue;
       if (y >= H - 2 || ch.data[Terrain.idx(x,y,z)] !== BLOCK.GRASS ||
           ch.data[Terrain.idx(x,y+1,z)] !== BLOCK.AIR ||
           changed?.has(Terrain.idx(x,y,z)) || changed?.has(Terrain.idx(x,y+1,z))) continue;
@@ -383,20 +406,7 @@ const World = (() => {
       const jitter = Noise.hash2(wx,wz,seed+475);
       const height = kind === 'grass' ? .55 + jitter * .35 : .8;
       const cx = wx + .35 + jitter * .3, cz = wz + .35 + Noise.hash2(wx,wz,seed+476) * .3;
-      // Two intersecting, alpha-cut pixel planes, like vanilla tall grass.
-      for (const direction of [-1,1]) {
-        const base = positions.length / 3;
-        for (let i = 0; i < 4; i++) {
-          const right = i === 1 || i === 2, top = i >= 2;
-          positions.push(cx+(right ? .43 : -.43), y+1+(top?height:0), cz+(right ? .43 : -.43)*direction);
-          normals.push(-direction*.707,0,.707);
-          uvs.push(right?tile.u1:tile.u0,top?tile.v1:tile.v0);
-          const shade = top ? 1 : .85;
-          colors.push(tint[0]*shade,tint[1]*shade,tint[2]*shade);
-          lights.push(brightness[0],brightness[1]);
-        }
-        indices.push(base,base+1,base+2,base,base+2,base+3);
-      }
+      emit(cx,y+1,cz,height,tile,tint,brightness);
     }
     if (!positions.length) return;
     const geometry = new THREE.BufferGeometry();

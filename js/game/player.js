@@ -10,6 +10,7 @@ const Player = (() => {
   let hp = SURVIVAL.MAX_HP, food = SURVIVAL.MAX_FOOD, air = SURVIVAL.MAX_AIR;
   let exhaustion = 0, regenT = 0, starveT = 0, airT = 0, drownT = 0;
   let peakY = null, dead = false, lastInWater = false, headSubmerged = false, waterCoverage = 0;
+  let onBeforeDamage=null;
 
   function isWater(id) { return id === BLOCK.WATER || id === BLOCK.WATER_FLOW; }
 
@@ -147,7 +148,10 @@ const Player = (() => {
   }
 
   function damage(amount, cause, sourcePos) {
-    if(mode===GAME_MODE.CREATIVE||dead||amount<=0)return false;const armor=Inventory.getArmorDefense?Inventory.getArmorDefense():0;const reduced=Math.max(1,Math.ceil(amount*Math.max(.2,1-armor*.04)));hp=Math.max(0,hp-reduced);if(armor>0){const eq=Inventory.getEquipment();for(const k of ['head','chest','legs','feet']){const a=eq[k]&&getArmorDef(eq[k].id);if(a){eq[k].durability=Math.max(0,(eq[k].durability||a.maxDurability)-1);if(eq[k].durability<=0)Inventory.takeEquipment(k);break;}}}
+    if(mode===GAME_MODE.CREATIVE||dead||amount<=0)return false;
+    if(onBeforeDamage)amount=onBeforeDamage(amount,cause,sourcePos);
+    if(amount<=0)return false;
+    const armor=Inventory.getArmorDefense?Inventory.getArmorDefense():0;const reduced=Math.max(1,Math.ceil(amount*Math.max(.2,1-armor*.04)));hp=Math.max(0,hp-reduced);if(armor>0){const eq=Inventory.getEquipment();for(const k of ['head','chest','legs','feet']){const a=eq[k]&&getArmorDef(eq[k].id);if(a){eq[k].durability=Math.max(0,(eq[k].durability||a.maxDurability)-1);if(eq[k].durability<=0)Inventory.takeEquipment(k);break;}}}
     if (sourcePos) {
       const kx = pos.x - sourcePos.x, kz = pos.z - sourcePos.z;
       const l = Math.hypot(kx, kz) || 1;
@@ -333,6 +337,7 @@ const Player = (() => {
     get spawnPoint() { return spawnPoint; },
     set onHurt(fn) { onHurt = fn; },
     set onDeath(fn) { onDeath = fn; },
-    set onEat(fn) { onEat = fn; }
+    set onEat(fn) { onEat = fn; },
+    set onBeforeDamage(fn) {onBeforeDamage=typeof fn==='function'?fn:null;}
   };
 })();

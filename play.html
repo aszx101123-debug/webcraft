@@ -22,11 +22,11 @@
 <link rel="stylesheet" href="css/v137-inventory.css?v=v137">
 <link rel="stylesheet" href="css/v137-touch.css?v=v137">
 <link rel="stylesheet" href="css/classic-furnace.css?v=v140">
-<link rel="stylesheet" href="css/classic.css?v=v140">
+<link rel="stylesheet" href="css/classic.css?v=v170">
 </head>
 <body>
 
-<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.6.0 · 클래식 픽셀 팩 · 풀과 꽃 · 하늘빛과 횃불 조명</div>
+<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.7.0 · 아이템 53종 · 블록 29종 · 농사 · 활 · 낚시 · 요리</div>
 <div id="boot-error" class="boot-error hidden" role="alert">
   <div class="boot-error-panel">
     <div class="boot-error-icon">!</div>
@@ -129,6 +129,14 @@
         <p><kbd>E</kbd> 인벤토리 · <kbd>F</kbd> 보조 손 교체 · <kbd>Q</kbd> 1개 버리기 · <kbd>Ctrl+Q</kbd> 스택 버리기</p>
         <p><kbd>F1</kbd> HUD 숨기기 · <kbd>F3</kbd> 디버그 · <kbd>F5</kbd> 시점 · 크리에이티브에서 <kbd>Space</kbd> 두 번: 비행</p>
         <button id="btn-crafting" class="btn small">인벤토리 열기</button>
+      </details>
+      <details class="classic-help">
+        <summary class="btn">새 아이템 사용법...</summary>
+        <p>괭이로 흙의 윗면을 갈고 씨앗·당근·감자를 심으세요. 물은 4블록 안에 두고, 어두운 곳에는 횃불이나 랜턴을 설치하세요. 다 자라면 우클릭으로 수확합니다.</p>
+        <p>가위로 풀을 채집하면 씨앗과 꽃을 얻어요. 양에게 쓰면 양털을 깎고, 염료로 놓인 양털을 염색할 수 있어요.</p>
+        <p>활을 들고 우클릭하면 화살을 발사합니다. 방패는 우클릭한 뒤 잠시 정면 공격을 막아요. F로 보조 손에 옮길 수 있습니다.</p>
+        <p>양동이로 물을 담거나 소에게 우유를 얻으세요. 낚싯대는 물에 던진 뒤 입질 알림이 뜨면 다시 사용하세요.</p>
+        <p>고기·생선·감자를 화로에 구워 드세요. E의 제작법 책과 제작대의 검색창에서 새 제작법을 찾을 수 있습니다. 모바일에서는 우클릭 대신 화면을 짧게 터치하세요.</p>
       </details>
       <details class="classic-help world-tools">
         <summary class="btn">월드 관리...</summary>
@@ -276,6 +284,7 @@
       </div>
       <div class="craft-recipes">
         <div class="craft-recipes-title">레시피 북</div>
+        <input id="recipe-search" class="recipe-search" type="search" placeholder="제작법·재료 검색" aria-label="제작법과 재료 검색" autocomplete="off">
         <div id="recipe-grid"></div>
       </div>
     </div>
@@ -383,7 +392,7 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
   addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(() => {}));
 }
 </script>
-<script type="module" src="js/auth-play.js?v=v160"></script>
+<script type="module" src="js/auth-play.js?v=v170"></script>
 <script src="js/i18n.js?v=20261106-languages5"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 'use strict';
 
 const Textures = (() => {
-  const TS=16, GRID=12, SIZE=TS*GRID;
+  const TS=16, GRID=16, SIZE=TS*GRID;
   let canvas = null, ctx = null, texture = null;
   const iconCache = {};
   let gpuCanvas = null, gpuContext = null, waterStrip = null, waterFrame = 0, waterElapsed = 0;
@@ -464,6 +464,85 @@ const Textures = (() => {
       return col===2?'#e84835':'#eeeee3';
     });
 
+    // New content keeps the original atlas coordinates and uses the extra rows.
+    for(let id=50;id<=73;id++){
+      const def=BLOCKS[id];if(!def)continue;
+      const rgb=[def.color>>16&255,def.color>>8&255,def.color&255];
+      const [col,row]=def.tiles.all;
+      fill(col,row,(x,y)=>{
+        const noise=pixelNoise(x>>1,y>>1,id);
+        const border=id>=66&&(x===0||y===0||x===15||y===15);
+        const shine=id>=66&&(x===2||y===2);
+        const delta=border?-38:shine?26:(noise-.5)*(id<66?30:18);
+        return css(rgb[0]+delta,rgb[1]+delta,rgb[2]+delta);
+      });
+    }
+    fill(12,2,(x,y)=>y%4===0?vary(69,45,28,5):vary(111,75,42,7));
+    fill(13,2,(x,y)=>y<2?vary(83,56,31,5):vary(130,91,61,7));
+    for(const [row,kind] of [[3,'wheat'],[4,'carrot'],[5,'potato']])for(let stage=0;stage<4;stage++){
+      fill(12+stage,row,(x,y)=>{
+        const top=13-stage*3;
+        if(y<top||y>15)return null;
+        const stem=x===4||x===8||x===12;
+        if(kind==='wheat'&&stage===3&&y<top+5&&([3,4,5,7,8,9,11,12,13].includes(x)))return vary(210,171,65,10);
+        if(stem)return vary(82,132,38,8);
+        if((x+y+stage)%5<2&&y>top+2&&x>1&&x<15)return vary(100,158,49,8);
+        if(kind==='carrot'&&stage===3&&y>12&&x>5&&x<11)return '#dc822b';
+        if(kind==='potato'&&stage===3&&y>12&&x>5&&x<11)return '#ab8b51';
+        return null;
+      });
+    }
+    fill(12,6,(x,y)=>x<3||x>12||y<3||y>12?'#45494b':'#a5a490');
+    fill(13,6,(x,y)=>x<2||x>13||y<2||y>13?'#45494b':x===4||x===11?'#686558':vary(255,205,87,12));
+
+    for(const [key,def] of Object.entries(ITEMS)){
+      const id=Number(key);if(id<300)continue;
+      const pixels=new Array(256).fill(null),[col,row]=def.tiles.all;
+      const dot=(x,y,color)=>{if(x>=0&&x<16&&y>=0&&y<16)pixels[(y|0)*16+(x|0)]=color;};
+      const rect=(x,y,w,h,color)=>{for(let yy=y;yy<y+h;yy++)for(let xx=x;xx<x+w;xx++)dot(xx,yy,color);};
+      const line=(x0,y0,x1,y1,color)=>{
+        const steps=Math.max(Math.abs(x1-x0),Math.abs(y1-y0));
+        for(let n=0;n<=steps;n++)dot(Math.round(x0+(x1-x0)*n/(steps||1)),Math.round(y0+(y1-y0)*n/(steps||1)),color);
+      };
+      const oval=(cx,cy,rx,ry,color)=>{for(let y=0;y<16;y++)for(let x=0;x<16;x++)if((x-cx)**2/(rx*rx)+(y-cy)**2/(ry*ry)<=1)dot(x,y,color);};
+      if(id>=400){
+        const rgb=[def.color>>16&255,def.color>>8&255,def.color&255];
+        oval(8,10,5,3,css(...rgb));rect(6,6,4,5,css(rgb[0]+20,rgb[1]+20,rgb[2]+20));dot(7,6,'#f3ead9');
+      }else if(id===300){for(const [x,y] of [[4,8],[9,4],[10,11]]){oval(x,y,2,1,'#719c3e');dot(x,y-1,'#a2be59');}}
+      else if(id===301){for(const x of [4,8,12]){line(x,4,x-2,14,'#9a7730');for(let y=3;y<9;y+=2){line(x-2,y,x+1,y+1,'#e4bc55');}}}
+      else if(id===302){for(let y=5;y<15;y++)rect(4+Math.floor((y-5)/3),y,7-Math.floor((y-5)/2),1,y%3?'#e38b30':'#ba5d20');line(7,6,5,1,'#4f8c35');line(8,5,11,1,'#74ac42');}
+      else if([303,304,305,313].includes(id)){
+        oval(8,9,6,4,'#70502d');oval(8,8,5,4,id===303?'#b69c6b':'#d8ae65');
+        if(id===313)for(const [x,y] of [[5,6],[9,10],[11,6],[5,10]])rect(x,y,2,2,'#65422a');
+        else for(const x of [5,8,11])line(x,6,x-1,8,id===304?'#f0d99d':'#957544');
+      }else if(id>=306&&id<=309){
+        const meatColors={306:['#74402a','#c38a59'],307:['#552d23','#8a4930'],308:['#825125','#d7a65c'],309:['#603324','#aa653c']};
+        const [edge,inside]=meatColors[id];
+        oval(7,9,id===308?4:5,4,edge);oval(7,8,id===308?3:4,3,inside);
+        if(id!==307){line(10,10,14,12,'#e0d6b7');dot(14,11,'#fff0d1');}
+        else{line(4,7,8,6,'#c77c50');line(7,10,10,9,'#b66a42');}
+      }
+      else if(id===310||id===311){oval(8,8,5,3,id===310?'#7ea6b5':'#b59059');rect(1,5,3,6,id===310?'#527f91':'#795c3f');dot(11,7,'#20252a');line(6,7,9,7,'#d4dbcf');}
+      else if(id===312||id===323){oval(8,9,5,4,id===312?'#7b4930':'#292a2d');oval(8,7,3,3,id===312?'#aa7143':'#494b4c');line(8,5,6,11,id===312?'#4a2c22':'#73766d');}
+      else if(id===318){for(let y=2;y<14;y++)for(let x=2;x<14;x++)if(x+y>10&&x+y<24&&x>y/2&&x<14-y/3)dot(x,y,x<8?'#a3aab1':'#606b79');line(5,10,11,4,'#d5d9db');line(5,11,10,12,'#373e49');}
+      else if(id===314){line(3,12,12,3,'#d8d8bf');line(4,13,13,4,'#faf5db');for(const [x,y] of [[2,11],[4,13],[11,2],[13,4]])rect(x,y,2,2,'#e5e5ce');}
+      else if(id===315){for(const [x,y] of [[4,11],[9,10],[7,5]]){oval(x,y,3,2,'#b6baa7');oval(x,y-1,2,1,'#f0f1da');}}
+      else if(id===316){for(let n=0;n<3;n++){line(3+n,5+n,12-n,4+n,'#c4c6ba');line(12-n,4+n,11-n,12-n,'#e3e4d9');line(11-n,12-n,3+n,10-n,'#c4c6ba');}}
+      else if(id===317){line(3,14,12,2,'#d8caa5');for(let n=0;n<9;n++){line(4+n,12-n,3+n,8-n,'#eff0df');line(4+n,12-n,8+n,11-n,'#c5d0c3');}}
+      else if(id===319||id===320){rect(3,2,10,12,id===319?'#c8cbbb':'#6f3d2a');rect(4,3,8,10,id===319?'#ececdf':'#ad6643');for(const y of [5,8,11])line(5,y,10,y,id===319?'#b8bdad':'#ddc895');}
+      else if(id===321||id===322){oval(8,9,5,3,id===321?'#828f98':'#ac812b');rect(4,6,8,3,id===321?'#d5dfe0':'#f4cd59');line(5,6,10,6,'#fff2c4');}
+      else if(id===324||id===325){line(8,7,8,14,'#518239');line(8,11,4,9,'#6c9c44');oval(8,5,4,3,id===324?'#c54230':'#ebead7');dot(8,5,'#d8b53d');}
+      else if(id>=326&&id<=328){rect(3,5,10,8,'#60696d');rect(4,6,8,6,id===326?'#2f383d':id===327?'#3f83da':'#ebe5c9');rect(5,12,6,2,'#a7b7ba');line(3,5,5,2,'#cbd2cb');line(5,2,11,2,'#cbd2cb');line(11,2,13,5,'#cbd2cb');}
+      else if(id===329){line(3,2,9,4,'#ba8743');line(9,4,11,8,'#94602c');line(11,8,9,12,'#94602c');line(9,12,3,14,'#ba8743');line(3,2,3,14,'#d1d0bd');}
+      else if(id===330){line(2,13,12,3,'#9a7b43');line(3,14,13,4,'#c5a96b');rect(11,2,3,3,'#c9d2d1');line(2,9,6,13,'#dedfce');line(1,11,4,14,'#b9c5be');}
+      else if(id===331){line(3,2,11,11,'#c6d2cf');line(12,2,5,11,'#a3b4b1');oval(4,12,3,2,'#778c91');oval(11,12,3,2,'#778c91');dot(4,12,'#26363b');dot(11,12,'#26363b');dot(8,8,'#e3d6a5');}
+      else if(id===332||id===333){oval(8,8,6,6,id===332?'#58656c':'#a17b29');oval(8,8,5,5,id===332?'#bcc8c5':'#e6bd4c');oval(8,8,4,4,'#34495e');if(id===332){line(8,3,6,9,'#d5493b');line(6,9,9,12,'#e6e6d8');}else{rect(5,5,7,4,'#83b4d0');rect(6,8,5,3,'#eac459');dot(9,5,'#f5df78');}}
+      else if(id===334){line(3,14,10,2,'#77542e');line(4,14,11,2,'#bf8b4d');line(11,2,13,9,'#b4bcb6');rect(12,9,2,3,'#c94b3e');}
+      else if(id===335){rect(3,2,10,9,'#687476');rect(4,3,8,9,'#9e7145');rect(5,11,6,2,'#687476');rect(7,13,2,1,'#687476');line(8,3,8,11,'#c9ab70');}
+      else if(id===336){oval(6,9,4,4,'#c59026');oval(10,9,4,4,'#efc74d');rect(7,2,2,4,'#76552c');line(9,3,12,2,'#8fab47');dot(4,7,'#fff1a4');}
+      fill(col,row,(x,y)=>pixels[y*16+x]);
+    }
+
     function hashCell(cx, cy) { return (cx * 7 + cy * 13) % 5 / 5; }
 
     texture = new THREE.CanvasTexture(canvas);
@@ -512,9 +591,9 @@ const Textures = (() => {
     });
     try {
       const [response, atlas, water] = await Promise.all([
-        fetch('img/classic/pack.json?v=v160',{signal:controller.signal}),
-        loadImage('img/classic/atlas.png?v=v160'),
-        loadImage('img/classic/water.png?v=v160')
+        fetch('img/classic/pack.json?v=v170',{signal:controller.signal}),
+        loadImage('img/classic/atlas.png?v=v170'),
+        loadImage('img/classic/water.png?v=v170')
       ]);
       if(!response.ok) return false;
       const pack = await response.json();

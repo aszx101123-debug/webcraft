@@ -6,10 +6,15 @@ const FurnaceSystem = (() => {
   const RECIPES = new Map([
     [BLOCK.IRON_ORE, ITEM.IRON_INGOT], [BLOCK.GOLD_ORE, ITEM.GOLD_INGOT],
     [BLOCK.COPPER_ORE, ITEM.COPPER_INGOT], [BLOCK.SAND, BLOCK.GLASS],
-    [BLOCK.COBBLE, BLOCK.STONE]
+    [BLOCK.COBBLE, BLOCK.STONE], [BLOCK.CLAY,BLOCK.BRICK],
+    [ITEM.PORK,ITEM.COOKED_PORK],[ITEM.BEEF,ITEM.COOKED_BEEF],
+    [ITEM.CHICKEN,ITEM.COOKED_CHICKEN],[ITEM.MUTTON,ITEM.COOKED_MUTTON],
+    [ITEM.RAW_FISH,ITEM.COOKED_FISH],[ITEM.POTATO,ITEM.BAKED_POTATO],
+    [BLOCK.LOG,ITEM.CHARCOAL],[BLOCK.BIRCH_LOG,ITEM.CHARCOAL],[BLOCK.SPRUCE_LOG,ITEM.CHARCOAL],
+    [BLOCK.CACTUS,ITEM.DYE_GREEN]
   ]);
   const FUELS = new Map([
-    [ITEM.COAL, 80], [ITEM.STICK, 5],
+    [ITEM.COAL, 80], [ITEM.CHARCOAL,80], [BLOCK.COAL_BLOCK,800], [ITEM.STICK, 5],
     [BLOCK.PLANK, 15], [BLOCK.BIRCH_PLANKS, 15], [BLOCK.SPRUCE_PLANKS, 15],
     [BLOCK.LOG, 15], [BLOCK.BIRCH_LOG, 15], [BLOCK.SPRUCE_LOG, 15],
     [BLOCK.CRAFTING_TABLE, 15], [BLOCK.CHEST, 15], [BLOCK.WOOD_STAIRS, 15],
@@ -51,7 +56,7 @@ const FurnaceSystem = (() => {
       const raw = entry[1], state = fresh();
       for (const slot of ['input','fuel','output']) state[slot] = cleanStack(raw[slot], slot);
       const finite = (n, max) => Number.isFinite(n) ? Math.max(0, Math.min(max, n)) : 0;
-      state.burnDuration = finite(raw.burnDuration, 80);
+      state.burnDuration = finite(raw.burnDuration, Math.max(...FUELS.values()));
       state.burnRemaining = finite(raw.burnRemaining, state.burnDuration);
       state.cookProgress = state.input ? finite(raw.cookProgress, SMELT_SECONDS - 1e-7) : 0;
       furnaces.set(key, state);

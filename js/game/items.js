@@ -20,7 +20,7 @@ const Inventory = (() => {
     }
     let count = s.count;
     if (count === -1 || count === Infinity) count = Infinity;
-    else count = Number.isFinite(count) && count > 0 ? Math.min(MAX_STACK, Math.max(1, Math.floor(count))) : 1;
+    else count = Number.isFinite(count) && count > 0 ? Math.min(getMaxStack(s.id), Math.max(1, Math.floor(count))) : 1;
     return { id: s.id, count };
   }
 
@@ -54,14 +54,14 @@ const Inventory = (() => {
         return { id: s.id, count: 1, durability: s.durability || def.maxDurability || 1 };
       }
       if (m === GAME_MODE.CREATIVE) return { id: s.id, count: Infinity };
-      return s.count === Infinity ? { id: s.id, count: MAX_STACK } : s;
+      return s.count === Infinity ? { id: s.id, count: getMaxStack(s.id) } : s;
     });
     EQUIPMENT_KEYS.forEach(k => {
       const s = equipment[k];
       if (!s) return;
       const def = getItemDef(s.id);
       if (def && isGear(def)) equipment[k] = { id: s.id, count: 1, durability: s.durability || def.maxDurability || 1 };
-      else if (m !== GAME_MODE.CREATIVE && s.count === Infinity) equipment[k] = { id: s.id, count: MAX_STACK };
+      else if (m !== GAME_MODE.CREATIVE && s.count === Infinity) equipment[k] = { id: s.id, count: getMaxStack(s.id) };
     });
   }
 
@@ -79,7 +79,7 @@ const Inventory = (() => {
     const def = getItemDef(id);
     if (!def) { slots[i] = null; return; }
     if (isGear(def)) slots[i] = { id, count: 1, durability: def.maxDurability || 1 };
-    else slots[i] = { id, count: mode === GAME_MODE.CREATIVE ? Infinity : MAX_STACK };
+    else slots[i] = { id, count: mode === GAME_MODE.CREATIVE ? Infinity : getMaxStack(id) };
   }
 
   // Middle-click selects an owned block in survival; it must never mint a stack.
@@ -117,12 +117,12 @@ const Inventory = (() => {
     let remaining = count;
     for (const s of slots) {
       if (s && s.id === id && !isGear(getItemDef(s.id))) {
-        remaining -= Math.max(0, MAX_STACK - s.count);
+        remaining -= Math.max(0, getMaxStack(id) - s.count);
       }
       if (remaining <= 0) return true;
     }
     const empties = slots.filter(s => !s).length;
-    return remaining <= empties * MAX_STACK;
+    return remaining <= empties * getMaxStack(id);
   }
 
   function add(id, count) {
@@ -144,15 +144,15 @@ const Inventory = (() => {
     let left = count;
     for (let i = 0; i < SIZE && left > 0; i++) {
       const s = slots[i];
-      if (s && s.id === id && !isGear(getItemDef(s.id)) && s.count < MAX_STACK) {
-        const t = Math.min(MAX_STACK - s.count, left);
+      if (s && s.id === id && !isGear(getItemDef(s.id)) && s.count < getMaxStack(id)) {
+        const t = Math.min(getMaxStack(id) - s.count, left);
         s.count += t;
         left -= t;
       }
     }
     for (let i = 0; i < SIZE && left > 0; i++) {
       if (!slots[i]) {
-        const t = Math.min(MAX_STACK, left);
+        const t = Math.min(getMaxStack(id), left);
         slots[i] = { id, count: t };
         left -= t;
       }
@@ -204,11 +204,12 @@ const Inventory = (() => {
     const current = slots[index];
     if (!current) {
       slots[index] = cloneStack(incoming);
-      return null;
+      return Number.isFinite(incoming.count)&&incoming.count>slots[index].count
+        ? {...incoming,count:incoming.count-slots[index].count} : null;
     }
     if (current.id !== incoming.id || isGear(def)||isGear(getItemDef(current.id))) return incoming;
     if (current.count === Infinity) return null;
-    const cap = MAX_STACK - current.count;
+    const cap = getMaxStack(incoming.id) - current.count;
     if (cap <= 0) return incoming;
     const put = Math.min(cap, incoming.count);
     current.count += put;
@@ -260,8 +261,8 @@ const Inventory = (() => {
       equipment[key]=cloneStack(held);
       return null;
     }
-    if(current.id===held.id && !isGear(def) && current.count<MAX_STACK) {
-      const n=Math.min(MAX_STACK-current.count,held.count);
+    if(current.id===held.id && !isGear(def) && current.count<getMaxStack(held.id)) {
+      const n=Math.min(getMaxStack(held.id)-current.count,held.count);
       current.count+=n;
       held.count-=n;
       return held.count>0?held:null;
@@ -324,16 +325,47 @@ const Inventory = (() => {
   }
 
   function damageSelectedTool(amount = 1) {
+    return damageHeld('main',amount);
+  }
+
+  function damageHeld(hand,amount=1) {
     if (mode === GAME_MODE.CREATIVE) return false;
-    const s = slots[sel];
+    if(!Number.isFinite(amount)||amount<=0)return false;
+    const s = hand==='offhand'?equipment.offhand:slots[sel];
     const def = s && getToolDef(s.id);
     if (!s || !def) return false;
     s.durability -= amount;
     if (s.durability <= 0) {
-      slots[sel] = null;
+      if(hand==='offhand')equipment.offhand=null;else slots[sel] = null;
       return true;
     }
     return false;
+  }
+
+  function canExchangeHeld(hand,resultId) {
+    const stack=hand==='offhand'?equipment.offhand:slots[sel];
+    if(!stack||!getItemDef(resultId))return false;
+    return mode===GAME_MODE.CREATIVE||stack.count===1||canAdd(resultId,1);
+  }
+
+  function exchangeHeld(hand,resultId,replaceCreative=false) {
+    if(!canExchangeHeld(hand,resultId))return false;
+    if(mode===GAME_MODE.CREATIVE){
+      if(replaceCreative){
+        const next=normalize({id:resultId,count:Infinity});
+        if(hand==='offhand')equipment.offhand=next;else slots[sel]=next;
+      }
+      return true;
+    }
+    const stack=hand==='offhand'?equipment.offhand:slots[sel];
+    if(stack.count===1){
+      const next=normalize({id:resultId,count:1});
+      if(hand==='offhand')equipment.offhand=next;else slots[sel]=next;
+    }else{
+      if(add(resultId,1)!==1)return false;
+      stack.count--;
+    }
+    return true;
   }
 
   function selectedTool() {
@@ -364,11 +396,12 @@ const Inventory = (() => {
   function putEquipment(key, incoming) {
     if(!EQUIPMENT_KEYS.includes(key)||!incoming)return incoming;const d=getItemDef(incoming.id);if(['head','chest','legs','feet'].includes(key)&&(!d||d.armorType!==key))return incoming;if(key==='mainhand'&&d&&d.armorType)return incoming;if(!equipment[key]){
       equipment[key] = cloneStack(incoming);
-      return null;
+      return Number.isFinite(incoming.count)&&incoming.count>equipment[key].count
+        ? {...incoming,count:incoming.count-equipment[key].count} : null;
     }
     const current = equipment[key];
-    if (current.id === incoming.id && !isGear(getItemDef(current.id)) && current.count < MAX_STACK) {
-      const put = Math.min(MAX_STACK - current.count, incoming.count);
+    if (current.id === incoming.id && !isGear(getItemDef(current.id)) && current.count < getMaxStack(current.id)) {
+      const put = Math.min(getMaxStack(current.id) - current.count, incoming.count);
       current.count += put;
       incoming.count -= put;
       return incoming.count > 0 ? incoming : null;
@@ -393,7 +426,8 @@ const Inventory = (() => {
     selectedSlot, selectedId, isCreative, getEquipment, setSlot, pickBlock, swapOffhand, canAdd, add,
     removeItem, countItem, takeFromSlot, putIntoSlot, move, dropFromSlot,
     swapSlots, swapWithSlot, swapEquipmentWithCursor, quickMove,
-    consumeSelected, consumeOffhand, damageSelectedTool, selectedTool, selectedToolDurability,
+    consumeSelected, consumeOffhand, damageSelectedTool, damageHeld, canExchangeHeld, exchangeHeld,
+    stackLimit:getMaxStack, selectedTool, selectedToolDurability,
     serialize, serializeEquipment, takeEquipment, putEquipment
   };
 })();

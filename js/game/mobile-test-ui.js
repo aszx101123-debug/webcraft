@@ -9,6 +9,7 @@ const UI = (() => {
   let inventoryOpen = false;
   let inventoryCursor = null;
   let selectedInventoryMaterial = null;
+  const stackLimit=id=>{const d=getItemDef(id);return d?.toolType||d?.armorType?1:(d?.maxStack||Inventory.MAX_STACK||64);};
   let selectedCraftingMaterial = null;
   let previewFromBack = false;
   let characterControlsBound = false;
@@ -52,7 +53,8 @@ const UI = (() => {
   function showItemName(name) {
     const el = $('item-name');
     if (!el) return;
-    el.textContent = name;
+    const hint=getItemDef(Inventory.selectedId())?.useHint;
+    el.textContent = name+(hint?'\n'+hint:'');
     el.classList.remove('show');
     void el.offsetWidth;
     el.classList.add('show');
@@ -175,7 +177,7 @@ const UI = (() => {
     }
     if(double && inventoryCursor && !getToolDef(inventoryCursor.id) &&
        !getArmorDef(inventoryCursor.id) && inventoryCursor.count!==Infinity){
-      const max=Inventory.MAX_STACK||64;
+      const max=stackLimit(inventoryCursor.id);
       for(let i=0;i<Inventory.SIZE && inventoryCursor.count<max;i++){
         const stack=Inventory.getSlots()[i];
         if(!stack||stack.id!==inventoryCursor.id||stack.count===Infinity)continue;
@@ -190,7 +192,7 @@ const UI = (() => {
       }else{
         if(getToolDef(inventoryCursor.id)||getArmorDef(inventoryCursor.id)){
           if(!src)inventoryCursor=Inventory.swapWithSlot(index,inventoryCursor);
-        }else if(!src || (src.id===inventoryCursor.id && src.count<Inventory.MAX_STACK)){
+        }else if(!src || (src.id===inventoryCursor.id && src.count<stackLimit(inventoryCursor.id))){
           const one={id:inventoryCursor.id,count:1};
           if(!Inventory.putIntoSlot(index,one)){
             inventoryCursor.count--;
@@ -390,7 +392,7 @@ const UI = (() => {
       const def=getItemDef(id);
       const btn=document.createElement('button');
       btn.type='button';btn.className='java-creative-item';
-      btn.title=getItemName(id);
+      btn.title=getItemName(id)+(def.useHint?' · '+def.useHint:'');
       const img=document.createElement('img');img.src=Textures.blockIcon(id);img.alt='';
       const name=document.createElement('small');name.textContent=getItemName(id);
       btn.append(img,name);
@@ -400,7 +402,7 @@ const UI = (() => {
           return;
         }
         const gear=!!(def.toolType||def.armorType);
-        inventoryCursor={id,count:gear?1:64};
+        inventoryCursor={id,count:stackLimit(id)};
         if(gear)inventoryCursor.durability=def.maxDurability||1;
         renderInventory();
         updateInventoryCursor(innerWidth/2,innerHeight/2);
@@ -499,7 +501,7 @@ const UI = (() => {
         cell.innerHTML='<img src="'+Textures.blockIcon(id)+'" alt="">';
         cell.title='클릭하여 재료 꺼내기';
         cell.addEventListener('click',()=>{
-          if(inventoryCursor && inventoryCursor.id===id && inventoryCursor.count<Inventory.MAX_STACK){
+          if(inventoryCursor && inventoryCursor.id===id && inventoryCursor.count<stackLimit(inventoryCursor.id)){
             inventoryCursor.count++;
             Crafting.removeCell(cellData.index);
           }else if(!inventoryCursor){
@@ -532,7 +534,7 @@ const UI = (() => {
     const gear=!!(curDef?.toolType||curDef?.armorType);
     const canStack=!inventoryCursor ||
       (!gear && inventoryCursor.id===match?.outputId &&
-        inventoryCursor.count+match.count<=Inventory.MAX_STACK);
+        inventoryCursor.count+match.count<=stackLimit(match.outputId));
     const ready=!!match && Crafting.canTakeGridResult() && canStack;
     output.disabled=!ready;
     output.className='craft-output'+(ready?' ready':'');
@@ -551,7 +553,7 @@ const UI = (() => {
         if(!matched || !Crafting.canTakeGridResult() ||
            (inventoryCursor && (inventoryCursor.id!==matched.outputId ||
              getToolDef(matched.outputId)||getArmorDef(matched.outputId)||
-             inventoryCursor.count+matched.count>Inventory.MAX_STACK))){
+             inventoryCursor.count+matched.count>stackLimit(matched.outputId)))){
           showToast('커서에 든 아이템을 먼저 내려놓으세요');
           return;
         }
@@ -662,7 +664,7 @@ const UI = (() => {
 
   function restoreInventoryCursor(stack) {
     if (!stack || !Number.isInteger(stack.id) || !getItemDef(stack.id) ||
-        !Number.isInteger(stack.count) || stack.count < 1 || stack.count > 64) return false;
+        !Number.isInteger(stack.count) || stack.count < 1 || stack.count > stackLimit(stack.id)) return false;
     inventoryCursor = { id: stack.id, count: stack.count };
     if (Number.isFinite(stack.durability)) inventoryCursor.durability = stack.durability;
     return true;
@@ -759,7 +761,8 @@ const UI = (() => {
     };
 
     recipeList.innerHTML = '';
-    Crafting.getRecipes().forEach(recipe => {
+    const needle=($('recipe-search')?.value||'').trim().toLocaleLowerCase('ko-KR');
+    Crafting.getRecipes().filter(recipe=>!needle||(recipe.name+' '+Crafting.summary(recipe)).toLocaleLowerCase('ko-KR').includes(needle)).forEach(recipe => {
       const ready = Crafting.canCraft(recipe);
       const card = document.createElement('div');
       card.className = 'recipe-card' + (ready ? ' ready' : '');
@@ -782,6 +785,7 @@ const UI = (() => {
     if (inventoryOpen) renderInventory();
   }
   function openCrafting() {
+    const search=$('recipe-search');if(search)search.oninput=renderCrafting;
     if (Crafting.getGridSize() !== 3 && !returnCraftingMaterials()) {
       showToast('2×2 제작 칸의 재료를 돌려줄 공간이 없습니다');
       return false;

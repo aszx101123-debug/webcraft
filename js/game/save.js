@@ -55,6 +55,15 @@ const SaveSystem = (() => {
     if (data.blockObjects !== undefined && (!Array.isArray(data.blockObjects) || data.blockObjects.length>5000)) return false;
     if (data.inventory !== undefined && !Array.isArray(data.inventory)) return false;
     if (data.equipment !== undefined && (typeof data.equipment !== 'object' || Array.isArray(data.equipment))) return false;
+    if(data.farming!==undefined){
+      const f=data.farming;
+      if(!f||f.version!==1||!Array.isArray(f.crops)||f.crops.length>1024||!Array.isArray(f.foraged)||f.foraged.length>2048)return false;
+      const coord=k=>typeof k==='string'&&/^-?\d+,\d+,-?\d+$/.test(k)&&k.split(',').map(Number).every((n,i)=>Number.isSafeInteger(n)&&(i===1?n>0&&n<CONFIG.HEIGHT-1:Math.abs(n)<1000000));
+      for(const e of f.crops){
+        if(!Array.isArray(e)||!coord(e[0])||!Number.isInteger(e[1]?.id)||!CROP_TYPES[e[1].id]||!Number.isFinite(e[1].progress)||e[1].progress<0||e[1].progress>CROP_TYPES[e[1].id].seconds)return false;
+      }
+      for(const e of f.foraged)if(!Array.isArray(e)||!coord(e[0])||!Number.isFinite(e[1])||e[1]<=0||e[1]>90)return false;
+    }
     return true;
   }
 

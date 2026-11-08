@@ -132,11 +132,15 @@ window.webcraftBoot = (async () => {
     Player.reset(sx + .5, World.heightAt(sx, sz) + 2.5, sz + .5);
   }
 
+  Farming.init(saved?.farming);
+  ItemActions.init(scene,camera,()=>state.time);
+
   Player.onHurt = () => {
     UI.flashVignette();
     blip(130, .18, 'sawtooth', .08);
   };
   Player.onDeath = cause => {
+    ItemActions.cancel();
     state.suppressPause = true;
     disableTouchInput();
     miningHeld=false;
@@ -246,7 +250,7 @@ window.webcraftBoot = (async () => {
   let saveBadgeTimer=null;
   function doSave(silent) {
     const ok = SaveSystem.save(worldId, {
-      version: 7,
+      version: 8,
       savedAt: Date.now(),
       worldId,
       worldName: worldMeta.name,
@@ -274,6 +278,7 @@ window.webcraftBoot = (async () => {
       edits: World.getEdits(),
       blockObjects: BlockFurniture.serialize(),
       furnaces: FurnaceSystem.serialize(),
+      farming: Farming.serialize(),
       journal: WorldJournal.serialize(),
       milestones: WorldMilestones.serialize()
     });
@@ -450,7 +455,8 @@ window.webcraftBoot = (async () => {
         Interact.setTouchAim(e.clientX,e.clientY,canvas);
         Interact.update();
         const aim=Interact.getTouchDirection();
-        const mob=aim?Mobs.tryAttack(camera.position,aim,3.6):null;
+        const prefersUse=ItemActions.canUse(Inventory.selectedId())||ItemActions.canUse(Inventory.getEquipment().offhand?.id);
+        const mob=aim&&!prefersUse?Mobs.tryAttack(camera.position,aim,3.6):null;
         if(mob){
           PlayerModel.swing();
           if(Mobs.getLastAttackResult()?.landed)Player.addExhaustion(SURVIVAL.ATTACK_COST);
@@ -529,7 +535,7 @@ window.webcraftBoot = (async () => {
           if(state.mode===GAME_MODE.SURVIVAL){
             const dropped=UI.dropSelected(false);
             if(dropped){
-              Drops.spawn(dropped.id,dropped.count,Player.pos.x,Player.pos.y+.7,Player.pos.z);
+              Drops.spawn(dropped.id,dropped.count,Player.pos.x,Player.pos.y+.7,Player.pos.z,dropped.durability);
               UI.renderHotbar();
             }
           }else UI.showToast('서바이벌에서 아이템을 버릴 수 있어요');
@@ -722,7 +728,7 @@ window.webcraftBoot = (async () => {
       if (state.mode !== GAME_MODE.SURVIVAL) { UI.showToast('크리에이티브에서는 아이템이 사라지지 않습니다'); return; }
       const dropped = UI.dropSelected(e.ctrlKey);
       if (dropped) {
-        Drops.spawn(dropped.id, dropped.count, Player.pos.x, Player.pos.y + .7, Player.pos.z);
+        Drops.spawn(dropped.id, dropped.count, Player.pos.x, Player.pos.y + .7, Player.pos.z,dropped.durability);
         UI.renderHotbar();
         blip(180, .06, 'square', .03);
       }
@@ -796,25 +802,26 @@ window.webcraftBoot = (async () => {
         else if (UI.openCrafting() === false) resumeInput();
         return;
       }
-      const mainhand = Inventory.selectedSlot();
-      const useOffhand = !mainhand || (!isFoodId(mainhand.id) && !isBlockId(mainhand.id));
-      const s = useOffhand ? Inventory.getEquipment().offhand : mainhand;
-      if (!s) return;
-      PlayerModel.swing();
-      if (isFoodId(s.id)) {
-        if (Player.eat(ITEMS[s.id].food)) {
-          blip(280, .07, 'triangle', .05);
-          setTimeout(() => blip(200, .08, 'triangle', .05), 100);
-          if(useOffhand)Inventory.consumeOffhand();else Inventory.consumeSelected();
-          UI.renderHotbar();
-        } else UI.showToast('배가 부릅니다');
-      } else if (isBlockId(s.id)) {
-        if (Interact.tryPlace(s.id)) {
-          if(useOffhand)Inventory.consumeOffhand();else Inventory.consumeSelected();
-          blip(190, .07, 'square', .05);
-          UI.renderHotbar();
+      for(const hand of ['main','offhand']){
+        const s=hand==='main'?Inventory.selectedSlot():Inventory.getEquipment().offhand;
+        if(!s)continue;
+        const action=ItemActions.use(target,hand);
+        if(action.handled){if(action.success)PlayerModel.swing();return;}
+        if(isFoodId(s.id)){
+          if(Player.eat(ITEMS[s.id].food)){
+            PlayerModel.swing();blip(280,.07,'triangle',.05);
+            if(hand==='offhand')Inventory.consumeOffhand();else Inventory.consumeSelected();
+            UI.renderHotbar();
+          }else UI.showToast('배가 부릅니다');
+          return;
+        }
+        if(isBlockId(s.id)&&Interact.tryPlace(s.id)){
+          PlayerModel.swing();
+          if(hand==='offhand')Inventory.consumeOffhand();else Inventory.consumeSelected();
+          blip(190,.07,'square',.05);UI.renderHotbar();return;
         }
       }
+      ItemActions.use(target,'empty');
     } else if (e.button === 1) {
       if (UI.isInventoryOpen()) return;
       e.preventDefault();
@@ -1167,6 +1174,8 @@ window.webcraftBoot = (async () => {
         Fluids.update(Player.pos.x, Player.pos.y, Player.pos.z, dt);
         BlockPhysics.update(dt);
         FurnaceSystem.update(dt);
+        Farming.update(dt,state.time);
+        ItemActions.update(dt);
         if(UI.isFurnaceOpen() && ++furnaceUITick%6===0)UI.renderFurnace();
         const sprinting = active && (keys['ControlLeft'] || keys['ControlRight']) &&
           !(keys['ShiftLeft'] || keys['ShiftRight']) && keys['KeyW'] && !Player.flying;

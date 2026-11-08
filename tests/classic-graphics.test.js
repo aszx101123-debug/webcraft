@@ -74,7 +74,7 @@ test('changing time updates shared light uniforms while preserving torch brightn
 
 test('classic pack ships complete attributed 16px art, transparent plants and opaque water frames',()=>{
   const atlas=png(path.join(root,'img/classic/atlas.png'));
-  assert.equal(atlas.width,192);assert.equal(atlas.height,192);
+  assert.equal(atlas.width,256);assert.equal(atlas.height,256);
   assert.equal(pack.tiles.length,52);
   for(const tile of pack.tiles){
     assert.ok(fs.existsSync(path.join(root,'img/classic/src',tile.source)));
@@ -158,10 +158,28 @@ test('pixel water advances through real frames and remains frozen with zero simu
   assert.equal(Textures.getTexture().image.pixels.get('168,40'),images.water.pixels.get('0,16'));
 });
 
+test('every new item and block keeps nonempty art inside the enlarged atlas after pack loading',async()=>{
+  const {Textures}=packRuntime();
+  await Textures.loadClassicPack();
+  const atlas=Textures.getAtlas().pixels,gpu=Textures.getTexture().image.pixels;
+  const entries=[...BLOCKS.entries()].filter(([id])=>id>=46).concat(Object.entries(ITEMS).filter(([id])=>Number(id)>=300));
+  for(const [id,def] of entries){
+    for(const [col,row] of Object.values(def.tiles)){
+      assert.ok(col>=0&&col<16&&row>=0&&row<16,def.name+' tile bounds');
+      let visible=0;
+      for(let y=0;y<16;y++)for(let x=0;x<16;x++){
+        const color=atlas.get((col*16+x)+','+(row*16+y));
+        if(color){visible++;assert.equal(gpu.get((col*32+8+x)+','+(row*32+8+y)),color,def.name+' GPU copy');}
+      }
+      assert.ok(visible>8,def.name+' ('+id+') has visible art');
+    }
+  }
+});
+
 test('failed image loading preserves the generated atlas and valid legacy UVs',async()=>{
   const {Textures}=packRuntime(true);
   assert.equal(await Textures.loadClassicPack(),false);
-  assert.equal(Textures.getTexture().image.width,192);
+  assert.equal(Textures.getTexture().image.width,256);
   assert.equal(Textures.getTexture().generateMipmaps,false);
   const uv=Textures.tileUV(11,11);
   assert.ok(uv.u0>=0&&uv.u1<=1&&uv.v0>=0&&uv.v1<=1);

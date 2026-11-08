@@ -6,6 +6,7 @@ const BlockFurniture = (() => {
   const state = new Map();
   const SLOT_COUNT = 18;
   const MAX_STACK = 64;
+  const stackLimit=id=>{const d=getItemDef(id);return d?.toolType||d?.armorType?1:(d?.maxStack||MAX_STACK);};
   let unsubscribe = null;
   let openKey = null;
   let onClose = null;
@@ -38,7 +39,7 @@ const BlockFurniture = (() => {
     const def = getItemDef(input.id);
     const gear=!!(def?.toolType||def?.armorType);
     const count=Number.isInteger(input.count) && input.count>0 &&
-      input.count <= (gear?1:MAX_STACK) ? input.count : 0;
+      input.count <= stackLimit(input.id) ? input.count : 0;
     if(!count)return null;
     const out={id:input.id,count};
     if(gear)out.durability=Number.isInteger(input.durability)
@@ -152,8 +153,8 @@ const BlockFurniture = (() => {
     const gear=!!(def.toolType||def.armorType);
     let capacity=0;
     for(const s of chest){
-      if(!s)capacity+=gear?1:MAX_STACK;
-      else if(!gear&&s.id===item.id)capacity+=Math.max(0,MAX_STACK-s.count);
+      if(!s)capacity+=stackLimit(item.id);
+      else if(!gear&&s.id===item.id)capacity+=Math.max(0,stackLimit(item.id)-s.count);
     }
     return capacity>=item.count;
   }
@@ -171,12 +172,12 @@ const BlockFurniture = (() => {
     if(!gear)for(let i=0;i<SLOT_COUNT&&count;i++){
       const s=meta.chest[i];
       if(s?.id!==removed.id)continue;
-      const moved=Math.min(MAX_STACK-s.count,count);
+      const moved=Math.min(stackLimit(removed.id)-s.count,count);
       s.count+=moved;count-=moved;
     }
     for(let i=0;i<SLOT_COUNT&&count;i++){
       if(meta.chest[i])continue;
-      const moved=Math.min(gear?1:MAX_STACK,count);
+      const moved=Math.min(stackLimit(removed.id),count);
       meta.chest[i]={...removed,count:moved};
       count-=moved;
     }
@@ -240,7 +241,7 @@ const BlockFurniture = (() => {
     if(!meta)return;
     for(const item of meta.chest){
       if(item && typeof Drops!=='undefined'){
-        Drops.spawn(item.id,item.count,x+.5,y+.5,z+.5);
+        Drops.spawn(item.id,item.count,x+.5,y+.5,z+.5,item.durability);
       }
     }
     meta.chest=Array(SLOT_COUNT).fill(null);

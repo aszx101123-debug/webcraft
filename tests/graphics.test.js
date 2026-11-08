@@ -34,16 +34,16 @@ function canvasDocument() {
   };
 }
 
-function world(biome = 'plains', radius = 0, plants = false) {
+function world(biome = 'plains', radius = 0, plants = false, farming = undefined) {
   const Terrain = {
     idx: (x, y, z) => (x << 10) | (z << 6) | y,
     makeGen: () => ({ genChunk: () => new Uint8Array(16 * 16 * 64), heightAt: () => 0, biomeAt: () => biome })
   };
-  const textures = { getTexture: () => null, tileFor: () => ({u0:0,u1:1,v0:0,v1:1}) };
+  const textures = { getTexture: () => null, tileFor: () => ({u0:0,u1:1,v0:0,v1:1}),tileUV:(col,row)=>({u0:col/16,u1:(col+1)/16,v0:1-(row+1)/16,v1:1-row/16}) };
   if(plants)textures.decorTile=()=>({u0:0,u1:1,v0:0,v1:1});
   const instance = new Function('THREE', 'CONFIG', 'BLOCK', 'BLOCKS', 'Terrain', 'Textures', 'Player',
-    'BlockFurniture', 'getBlockVisualBoxes', 'isSolidBlock', 'Noise', source('js/game/voxel-lighting.js') + '\n' + source('js/game/world.js') + '\nreturn World;')(
-    THREE, CONFIG, BLOCK, BLOCKS, Terrain, textures, {pos:{y:10}}, {stateAt:()=>({})}, getBlockVisualBoxes, isSolidBlock, Noise);
+    'BlockFurniture', 'getBlockVisualBoxes', 'isSolidBlock', 'Noise', 'Farming', source('js/game/voxel-lighting.js') + '\n' + source('js/game/world.js') + '\nreturn World;')(
+    THREE, CONFIG, BLOCK, BLOCKS, Terrain, textures, {pos:{y:10}}, {stateAt:()=>({})}, getBlockVisualBoxes, isSolidBlock, Noise, farming);
   instance.init(new THREE.Scene(), 1, null);
   instance.update(8, 8, radius, (radius * 2 + 1) ** 2, 99);
   return instance;
@@ -69,6 +69,27 @@ function topFace(world, x, y, z) {
   assert.fail('Expected a visible top face');
 }
 const close = (a, b) => assert.ok(Math.abs(a - b) < .00001, `${a} should equal ${b}`);
+
+test('planted crops rebuild as growing crossed pixel planes above lowered farmland',()=>{
+  let stage=0;
+  const w=world('plains',0,true,{stageAt:()=>stage,isForaged:()=>false});
+  w.setBlock(8,10,8,BLOCK.FARMLAND);w.setBlock(8,11,8,BLOCK.WHEAT_CROP);
+  const mesh=()=>{
+    w.update(8,8,0,0,99);
+    const chunk=w.getChunk(0,0);
+    return {plants:chunk.plantMesh.geometry,soil:chunk.mesh.geometry};
+  };
+  let {plants,soil}=mesh();
+  assert.equal(plants.attributes.position.count,8);
+  assert.equal(plants.index.count,12);
+  const ys=Array.from(plants.attributes.position.array).filter((_,i)=>i%3===1);
+  close(Math.min(...ys),10.9375);close(Math.max(...ys),11.1875);
+  close(Math.max(...Array.from(soil.attributes.position.array).filter((_,i)=>i%3===1)),10.9375);
+  stage=3;w.invalidateAt(8,11,8);({plants}=mesh());
+  close(Math.max(...Array.from(plants.attributes.position.array).filter((_,i)=>i%3===1)),11.7275);
+  close(Math.max(...plants.attributes.uv.array),1);
+  assert.ok(Array.from(plants.attributes.voxelLight.array).every(Number.isFinite));
+});
 
 test('baked AO darkens obstructed corners, preserving an exposed corner', () => {
   const w = world();
@@ -233,7 +254,7 @@ test('PC auth loader, mobile entry and offline cache load graphics before the ga
   for (const page of ['play.html','mobile-test.html']) {
     const html = gamePage(page);
     for (const file of ['config','mobile-test-textures','graphics','voxel-lighting','world','mobile-test-main']) {
-      const url = 'js/game/' + file + '.js?v=v160';
+      const url = 'js/game/' + file + '.js?v=v170';
       assert.ok(html.includes(url), page + ': ' + url);
       assert.ok(worker.includes(url), 'offline: ' + url);
       assert.ok(fs.existsSync(path.join(__dirname, '..', url.split('?')[0])));
@@ -242,5 +263,5 @@ test('PC auth loader, mobile entry and offline cache load graphics before the ga
     assert.ok(html.indexOf('js/game/graphics.js') < html.indexOf('js/game/mobile-test-main.js'));
     assert.ok(html.indexOf('js/game/voxel-lighting.js') < html.indexOf('js/game/world.js'));
   }
-  assert.ok(source('play.html').includes('js/auth-play.js?v=v160'));
+  assert.ok(source('play.html').includes('js/auth-play.js?v=v170'));
 });

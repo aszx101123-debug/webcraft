@@ -53,7 +53,7 @@ const Interact = (() => {
   }
   function clearTouchAim(){touchDirection=null;}
   function getTouchDirection(){return touchDirection?touchDirection.clone():null;}
-  function raycast(maxDist) {
+  function raycast(maxDist,liquids=false) {
     const o = camera.position;
     const d = touchDirection?touchDirection.clone():new THREE.Vector3();
     if(!touchDirection)camera.getWorldDirection(d);
@@ -66,7 +66,7 @@ const Interact = (() => {
     let face = null;
     for (let i = 0; i < 160; i++) {
       const id = World.getBlock(x, y, z);
-      if (isSolidBlock(id) || id === BLOCK.TORCH) return { x, y, z, id, face };
+      if (isSolidBlock(id) || id === BLOCK.TORCH || BLOCKS[id]?.crop || (liquids&&BLOCKS[id]?.liquid)) return { x, y, z, id, face };
       if (tmx < tmy && tmx < tmz) { if (tmx > maxDist) return null; x += stepX; tmx += tdx; face = [-stepX, 0, 0]; }
       else if (tmy < tmz) { if (tmy > maxDist) return null; y += stepY; tmy += tdy; face = [0, -stepY, 0]; }
       else { if (tmz > maxDist) return null; z += stepZ; tmz += tdz; face = [0, 0, -stepZ]; }

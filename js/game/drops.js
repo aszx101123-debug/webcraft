@@ -14,8 +14,7 @@ const Drops = (() => {
 
   function reset() {
     if (!group) return;
-    list.forEach(d => group.remove(d.mesh));
-    list = [];
+    while(list.length)remove(list.length-1);
   }
 
   function makeMesh(id) {
@@ -35,13 +34,13 @@ const Drops = (() => {
     return new THREE.Mesh(geo, mat);
   }
 
-  function spawn(id, count, x, y, z) {
+  function spawn(id, count, x, y, z, durability) {
     if (!group || !id) return;
     const mesh = makeMesh(id);
     mesh.position.set(x, y, z);
     group.add(mesh);
     list.push({
-      id, count: count || 1, mesh,
+      id, count: count || 1, mesh, durability,
       vx: (Math.random() - .5) * 2.4,
       vy: 2.6 + Math.random() * 1.2,
       vz: (Math.random() - .5) * 2.4,
@@ -52,6 +51,7 @@ const Drops = (() => {
   function remove(i) {
     group.remove(list[i].mesh);
     list[i].mesh.geometry.dispose();
+    list[i].mesh.material.dispose();
     list.splice(i, 1);
   }
 
@@ -90,7 +90,12 @@ const Drops = (() => {
           d.mesh.position.set(nx + dx * pull, ny + dy * pull, nz + dz * pull);
         }
         if (dist < .75) {
-          const added = Inventory.add(d.id, d.count);
+          let added=0;
+          const def=getItemDef(d.id);
+          if((def.toolType||def.armorType)&&d.durability!==undefined){
+            const empty=Inventory.getSlots().findIndex(s=>!s);
+            if(empty>=0&&!Inventory.putIntoSlot(empty,{id:d.id,count:1,durability:d.durability}))added=1;
+          }else added=Inventory.add(d.id,d.count);
           if (added > 0) {
             if (onCollect) onCollect(d.id, added);
             if (added >= d.count) { remove(i); continue; }
