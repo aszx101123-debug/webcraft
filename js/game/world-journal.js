@@ -3,20 +3,24 @@
 // Personal in-world exploration log. Stored with the current WebCraft world.
 // Coordinates are game blocks, never device or real-world location.
 const WorldJournal = (() => {
-  const NAMES={
+  const FALLBACK_NAMES={
     plains:'평원',forest:'숲',jungle:'정글',swamp:'늪지대',
-    taiga:'침엽수림',snowy:'설산',desert:'사막',highland:'고지대'
+    taiga:'침엽수림',snowy:'설산',desert:'사막',highland:'고지대',
+    savanna:'사바나',badlands:'악지',cherry:'벚꽃숲',bamboo:'대나무숲',
+    mushroom:'버섯숲',volcanic:'화산 지대',glacier:'빙하',crystal:'수정 지대'
   };
+  const NAMES=typeof BIOMES!=='undefined'
+    ?Object.fromEntries(Object.entries(BIOMES).map(([id,def])=>[id,def.name])):FALLBACK_NAMES;
   const keys=Object.keys(NAMES);
   const MAX_DISTANCE=10,MAX_BOOKMARKS=5;
   let visited=[],distance=0,lastPosition=null,open=false,discovered=null,onClose=null,home=null;
-  let bookmarks=[],onChange=null;
+  let bookmarks=[],onChange=null,guideOpen=false,onGuideClose=null;
   function coordinate(pos){
     if(!pos||!['x','y','z'].every(k=>Number.isFinite(pos[k])&&Math.abs(pos[k])<10000000))return null;
     return {x:Math.floor(pos.x),y:Math.floor(pos.y),z:Math.floor(pos.z)};
   }
   function init(saved) {
-    visited=[];distance=0;lastPosition=null;open=false;discovered=null;home=null;bookmarks=[];
+    visited=[];distance=0;lastPosition=null;open=false;guideOpen=false;discovered=null;home=null;bookmarks=[];
     if(saved && typeof saved==='object') {
       if(saved.home)home=coordinate(saved.home);
       if(Array.isArray(saved.bookmarks))for(const point of saved.bookmarks.slice(0,MAX_BOOKMARKS)){
@@ -34,6 +38,7 @@ const WorldJournal = (() => {
       }
     }
     document.getElementById('overlay-journal')?.classList.add('hidden');
+    document.getElementById('overlay-biome-guide')?.classList.add('hidden');
   }
   function update(dt,pos,biome) {
     if(!pos||!Number.isFinite(pos.x)||!Number.isFinite(pos.z))return false;
@@ -153,14 +158,58 @@ const WorldJournal = (() => {
     return true;
   }
   function close(notify=true) {
+    if(guideOpen){
+      guideOpen=false;
+      document.getElementById('overlay-biome-guide')?.classList.add('hidden');
+      if(notify&&onGuideClose)onGuideClose();
+      return true;
+    }
     if(!open)return false;
     open=false;
     document.getElementById('overlay-journal')?.classList.add('hidden');
     if(notify&&onClose)onClose();
     return true;
   }
-  function isOpen(){return open;}
+  function renderGuide(){
+    const list=document.getElementById('biome-guide-list');
+    if(!list||typeof BIOMES==='undefined')return;
+    list.replaceChildren();
+    const current=typeof World!=='undefined'&&typeof Player!=='undefined'
+      ?World.biomeAt(Player.pos.x,Player.pos.z):null;
+    for(const [id,def] of Object.entries(BIOMES)){
+      const card=document.createElement('article');card.className='biome-guide-card';
+      if(id===current)card.className+=' current-biome';
+      const heading=document.createElement('h3');
+      heading.textContent=def.name+(id===current?' · 현재 지형':'');
+      const chance=document.createElement('p');chance.className='biome-guide-chance';
+      chance.textContent='등장 확률 '+def.chance+'% · '+(def.chance<=1?'매우 희귀':def.chance<=3?'희귀':def.chance<=7?'드문 지형':'일반');
+      const resource=document.createElement('p');resource.className='biome-guide-resource';
+      resource.textContent=getItemName(def.resource)+' 채굴';
+      const loot=document.createElement('ul');
+      for(const drop of def.loot){
+        const item=document.createElement('li');
+        item.textContent=getItemName(drop.id)+' · '+drop.chance+'%';
+        loot.appendChild(item);
+      }
+      const seen=visited.find(v=>v.biome===id);
+      const discovered=document.createElement('small');
+      discovered.textContent=seen?'발견한 지형 · X '+seen.x+' / Z '+seen.z:'아직 발견하지 않은 지형';
+      card.append(heading,chance,resource,loot,discovered);list.appendChild(card);
+    }
+  }
+  function showGuide(){
+    close(false);guideOpen=true;renderGuide();
+    document.getElementById('overlay-biome-guide')?.classList.remove('hidden');
+    document.getElementById('biome-guide-close')?.focus?.();
+    return true;
+  }
+  function setOnGuideClose(fn){onGuideClose=typeof fn==='function'?fn:null;}
+  document.addEventListener?.('keydown',event=>{
+    if(!guideOpen||event.code!=='Tab')return;
+    event.preventDefault();document.getElementById('biome-guide-close')?.focus?.();
+  });
+  function isOpen(){return open||guideOpen;}
   function setOnClose(fn){onClose=typeof fn==='function'?fn:null;}
   return {init,update,serialize,getStats,biomeName,show,close,isOpen,setOnClose,setOnChange,
-    setHome,homeDistance,addBookmark,removeBookmark,render};
+    setHome,homeDistance,addBookmark,removeBookmark,render,showGuide,renderGuide,setOnGuideClose};
 })();

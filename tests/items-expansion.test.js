@@ -12,12 +12,12 @@ function plant(g,seed=g.ITEM.WHEAT_SEEDS){
   return {x:3,y:2,z:3,id:g.ITEMS[seed].plant,face:[0,1,0]};
 }
 
-test('82 new entries preserve original IDs, fit Uint8 blocks and expose valid item definitions',()=>{
+test('item expansions preserve original IDs, fit Uint8 blocks and expose valid item definitions',()=>{
   const g=game();
   assert.equal(g.BLOCK.WOOD_DOOR_TOP,45);assert.equal(g.ITEM.DIAMOND_SWORD,244);
-  assert.equal(g.BLOCKS.length,75);assert.equal(Object.keys(g.ITEMS).length,114);
+  assert.equal(g.BLOCKS.length,99);assert.equal(Object.keys(g.ITEMS).length,162);
   for(let id=1;id<g.BLOCKS.length;id++)assert.ok(g.BLOCKS[id]?.tiles);
-  assert.equal(Object.keys(g.ITEMS).filter(id=>Number(id)>=300).length,53);
+  assert.equal(Object.keys(g.ITEMS).filter(id=>Number(id)>=300).length,101);
   assert.equal(g.WOOL_TYPES.length,16);assert.equal(g.STORAGE_TYPES.length,8);
 });
 

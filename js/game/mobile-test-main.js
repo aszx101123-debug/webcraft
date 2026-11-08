@@ -28,6 +28,7 @@ window.webcraftBoot = (async () => {
     saved = SaveSystem.load(worldId);
   }
   const seed = saved?.seed ?? worldMeta.seed;
+  const generatorVersion = SaveSystem.generatorVersion(saved);
 
   const renderer = new THREE.WebGLRenderer({ antialias: false });
   const isTouch = params.get('controls') === 'touch' || (params.get('controls') !== 'desktop' && (matchMedia('(pointer: coarse)').matches || (navigator.maxTouchPoints > 0 && matchMedia('(max-width: 800px)').matches)));
@@ -51,7 +52,7 @@ window.webcraftBoot = (async () => {
 
   Textures.init();
   await Textures.loadClassicPack();
-  World.init(scene, seed, saved ? saved.edits : null);
+  World.init(scene, seed, saved ? saved.edits : null, generatorVersion);
   WorldJournal.init(saved?.journal);
   WorldMilestones.init(saved?.milestones);
   WorldMilestones.syncExploration(WorldJournal.getStats());
@@ -197,7 +198,8 @@ window.webcraftBoot = (async () => {
     weather.timer -= dt;
     if (weather.timer <= 0) chooseWeather();
 
-    const snowArea = World.heightAt(Player.pos.x, Player.pos.z) >= 40;
+    const snowBiome=World.biomeAt(Player.pos.x,Player.pos.z);
+    const snowArea = ['snowy','taiga','glacier'].includes(snowBiome) || World.heightAt(Player.pos.x, Player.pos.z) >= 40;
     const actualSnow = weather.type === 'snow' && snowArea;
     const rain = weather.type === 'rain' || (weather.type === 'snow' && !snowArea);
     weather.rainPoints.visible = rain;
@@ -255,6 +257,7 @@ window.webcraftBoot = (async () => {
       worldId,
       worldName: worldMeta.name,
       seed,
+      generatorVersion,
       time: state.time,
       renderDist: state.renderDist,
       sound: state.sound,
@@ -589,6 +592,19 @@ window.webcraftBoot = (async () => {
     resumeInput();
   });
   document.getElementById('journal-close')?.addEventListener('click',()=>WorldJournal.close());
+  document.getElementById('btn-biome-guide')?.addEventListener('click',()=>{
+    state.paused=true;
+    disableTouchInput();
+    UI.showOverlay(null);
+    WorldJournal.showGuide();
+  });
+  WorldJournal.setOnGuideClose(()=>{
+    state.paused=true;
+    pauseBeganAt=performance.now();
+    UI.showOverlay('pause');
+    document.getElementById('btn-biome-guide')?.focus?.();
+  });
+  document.getElementById('biome-guide-close')?.addEventListener('click',()=>WorldJournal.close());
   WorldJournal.setOnChange(()=>doSave(true));
   document.getElementById('journal-bookmark-add')?.addEventListener('click',()=>{
     const input=document.getElementById('journal-bookmark-name');

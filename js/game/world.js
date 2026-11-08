@@ -59,7 +59,10 @@ const World = (() => {
   const BIOME_TINTS = {
     plains: [1, 1, 1], forest: [.9, 1, .88], jungle: [.86, 1.08, .78],
     swamp: [.8, .87, .68], taiga: [.8, .96, 1], snowy: [.85, .97, 1],
-    desert: [1.12, .96, .68], highland: [.93, 1, .9]
+    desert: [1.12, .96, .68], highland: [.93, 1, .9],
+    savanna:[1.15,.95,.58],badlands:[1.14,.76,.52],cherry:[1.04,.96,1.08],
+    bamboo:[.78,1.08,.68],mushroom:[1.02,.8,1.09],volcanic:[.7,.68,.67],
+    glacier:[.77,.97,1.12],crystal:[.87,.8,1.15]
   };
 
   function faceVisible(id, nb) {
@@ -72,7 +75,7 @@ const World = (() => {
     return false;
   }
 
-  function init(scene, seedNum, editsEntries) {
+  function init(scene, seedNum, editsEntries, generatorVersion = 2) {
     chunks.forEach(disposeChunk);
     chunks = new Map();
     edits = new Map();
@@ -96,7 +99,7 @@ const World = (() => {
       }
     }
     seed = seedNum;
-    gen = Terrain.makeGen(seed);
+    gen = Terrain.makeGen(seed, generatorVersion);
     if (!matSolid) {
       matSolid = VoxelLighting.material({ map: Textures.getTexture(), vertexColors: true, alphaTest: .5 }, daylight);
       matTorch = new THREE.MeshBasicMaterial({ map: Textures.getTexture(), vertexColors: true, alphaTest: .5 });

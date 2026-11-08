@@ -222,6 +222,12 @@ const Crafting = (() => {
   add('golden-apple','황금 사과',ITEM.GOLDEN_APPLE,1,{pattern:[[1,1,1,1,2,1,1,1,1]],ingredients:[{id:ITEM.GOLD_INGOT,count:8},{id:ITEM.APPLE,count:1}]});
   add('lantern','랜턴',BLOCK.LANTERN,1,{pattern:[[1,1,1,1,2,1,1,1,1]],ingredients:[{id:ITEM.IRON_NUGGET,count:8},{id:BLOCK.TORCH,count:1}]});
 
+  // Every biome material has a useful recipe; these also fit personal 2x2 crafting.
+  for(const material of BIOME_ITEMS)add('biome-'+material.id,getItemName(material.output)+' · '+getItemName(material.id),material.output,material.count,{
+    shapeless:true,ingredients:[{id:material.id,count:material.required}],
+    note:getItemName(material.id)+' '+material.required+'개 → '+getItemName(material.output)+' '+material.count+'개'
+  });
+
   function getRecipes() { return recipes.slice(); }
   function resetGrid(size = gridSize) {
     gridSize = size === 2 ? 2 : 3;

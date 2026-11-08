@@ -7,16 +7,74 @@ const Terrain = (() => {
     return (x << 10) | (z << 6) | y;
   }
 
-  function makeGen(seed) {
-
+  function makeGen(seed, generatorVersion = 2) {
+    if (generatorVersion === 1 && typeof LegacyTerrain !== 'undefined') return LegacyTerrain.makeGen(seed);
+    const REGION_SIZE = 160;
+    const biomeEntries = Object.entries(BIOMES);
+    const cellCache = new Map();
     const stretch = (v, k) => Math.max(0, Math.min(1, (v - .5) * k + .5));
+    const smooth = v => v * v * (3 - 2 * v);
+    const profiles = {
+      plains: [-3,.65], forest: [0,1], jungle: [1,1.1], swamp: [-6,.55],
+      taiga: [2,1], snowy: [8,1.2], desert: [-2,.65], highland: [10,1.45],
+      savanna: [-2,.75], badlands: [7,1.15], cherry: [2,.7], bamboo: [0,.85],
+      mushroom: [2,.7], volcanic: [10,1.6], glacier: [9,.8], crystal: [7,1.2]
+    };
+
+    // A uniform hash chooses each region independently using the published weights.
+    // Jittered region centers produce broad, irregular borders rather than checkerboards.
+    function regionCell(gx, gz) {
+      const key = gx + ',' + gz;
+      let cell = cellCache.get(key);
+      if (cell) return cell;
+      let roll = Noise.hash2(gx, gz, seed + 4201) * 100;
+      let biome = biomeEntries[biomeEntries.length - 1][0];
+      for (const [id, def] of biomeEntries) {
+        roll -= def.chance;
+        if (roll < 0) { biome = id; break; }
+      }
+      cell = Object.freeze({biome, x:gx, z:gz,
+        centerX:(gx + .25 + Noise.hash2(gx,gz,seed+4202)*.5)*REGION_SIZE,
+        centerZ:(gz + .25 + Noise.hash2(gx,gz,seed+4203)*.5)*REGION_SIZE});
+      if (cellCache.size >= 4096) cellCache.delete(cellCache.keys().next().value);
+      cellCache.set(key, cell);
+      return cell;
+    }
+
+    function regionAt(x, z) {
+      const gx = Math.floor(x / REGION_SIZE), gz = Math.floor(z / REGION_SIZE);
+      let nearest = null, distance = Infinity;
+      for (let dx=-1;dx<=1;dx++) for(let dz=-1;dz<=1;dz++) {
+        const cell = regionCell(gx+dx,gz+dz);
+        const d = (x-cell.centerX)**2 + (z-cell.centerZ)**2;
+        if (d < distance) { distance = d; nearest = cell; }
+      }
+      return nearest;
+    }
+
+    // Height profiles interpolate across grid centers. Unlike an abrupt biome offset,
+    // this remains continuous at region and chunk borders, including negative coordinates.
+    function heightProfile(x, z) {
+      const fx=x/REGION_SIZE-.5, fz=z/REGION_SIZE-.5;
+      const gx=Math.floor(fx),gz=Math.floor(fz),tx=smooth(fx-gx),tz=smooth(fz-gz);
+      let offset=0,roughness=0,terraces=0;
+      for(let dx=0;dx<=1;dx++)for(let dz=0;dz<=1;dz++) {
+        const id=regionCell(gx+dx,gz+dz).biome;
+        const weight=(dx?tx:1-tx)*(dz?tz:1-tz);
+        offset+=profiles[id][0]*weight;roughness+=profiles[id][1]*weight;
+        if(id==='badlands')terraces+=weight;
+      }
+      return {offset,roughness,terraces};
+    }
 
     function heightAt(x, z) {
+      const profile=heightProfile(x,z);
       const base = stretch(Noise.fbm2(x * .0075, z * .0075, seed, 4), 1.8);
       const detail = stretch(Noise.fbm2(x * .02 + 500, z * .02 - 500, seed + 7, 3), 1.6);
-      let h = 14 + base * 26 + detail * 6;
+      let h = 17 + base * 26 + (detail-.5) * 6 * profile.roughness + profile.offset;
       const m = stretch(Noise.fbm2(x * .004 + 123, z * .004 + 321, seed + 13, 3), 1.8);
-      if (m > .52) h += (m - .52) * 70;
+      if (m > .52) h += (m - .52) * 70 * profile.roughness;
+      h += Math.sin(h*.8)*1.3*profile.terraces;
       if (h > 50) h = 50 + (h - 50) * .55;
       return Math.max(4, Math.min(56, Math.round(h)));
     }
@@ -26,34 +84,35 @@ const Terrain = (() => {
     }
 
     function biomeAt(x, z) {
-      const h = heightAt(x, z);
-      const temp = Noise.fbm2(x * .0018 + 900, z * .0018 - 900, seed + 101, 3);
-      const moisture = Noise.fbm2(x * .0022 - 1200, z * .0022 + 300, seed + 202, 3);
-      if(h>=45&&temp<.58)return'snowy';if(h<SEA+2&&temp>.72&&moisture<.5)return'desert';if(temp>.68&&moisture>.68)return'jungle';if(moisture>.78&&h<SEA+5)return'swamp';if(temp<.38&&moisture>.48)return'taiga';if(moisture>.64)return'forest';
-      if (h >= 42) return 'highland';
-      return 'plains';
+      return regionAt(x,z).biome;
     }
 
     function genChunk(cx, cz) {
       const data = new Uint8Array(C * C * H);
       const heights = new Int16Array(C * C);
+      const biomes = new Array(C * C);
       for (let x = 0; x < C; x++) for (let z = 0; z < C; z++) {
         const wx = cx * C + x, wz = cz * C + z;
         const h = heightAt(wx, wz);
         heights[x * C + z] = h;
         const biome = biomeAt(wx, wz);
-        const sandy=h<=SEA+1||biome==='desert'||biome==='swamp';const snowy=biome==='snowy'||biome==='taiga';
+        biomes[x*C+z]=biome;
+        const def=BIOMES[biome];
+        const shore=h<=SEA+1 && !['glacier','volcanic','crystal'].includes(biome);
         const shoreRoll=Noise.hash2(wx,wz,seed+801);
         const shoreBlock=(h<=SEA+2&&biome!=='desert')
           ? (shoreRoll<.11?BLOCK.CLAY:shoreRoll<.29?BLOCK.GRAVEL:BLOCK.SAND)
-          : BLOCK.SAND;
+          : (def.surface || BLOCK.SAND);
         for (let y = 0; y < H; y++) {
           let id = BLOCK.AIR;
           if (y === 0) id = BLOCK.BEDROCK;
           else if (y <= h) {
-            if (y === h) id = sandy ? shoreBlock : (snowy ? BLOCK.SNOW : BLOCK.GRASS);
-            else if (y >= h - 3) id = sandy ? (biome==='desert'?BLOCK.SAND:shoreBlock) : BLOCK.DIRT;
+            if (y === h) id = shore ? shoreBlock : def.surface;
+            else if (y >= h - 3) id = shore ? shoreBlock : def.subsurface;
             else if (biome==='desert' && y >= h-6) id = BLOCK.SANDSTONE;
+            else if (biome==='badlands' && y >= h-8) id = y%4===0 ? BLOCK.RED_SAND : BLOCK.TERRACOTTA;
+            else if (biome==='volcanic' && y >= h-6) id = BLOCK.BASALT;
+            else if (biome==='glacier' && y >= h-5) id = BLOCK.ICE;
             else id = BLOCK.STONE;
             if (h > SEA + 2 && y >= 3 && y <= h - 4) {
               const cheese = Noise.noise3(wx * .026, y * .042, wz * .026, seed + 41);
@@ -66,7 +125,7 @@ const Terrain = (() => {
                 id = flooded ? BLOCK.WATER : BLOCK.AIR;
               }
             }
-          } else if (y <= SEA) id = BLOCK.WATER;
+          } else if (y <= SEA) id = biome==='glacier' && y===SEA ? BLOCK.ICE : BLOCK.WATER;
           if (id) data[idx(x, y, z)] = id;
         }
       }
@@ -138,26 +197,25 @@ const Terrain = (() => {
         }
       }
 
-      const f = stretch(forestAt(cx * C + 8, cz * C + 8), 1.9);
-      const centerBiome=biomeAt(cx*C+8,cz*C+8);let treeChance=f;if(centerBiome==='jungle')treeChance=Math.min(1,treeChance*1.9+.25);if(centerBiome==='taiga')treeChance=Math.min(1,treeChance*1.35+.1);if(centerBiome==='swamp')treeChance=Math.min(1,treeChance*1.15);if(centerBiome==='desert'||centerBiome==='snowy')treeChance*=.35;
-      const count = Math.min(4, Math.floor(Math.max(0, treeChance - .5) * 12));
       const rng = Noise.mulberry32(Math.floor(Noise.hash2(cx, cz, seed) * 4294967296));
-      for (let t = 0; t < count; t++) {
+      for (let t = 0; t < 9; t++) {
         const tx = 2 + Math.floor(rng() * 12);
         const tz = 2 + Math.floor(rng() * 12);
         const h = heights[tx * C + tz];
-        if (h <= SEA + 1 || h > 52) continue;
-        if (data[idx(tx, h, tz)] !== BLOCK.GRASS) continue;
-        const localBiome = biomeAt(cx * C + tx, cz * C + tz);
-        // Different silhouettes make forests, taiga and jungles feel distinct.
+        const localBiome = biomes[tx*C+tz],def=BIOMES[localBiome];
+        const density = def.treeDensity * (.65 + forestAt(cx*C+tx,cz*C+tz)*.7);
+        if (rng() >= density || h <= SEA + 1 || h > 52) continue;
+        const ground=data[idx(tx,h,tz)];
+        if (ground!==BLOCK.GRASS && !(localBiome==='taiga' && ground===BLOCK.SNOW)) continue;
         const th = localBiome === 'jungle' ? 6 + Math.floor(rng() * 3)
           : localBiome === 'taiga' ? 6 + Math.floor(rng() * 2)
-          : 4 + Math.floor(rng() * 2);
-        if (h + th + 1 >= H) continue;
+          : localBiome === 'savanna' ? 3 : 4 + Math.floor(rng() * 2);
+        if (h + th + 1 >= H || data[idx(tx,h+1,tz)]!==BLOCK.AIR) continue;
         const isSpruce=localBiome==='taiga';
         const isBirch=localBiome==='forest' && rng()<.48;
         const trunkId=isSpruce?BLOCK.SPRUCE_LOG:isBirch?BLOCK.BIRCH_LOG:BLOCK.LOG;
-        const leafId=isSpruce?BLOCK.SPRUCE_LEAVES:isBirch?BLOCK.BIRCH_LEAVES:BLOCK.LEAVES;
+        const leafId=localBiome==='cherry'?BLOCK.CHERRY_LEAVES:
+          isSpruce?BLOCK.SPRUCE_LEAVES:isBirch?BLOCK.BIRCH_LEAVES:BLOCK.LEAVES;
         for (let y = 1; y <= th; y++) data[idx(tx, h + y, tz)] = trunkId;
         const leaf = (lx, ly, lz) => {
           if (lx < 0 || lx >= C || lz < 0 || lz >= C || ly < 1 || ly >= H) return;
@@ -165,7 +223,6 @@ const Terrain = (() => {
           if (data[index] === BLOCK.AIR) data[index] = leafId;
         };
         if (localBiome === 'taiga') {
-          // A tapering spruce-like cone.
           for (let dy = th - 4; dy <= th + 1; dy++) {
             const radius = dy >= th + 1 ? 0 : dy >= th - 1 ? 1 : 2;
             for (let dx = -radius; dx <= radius; dx++)
@@ -175,8 +232,7 @@ const Terrain = (() => {
               }
           }
         } else {
-          // Round broadleaf crowns, with an extra lush layer for jungle trees.
-          const crownStart = th - (localBiome === 'jungle' ? 3 : 2);
+          const crownStart = th - (localBiome === 'jungle' ? 3 : localBiome==='savanna'?1:2);
           for (let dy = crownStart; dy <= th - 1; dy++) {
             for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) {
               if (Math.abs(dx) === 2 && Math.abs(dz) === 2 && rng() < .65) continue;
@@ -185,13 +241,13 @@ const Terrain = (() => {
           }
           for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++)
             leaf(tx + dx, h + th, tz + dz);
-          leaf(tx, h + th + 1, tz);
-          leaf(tx + 1, h + th + 1, tz);
-          leaf(tx - 1, h + th + 1, tz);
-          leaf(tx, h + th + 1, tz + 1);
-          leaf(tx, h + th + 1, tz - 1);
+          if(localBiome!=='savanna') {
+            leaf(tx, h + th + 1, tz);leaf(tx + 1, h + th + 1, tz);
+            leaf(tx - 1, h + th + 1, tz);leaf(tx, h + th + 1, tz + 1);leaf(tx, h + th + 1, tz - 1);
+          }
         }
       }
+      const centerBiome=biomeAt(cx*C+8,cz*C+8);
 
       // Sparse upright cacti in dry biomes; no random stone towers or ruins.
       if (centerBiome==='desert') {
@@ -209,11 +265,26 @@ const Terrain = (() => {
         }
       }
 
-      // Surface ruins are disabled: keep naturally generated terrain clear.
+      // Biome-specific vegetation, exposed crystals, and harvestable resource nodes.
+      // Coordinate hashes make these independent of chunk generation order.
+      for(let x=0;x<C;x++)for(let z=0;z<C;z++) {
+        const wx=cx*C+x,wz=cz*C+z,h=heights[x*C+z],biome=biomes[x*C+z];
+        if(h<SEA || h>=H-6 || data[idx(x,h+1,z)]!==BLOCK.AIR)continue;
+        const roll=Noise.hash2(wx,wz,seed+4601);
+        if(biome==='bamboo' && roll<.055) {
+          const height=2+Math.floor(Noise.hash2(wx,wz,seed+4602)*4);
+          for(let y=1;y<=height;y++)if(data[idx(x,h+y,z)]===BLOCK.AIR)data[idx(x,h+y,z)]=BLOCK.BAMBOO;
+        } else if(biome==='crystal' && roll<.012) {
+          const height=1+Math.floor(Noise.hash2(wx,wz,seed+4603)*3);
+          for(let y=1;y<=height;y++)if(data[idx(x,h+y,z)]===BLOCK.AIR)data[idx(x,h+y,z)]=BLOCK.CRYSTAL_BLOCK;
+        }
+        if(data[idx(x,h+1,z)]===BLOCK.AIR && data[idx(x,h+2,z)]===BLOCK.AIR && Noise.hash2(wx,wz,seed+4611)<.024)
+          data[idx(x,h+1,z)]=BIOMES[biome].resource;
+      }
       return data;
     }
 
-    return { seed, heightAt, forestAt, biomeAt, genChunk };
+    return { seed, generatorVersion:2, heightAt, forestAt, biomeAt, regionAt, genChunk };
   }
 
   return { makeGen, idx };

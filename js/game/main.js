@@ -26,6 +26,7 @@
     saved = SaveSystem.load(worldId);
   }
   const seed = saved?.seed ?? worldMeta.seed;
+  const generatorVersion = SaveSystem.generatorVersion(saved);
 
   const renderer = new THREE.WebGLRenderer({ antialias: false });
   const hardwareScale = (navigator.hardwareConcurrency || 4) <= 4 ? 1.25 : 1.5;
@@ -44,7 +45,7 @@
   scene.add(sun);
 
   Textures.init();
-  World.init(scene, seed, saved ? saved.edits : null);
+  World.init(scene, seed, saved ? saved.edits : null, generatorVersion);
   Fluids.init();
   PlayerModel.init(scene,camera);
   Mobs.init(scene);
@@ -155,7 +156,8 @@
     weather.timer -= dt;
     if (weather.timer <= 0) chooseWeather();
 
-    const snowArea = World.heightAt(Player.pos.x, Player.pos.z) >= 40;
+    const snowBiome=World.biomeAt(Player.pos.x,Player.pos.z);
+    const snowArea = ['snowy','taiga','glacier'].includes(snowBiome) || World.heightAt(Player.pos.x, Player.pos.z) >= 40;
     const actualSnow = weather.type === 'snow' && snowArea;
     const rain = weather.type === 'rain' || (weather.type === 'snow' && !snowArea);
     weather.rainPoints.visible = rain;
@@ -220,6 +222,7 @@
       worldId,
       worldName: worldMeta.name,
       seed,
+      generatorVersion,
       time: state.time,
       renderDist: state.renderDist,
       sound: state.sound,
@@ -299,7 +302,21 @@
     try { canvas.requestPointerLock(); } catch (e) { }
   }
 
+  if(typeof WorldJournal!=='undefined'){
+    document.getElementById('btn-biome-guide')?.addEventListener('click',()=>{
+      state.paused=true;UI.showOverlay(null);WorldJournal.showGuide();
+    });
+    WorldJournal.setOnGuideClose(()=>{
+      state.paused=true;UI.showOverlay('pause');
+      document.getElementById('btn-biome-guide')?.focus?.();
+    });
+    document.getElementById('biome-guide-close')?.addEventListener('click',()=>WorldJournal.close());
+  }
   document.addEventListener('keydown', e => {
+    if(typeof WorldJournal!=='undefined'&&WorldJournal.isOpen()){
+      if(e.code==='Escape'){e.preventDefault();WorldJournal.close();}
+      return;
+    }
     keys[e.code] = true;
     if (e.code === 'Space') e.preventDefault();
     if (e.code === 'Escape' && UI.isInventoryOpen()) {

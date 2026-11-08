@@ -91,6 +91,12 @@ const Crafting = (() => {
     });
   }
 
+  // Every biome material has a useful recipe; these also fit personal 2x2 crafting.
+  for(const material of BIOME_ITEMS)add('biome-'+material.id,getItemName(material.output)+' · '+getItemName(material.id),material.output,material.count,{
+    shapeless:true,ingredients:[{id:material.id,count:material.required}],
+    note:getItemName(material.id)+' '+material.required+'개 → '+getItemName(material.output)+' '+material.count+'개'
+  });
+
   function getRecipes() { return recipes.slice(); }
   function resetGrid(size = gridSize) {
     gridSize = size === 2 ? 2 : 3;

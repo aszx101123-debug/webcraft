@@ -42,7 +42,7 @@ ok(diff, '좌표별 청크 상이');
 let valid = true, seaOk = true;
 for (let cx = -3; cx <= 3; cx++) for (let cz = -3; cz <= 3; cz++) {
   const d = gen.genChunk(cx, cz);
-  for (let i = 0; i < d.length; i++) if (d[i] > BLOCK.SNOW) valid = false;
+  for (let i = 0; i < d.length; i++) if (d[i] && !BLOCKS[d[i]]) valid = false;
   for (let x = 0; x < 16; x++) for (let z = 0; z < 16; z++)
     for (let y = CONFIG.SEA + 1; y < 64; y++)
       if (d[Terrain.idx(x, y, z)] === BLOCK.WATER) seaOk = false;
@@ -57,7 +57,7 @@ for (let cx = -2; cx <= 2; cx++) for (let cz = -2; cz <= 2; cz++) {
     if (d[Terrain.idx(x, y, z)] === BLOCK.LOG) {
       logCount++;
       const below = d[Terrain.idx(x, y - 1, z)];
-      if (below !== BLOCK.GRASS && below !== BLOCK.LOG) treeOk = false;
+      if (![BLOCK.GRASS, BLOCK.SNOW, BLOCK.LOG].includes(below)) treeOk = false;
     }
   }
 }

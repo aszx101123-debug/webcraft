@@ -20,10 +20,10 @@ const Journal=new Function('document',source('js/game/world-journal.js')+
   '\nreturn WorldJournal;')(document);
 let passed=0;
 function check(name,fn){fn();passed++;console.log('PASS',name);}
-check('new world journal starts empty and exposes eight supported biomes',()=>{
+check('new world journal starts empty and exposes sixteen supported biomes',()=>{
   Journal.init(null);
   const stats=Journal.getStats();
-  assert.equal(stats.found,0);assert.equal(stats.total,8);
+  assert.equal(stats.found,0);assert.equal(stats.total,16);
   assert.equal(stats.distance,0);assert.equal(stats.home,null);
 });
 check('visiting new biomes records discovery only once',()=>{
@@ -60,11 +60,11 @@ check('corrupted/duplicate biome history is sanitized',()=>{
   assert.equal(Journal.getStats().home,null);
   assert.equal(Journal.getStats().distance,0);
 });
-check('journal panel populates eight readable tiles and supports close callback',()=>{
+check('journal panel populates sixteen readable tiles and supports close callback',()=>{
   let closed=0;
   Journal.setOnClose(()=>closed++);
   Journal.show();
-  assert.equal(children['journal-biomes'].children.length,8);
+  assert.equal(children['journal-biomes'].children.length,16);
   assert.equal(Journal.isOpen(),true);
   assert.equal(children['overlay-journal'].classList.contains('hidden'),false);
   Journal.close();
@@ -75,7 +75,7 @@ check('journal panel populates eight readable tiles and supports close callback'
 check('classic pages preserve old journal saves without the custom gameplay shortcut',()=>{
   for(const page of ['play.html','mobile-test.html']){
     const html=gamePage(page);
-    assert.ok(html.includes('world-journal.js?v=v136'));
+    assert.match(html,/world-journal\.js(?:\?[^"']*)?/);
     assert.ok(html.includes('id="overlay-journal"'));
     assert.ok(html.includes('id="journal-set-home"'));
     assert.ok(html.includes('id="save-indicator"'));

@@ -12,7 +12,7 @@ const {CONFIG,BLOCK,BLOCKS,ITEM,PLACEABLE_IDS,isFallingBlock,isPlaceable,getBloc
 check('all original block IDs are preserved and 14 new IDs appended',()=>{
   assert.equal(BLOCK.TORCH,26);assert.equal(BLOCK.WATER_FLOW,23);
   assert.equal(BLOCK.GRAVEL,27);assert.equal(BLOCK.BOOKSHELF,40);
-  assert.equal(BLOCKS.length,75);
+  assert.equal(BLOCKS.length,99);
   for(let id=1;id<=40;id++)assert.ok(BLOCKS[id]?.tiles,'Missing block '+id);
   for(let id=41;id<=45;id++)assert.ok(BLOCKS[id]?.tiles,'Missing building block '+id);
 
@@ -122,7 +122,7 @@ const Textures=new Function('document','THREE','Noise','BLOCKS','ITEMS',
 );
 check('upgraded 12x12 atlas paints every new block tile',()=>{
   Textures.init();
-  assert.equal(Textures.getAtlas().width,256);
+  assert.equal(Textures.getAtlas().width,512);
   for(const [col,row] of [[10,0],[11,0],[10,1],[11,1],[10,2],[11,2],[10,3],[11,3],[10,4],[11,4],[10,5],[11,5],[10,6],[11,6],[10,7],[11,7],[10,8],[11,8],[0,10],[1,10],[2,10],[3,10],[4,10],[5,10],[6,10]])
     assert.ok(cells.has(col+','+row),'Missing pixel art tile '+col+','+row);
   for(let id=27;id<=45;id++) {

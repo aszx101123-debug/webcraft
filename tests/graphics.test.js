@@ -254,7 +254,7 @@ test('PC auth loader, mobile entry and offline cache load graphics before the ga
   for (const page of ['play.html','mobile-test.html']) {
     const html = gamePage(page);
     for (const file of ['config','mobile-test-textures','graphics','voxel-lighting','world','mobile-test-main']) {
-      const url = 'js/game/' + file + '.js?v='+(file==='config'?'v171':'v170');
+      const url = 'js/game/' + file + '.js?v='+(['graphics','voxel-lighting'].includes(file)?'v170':'v180');
       assert.ok(html.includes(url), page + ': ' + url);
       assert.ok(worker.includes(url), 'offline: ' + url);
       assert.ok(fs.existsSync(path.join(__dirname, '..', url.split('?')[0])));
@@ -263,5 +263,5 @@ test('PC auth loader, mobile entry and offline cache load graphics before the ga
     assert.ok(html.indexOf('js/game/graphics.js') < html.indexOf('js/game/mobile-test-main.js'));
     assert.ok(html.indexOf('js/game/voxel-lighting.js') < html.indexOf('js/game/world.js'));
   }
-  assert.ok(source('play.html').includes('js/auth-play.js?v=v171'));
+  assert.ok(source('play.html').includes('js/auth-play.js?v=v180'));
 });

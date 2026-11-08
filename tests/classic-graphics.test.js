@@ -135,11 +135,11 @@ test('padded mipmapped atlas keeps sharp pixels and duplicates tile edges into g
   const {Textures}=packRuntime();
   assert.equal(await Textures.loadClassicPack(),true);
   const texture=Textures.getTexture(),uv=Textures.tileUV(0,0);
-  assert.equal(texture.image.width,512);
+  assert.equal(texture.image.width,1024);
   assert.equal(texture.magFilter,THREE.NearestFilter);
   assert.equal(texture.minFilter,THREE.NearestMipmapLinearFilter);
   assert.equal(texture.generateMipmaps,true);
-  assert.equal(uv.u0*512,8.25);assert.equal(uv.u1*512,23.75);
+  assert.equal(uv.u0*1024,8.25);assert.equal(uv.u1*1024,23.75);
   const pixels=texture.image.pixels;
   assert.equal(pixels.get('0,8'),pixels.get('8,8'));
   assert.equal(pixels.get('31,8'),pixels.get('23,8'));
@@ -165,7 +165,7 @@ test('every new item and block keeps nonempty art inside the enlarged atlas afte
   const entries=[...BLOCKS.entries()].filter(([id])=>id>=46).concat(Object.entries(ITEMS).filter(([id])=>Number(id)>=300));
   for(const [id,def] of entries){
     for(const [col,row] of Object.values(def.tiles)){
-      assert.ok(col>=0&&col<16&&row>=0&&row<16,def.name+' tile bounds');
+      assert.ok(col>=0&&col<32&&row>=0&&row<32,def.name+' tile bounds');
       let visible=0;
       for(let y=0;y<16;y++)for(let x=0;x<16;x++){
         const color=atlas.get((col*16+x)+','+(row*16+y));
@@ -179,7 +179,7 @@ test('every new item and block keeps nonempty art inside the enlarged atlas afte
 test('failed image loading preserves the generated atlas and valid legacy UVs',async()=>{
   const {Textures}=packRuntime(true);
   assert.equal(await Textures.loadClassicPack(),false);
-  assert.equal(Textures.getTexture().image.width,256);
+  assert.equal(Textures.getTexture().image.width,512);
   assert.equal(Textures.getTexture().generateMipmaps,false);
   const uv=Textures.tileUV(11,11);
   assert.ok(uv.u0>=0&&uv.u1<=1&&uv.v0>=0&&uv.v1<=1);

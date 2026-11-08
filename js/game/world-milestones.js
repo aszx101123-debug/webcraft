@@ -26,7 +26,7 @@ const WorldMilestones = (() => {
     if(saved&&typeof saved==='object'&&!Array.isArray(saved)){
       for(const k of COUNTERS)counters[k]=clamp(saved.counts?.[k]);
       travelled=clamp(saved.travelled,100000000);
-      foundBiomes=clamp(saved.biomes,8);
+      foundBiomes=clamp(saved.biomes,16);
       if(Array.isArray(saved.completed))for(const id of saved.completed)
         if(GOALS.some(goal=>goal.id===id))completed.add(id);
     }
@@ -72,7 +72,7 @@ const WorldMilestones = (() => {
   function syncExploration(stats){
     if(!stats||typeof stats!=='object')return [];
     if(Number.isFinite(stats.distance))travelled=Math.max(travelled,clamp(stats.distance,100000000));
-    if(Number.isFinite(stats.found))foundBiomes=Math.max(foundBiomes,clamp(stats.found,8));
+    if(Number.isFinite(stats.found))foundBiomes=Math.max(foundBiomes,clamp(stats.found,16));
     const rewards=evaluate();
     if(rewards.length)render();
     return rewards;

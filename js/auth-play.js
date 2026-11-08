@@ -11,16 +11,17 @@ try {
   } else {
     const sources = [
       "pogl-game/vendor/three.min.js",
-      "js/game/config.js?v=v171",
+      "js/game/config.js?v=v180",
       "js/game/classic-settings.js?v=v140",
       "js/game/noise.js",
-      "js/game/terrain.js?v=v132",
-      "js/game/mobile-test-textures.js?v=v170",
+      "js/game/terrain-legacy.js?v=v180",
+      "js/game/terrain.js?v=v180",
+      "js/game/mobile-test-textures.js?v=v180",
       "js/game/graphics.js?v=v170",
       "js/game/voxel-lighting.js?v=v170",
-      "js/game/world.js?v=v170",
-      "js/game/world-journal.js?v=v136",
-      "js/game/world-milestones.js?v=v136",
+      "js/game/world.js?v=v180",
+      "js/game/world-journal.js?v=v180",
+      "js/game/world-milestones.js?v=v180",
       "js/game/block-furniture.js?v=v170",
       "js/game/block-physics.js?v=v132",
       "js/game/player.js?v=v170",
@@ -34,10 +35,10 @@ try {
       "js/game/mobs.js?v=v170",
       "js/game/farming.js?v=v170",
       "js/game/item-actions.js?v=v170",
-      "js/game/save.js?v=v170",
-      "js/game/mobile-test-crafting.js?v=v171",
+      "js/game/save.js?v=v180",
+      "js/game/mobile-test-crafting.js?v=v180",
       "js/game/mobile-test-ui.js?v=v171",
-      "js/game/mobile-test-main.js?v=v170"
+      "js/game/mobile-test-main.js?v=v180"
     ];
     for (const src of sources) {
       await new Promise((resolve, reject) => {

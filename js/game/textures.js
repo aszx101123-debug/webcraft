@@ -1,7 +1,7 @@
 'use strict';
 
 const Textures = (() => {
-  const TS=16, GRID=10, SIZE=TS*GRID;
+  const TS=16, GRID=32, SIZE=TS*GRID;
   let canvas = null, ctx = null, texture = null;
   const iconCache = {};
 
@@ -163,6 +163,57 @@ const Textures = (() => {
     const armorColors=[[150,105,75],[120,125,135],[190,195,205],[220,180,55],[95,220,245]];let ac=0;const armorTile=(r,g,b)=>(x,y)=>vary(r,g,b,10);for(let row=8;row<10;row++)for(let col=0;col<10;col++){const q=armorColors[Math.min(4,Math.floor(ac/4))];fill(col,row,armorTile(...q));ac++;}
 
     function hashCell(cx, cy) { return (cx * 7 + cy * 13) % 5 / 5; }
+
+
+    // Procedural biome art lives beyond the retained classic pack's 16x16 tile area.
+    // A resource node stays opaque while its three collectible icons have distinct silhouettes.
+    for(const [resource,def] of BLOCKS.entries()){
+      if(!def?.biomeResource)continue;
+      const rgb=[def.color>>16&255,def.color>>8&255,def.color&255];
+      const [col,row]=def.tiles.all;
+      fill(col,row,(x,y)=>{
+        const seam=x%7===0||y%7===0;
+        const fleck=(x*5+y*11+resource)%17<3;
+        return seam?css(rgb[0]*.4,rgb[1]*.4,rgb[2]*.4):fleck
+          ?css(rgb[0]*.6+95,rgb[1]*.6+95,rgb[2]*.6+95)
+          :vary(rgb[0]*.55,rgb[1]*.55,rgb[2]*.55,10);
+      });
+    }
+    for(let id=91;id<=98;id++){
+      const def=BLOCKS[id],rgb=[def.color>>16&255,def.color>>8&255,def.color&255];
+      const [col,row]=def.tiles.all;
+      fill(col,row,(x,y)=>{
+        if(id===96&&(x*3+y*5)%13===0)return null;
+        const d=id===94?(x%5===0?-27:0)
+          :id===95?((x+y)%9===0?34:0)
+          :id===97?(y%6===0?-32:x%5===0?20:0)
+          :id===92?(y%5===0?-21:0)
+          :id===98?((x-y+16)%7===0?38:-8)
+          :((x*7+y*13)%19===0?22:0);
+        return vary(rgb[0]+d,rgb[1]+d,rgb[2]+d,8);
+      });
+    }
+    for(const [itemId,def] of Object.entries(ITEMS)){
+      if(!def.biome)continue;
+      const rgb=[def.color>>16&255,def.color>>8&255,def.color&255];
+      const [col,row]=def.tiles.all;
+      fill(col,row,(x,y)=>{
+        const dx=x-7.5,dy=y-8;
+        if(def.variant===0){
+          // Fibres, branches and rough shards use a diagonal bundle.
+          if(Math.abs(dx+dy)>.9&&Math.abs(dx+dy-3)>.9)return null;
+          if(x<3||x>12||y<3||y>13)return null;
+        }else if(def.variant===1){
+          // Seeds, berries and middle-tier minerals have a compact cluster.
+          if((dx*dx/25+dy*dy/16)>1&&((x-6)**2+(y-4)**2)>5)return null;
+        }else{
+          // The rare find is a faceted, bright crystal or heart.
+          if(Math.abs(dx)/5+Math.abs(dy)/7>1)return null;
+        }
+        const edge=def.variant===2?(dx<0?45:5):((x+y)%3===0?24:-7);
+        return css(rgb[0]+edge,rgb[1]+edge,rgb[2]+edge);
+      });
+    }
 
     texture = new THREE.CanvasTexture(canvas);
     texture.magFilter = THREE.NearestFilter;

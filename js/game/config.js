@@ -1,7 +1,7 @@
 'use strict';
 
 const CONFIG = {
-  VERSION: '1.7.1',
+  VERSION: '1.8.0',
   MOB_HEALTH_BARS: false,
   CHUNK: 16,
   HEIGHT: 64,
@@ -38,7 +38,9 @@ const BLOCK = Object.freeze({
   WOOL_BROWN:62, WOOL_GREEN:63, WOOL_RED:64, WOOL_BLACK:65,
   COAL_BLOCK:66, IRON_BLOCK:67, GOLD_BLOCK:68, COPPER_BLOCK:69,
   DIAMOND_BLOCK:70, EMERALD_BLOCK:71, REDSTONE_BLOCK:72, LAPIS_BLOCK:73,
-  LANTERN:74
+  LANTERN:74,
+  PLAINS_RESOURCE:75, FOREST_RESOURCE:76, JUNGLE_RESOURCE:77, SWAMP_RESOURCE:78, TAIGA_RESOURCE:79, SNOWY_RESOURCE:80, DESERT_RESOURCE:81, HIGHLAND_RESOURCE:82, SAVANNA_RESOURCE:83, BADLANDS_RESOURCE:84, CHERRY_RESOURCE:85, BAMBOO_RESOURCE:86, MUSHROOM_RESOURCE:87, VOLCANIC_RESOURCE:88, GLACIER_RESOURCE:89, CRYSTAL_RESOURCE:90,
+  RED_SAND:91, TERRACOTTA:92, MYCELIUM:93, BASALT:94, ICE:95, CHERRY_LEAVES:96, BAMBOO:97, CRYSTAL_BLOCK:98
 });
 
 const BLOCKS = [
@@ -112,7 +114,23 @@ const ITEM = Object.freeze({
   DYE_WHITE:400,DYE_ORANGE:401,DYE_MAGENTA:402,DYE_LIGHT_BLUE:403,
   DYE_YELLOW:404,DYE_LIME:405,DYE_PINK:406,DYE_GRAY:407,
   DYE_LIGHT_GRAY:408,DYE_CYAN:409,DYE_PURPLE:410,DYE_BLUE:411,
-  DYE_BROWN:412,DYE_GREEN:413,DYE_RED:414,DYE_BLACK:415
+  DYE_BROWN:412,DYE_GREEN:413,DYE_RED:414,DYE_BLACK:415,
+  PRAIRIE_FIBER:500,WILDFLOWER_SEED:501,WIND_FEATHER:502,
+  OAK_TWIG:503,FOREST_BERRY:504,LIVING_SAP:505,
+  JUNGLE_VINE:506,CACAO_FRUIT:507,JUNGLE_AMBER:508,
+  SWAMP_MOSS:509,BOG_MUSHROOM:510,ANCIENT_CLAY_BEAD:511,
+  PINE_NEEDLE:512,SPRUCE_TWIG:513,RESIN_AMBER:514,
+  SNOW_CRYSTAL:515,FROST_WOOD:516,FROST_HEART:517,
+  SANDSTONE_CHIP:518,CACTUS_FRUIT:519,SUNSTONE:520,
+  GRANITE_CHIP:521,MOUNTAIN_IRON:522,ECHO_CRYSTAL:523,
+  ACACIA_TWIG:524,DRY_GRASS_SEED:525,AMBER_FANG:526,
+  RED_CLAY:527,BADLANDS_COPPER:528,WASTELAND_FOSSIL:529,
+  CHERRY_TWIG:530,CHERRY_PETAL:531,SPRING_ESSENCE:532,
+  BAMBOO_STALK:533,BAMBOO_SHOOT:534,JADE_SHARD:535,
+  MUSHROOM_STEM:536,GLOW_SPORE:537,MYCELIUM_CORE:538,
+  BASALT_CHIP:539,OBSIDIAN_SHARD:540,MAGMA_CORE:541,
+  GLACIER_SHARD:542,BLUE_ICE:543,AURORA_CRYSTAL:544,
+  CRYSTAL_SHARD:545,AMETHYST:546,RESONANT_CORE:547
 });
 
 const ITEMS = {
@@ -222,6 +240,147 @@ newItem(ITEM.GOLDEN_APPLE,'황금 사과','음식',{food:4,heals:8,useHint:'우�
 for(const wool of WOOL_TYPES)ITEMS[wool.dye]={name:wool.name+' 염료',category:'염료',tiles:{all:[wool.dye-400,15]},color:wool.color,useHint:'양털 염색과 색 혼합 제작'};
 ITEMS[ITEM.PORK].food=3;ITEMS[ITEM.BEEF].food=3;ITEMS[ITEM.CHICKEN].food=2;ITEMS[ITEM.MUTTON].food=2;
 
+// v1.8: region odds and collectible resources share one source of truth.
+const BIOMES = Object.freeze({
+  plains:Object.freeze({name:'평원',chance:18,surface:BLOCK.GRASS,subsurface:BLOCK.DIRT,treeDensity:0.25,tint:0x8ab75a,resource:BLOCK.PLAINS_RESOURCE,loot:Object.freeze([Object.freeze({id:ITEM.PRAIRIE_FIBER,chance:60}),Object.freeze({id:ITEM.WILDFLOWER_SEED,chance:30}),Object.freeze({id:ITEM.WIND_FEATHER,chance:10})])}),
+  forest:Object.freeze({name:'숲',chance:15,surface:BLOCK.GRASS,subsurface:BLOCK.DIRT,treeDensity:0.85,tint:0x579943,resource:BLOCK.FOREST_RESOURCE,loot:Object.freeze([Object.freeze({id:ITEM.OAK_TWIG,chance:60}),Object.freeze({id:ITEM.FOREST_BERRY,chance:30}),Object.freeze({id:ITEM.LIVING_SAP,chance:10})])}),
+  jungle:Object.freeze({name:'정글',chance:8,surface:BLOCK.GRASS,subsurface:BLOCK.DIRT,treeDensity:1,tint:0x438a3e,resource:BLOCK.JUNGLE_RESOURCE,loot:Object.freeze([Object.freeze({id:ITEM.JUNGLE_VINE,chance:60}),Object.freeze({id:ITEM.CACAO_FRUIT,chance:30}),Object.freeze({id:ITEM.JUNGLE_AMBER,chance:10})])}),
+  swamp:Object.freeze({name:'늪지대',chance:7,surface:BLOCK.CLAY,subsurface:BLOCK.DIRT,treeDensity:0.55,tint:0x66824a,resource:BLOCK.SWAMP_RESOURCE,loot:Object.freeze([Object.freeze({id:ITEM.SWAMP_MOSS,chance:60}),Object.freeze({id:ITEM.BOG_MUSHROOM,chance:30}),Object.freeze({id:ITEM.ANCIENT_CLAY_BEAD,chance:10})])}),
+  taiga:Object.freeze({name:'침엽수림',chance:6,surface:BLOCK.GRASS,subsurface:BLOCK.DIRT,treeDensity:0.8,tint:0x63876c,resource:BLOCK.TAIGA_RESOURCE,loot:Object.freeze([Object.freeze({id:ITEM.PINE_NEEDLE,chance:60}),Object.freeze({id:ITEM.SPRUCE_TWIG,chance:30}),Object.freeze({id:ITEM.RESIN_AMBER,chance:10})])}),
+  snowy:Object.freeze({name:'설산',chance:10,surface:BLOCK.SNOW,subsurface:BLOCK.DIRT,treeDensity:0.08,tint:0xc8dcdb,resource:BLOCK.SNOWY_RESOURCE,loot:Object.freeze([Object.freeze({id:ITEM.SNOW_CRYSTAL,chance:60}),Object.freeze({id:ITEM.FROST_WOOD,chance:30}),Object.freeze({id:ITEM.FROST_HEART,chance:10})])}),
+  desert:Object.freeze({name:'사막',chance:12,surface:BLOCK.SAND,subsurface:BLOCK.SANDSTONE,treeDensity:0,tint:0xdac27e,resource:BLOCK.DESERT_RESOURCE,loot:Object.freeze([Object.freeze({id:ITEM.SANDSTONE_CHIP,chance:60}),Object.freeze({id:ITEM.CACTUS_FRUIT,chance:30}),Object.freeze({id:ITEM.SUNSTONE,chance:10})])}),
+  highland:Object.freeze({name:'고지대',chance:5,surface:BLOCK.STONE,subsurface:BLOCK.STONE,treeDensity:0.12,tint:0x8d9d86,resource:BLOCK.HIGHLAND_RESOURCE,loot:Object.freeze([Object.freeze({id:ITEM.GRANITE_CHIP,chance:60}),Object.freeze({id:ITEM.MOUNTAIN_IRON,chance:30}),Object.freeze({id:ITEM.ECHO_CRYSTAL,chance:10})])}),
+  savanna:Object.freeze({name:'사바나',chance:4,surface:BLOCK.GRASS,subsurface:BLOCK.DIRT,treeDensity:0.2,tint:0xb6af54,resource:BLOCK.SAVANNA_RESOURCE,loot:Object.freeze([Object.freeze({id:ITEM.ACACIA_TWIG,chance:60}),Object.freeze({id:ITEM.DRY_GRASS_SEED,chance:30}),Object.freeze({id:ITEM.AMBER_FANG,chance:10})])}),
+  badlands:Object.freeze({name:'붉은 황무지',chance:4,surface:BLOCK.RED_SAND,subsurface:BLOCK.TERRACOTTA,treeDensity:0,tint:0xbd7447,resource:BLOCK.BADLANDS_RESOURCE,loot:Object.freeze([Object.freeze({id:ITEM.RED_CLAY,chance:60}),Object.freeze({id:ITEM.BADLANDS_COPPER,chance:30}),Object.freeze({id:ITEM.WASTELAND_FOSSIL,chance:10})])}),
+  cherry:Object.freeze({name:'벚꽃숲',chance:3,surface:BLOCK.GRASS,subsurface:BLOCK.DIRT,treeDensity:0.7,tint:0xa8bd6d,resource:BLOCK.CHERRY_RESOURCE,loot:Object.freeze([Object.freeze({id:ITEM.CHERRY_TWIG,chance:60}),Object.freeze({id:ITEM.CHERRY_PETAL,chance:30}),Object.freeze({id:ITEM.SPRING_ESSENCE,chance:10})])}),
+  bamboo:Object.freeze({name:'대나무숲',chance:3,surface:BLOCK.GRASS,subsurface:BLOCK.DIRT,treeDensity:0.4,tint:0x78a34d,resource:BLOCK.BAMBOO_RESOURCE,loot:Object.freeze([Object.freeze({id:ITEM.BAMBOO_STALK,chance:60}),Object.freeze({id:ITEM.BAMBOO_SHOOT,chance:30}),Object.freeze({id:ITEM.JADE_SHARD,chance:10})])}),
+  mushroom:Object.freeze({name:'버섯숲',chance:2,surface:BLOCK.MYCELIUM,subsurface:BLOCK.DIRT,treeDensity:0,tint:0xa1889a,resource:BLOCK.MUSHROOM_RESOURCE,loot:Object.freeze([Object.freeze({id:ITEM.MUSHROOM_STEM,chance:60}),Object.freeze({id:ITEM.GLOW_SPORE,chance:30}),Object.freeze({id:ITEM.MYCELIUM_CORE,chance:10})])}),
+  volcanic:Object.freeze({name:'화산',chance:1.5,surface:BLOCK.BASALT,subsurface:BLOCK.BASALT,treeDensity:0,tint:0x62565a,resource:BLOCK.VOLCANIC_RESOURCE,loot:Object.freeze([Object.freeze({id:ITEM.BASALT_CHIP,chance:60}),Object.freeze({id:ITEM.OBSIDIAN_SHARD,chance:30}),Object.freeze({id:ITEM.MAGMA_CORE,chance:10})])}),
+  glacier:Object.freeze({name:'빙하',chance:1,surface:BLOCK.ICE,subsurface:BLOCK.ICE,treeDensity:0,tint:0x91c5d7,resource:BLOCK.GLACIER_RESOURCE,loot:Object.freeze([Object.freeze({id:ITEM.GLACIER_SHARD,chance:60}),Object.freeze({id:ITEM.BLUE_ICE,chance:30}),Object.freeze({id:ITEM.AURORA_CRYSTAL,chance:10})])}),
+  crystal:Object.freeze({name:'수정 지대',chance:0.5,surface:BLOCK.CRYSTAL_BLOCK,subsurface:BLOCK.STONE,treeDensity:0,tint:0xb493db,resource:BLOCK.CRYSTAL_RESOURCE,loot:Object.freeze([Object.freeze({id:ITEM.CRYSTAL_SHARD,chance:60}),Object.freeze({id:ITEM.AMETHYST,chance:30}),Object.freeze({id:ITEM.RESONANT_CORE,chance:10})])}),
+});
+const BIOME_ITEMS = [];
+BLOCKS.push({name:'평원 자원석',tiles:{all:[0,16]},color:0x8ab75a,biomeResource:'plains',miningTime:.7,category:'자연'});
+BLOCKS.push({name:'숲 자원석',tiles:{all:[1,16]},color:0x579943,biomeResource:'forest',miningTime:.7,category:'자연'});
+BLOCKS.push({name:'정글 자원석',tiles:{all:[2,16]},color:0x438a3e,biomeResource:'jungle',miningTime:.7,category:'자연'});
+BLOCKS.push({name:'늪지대 자원석',tiles:{all:[3,16]},color:0x66824a,biomeResource:'swamp',miningTime:.7,category:'자연'});
+BLOCKS.push({name:'침엽수림 자원석',tiles:{all:[4,16]},color:0x63876c,biomeResource:'taiga',miningTime:.7,category:'자연'});
+BLOCKS.push({name:'설산 자원석',tiles:{all:[5,16]},color:0xc8dcdb,biomeResource:'snowy',miningTime:.7,category:'자연'});
+BLOCKS.push({name:'사막 자원석',tiles:{all:[6,16]},color:0xdac27e,biomeResource:'desert',miningTime:.7,category:'자연'});
+BLOCKS.push({name:'고지대 자원석',tiles:{all:[7,16]},color:0x8d9d86,biomeResource:'highland',miningTime:.7,category:'자연'});
+BLOCKS.push({name:'사바나 자원석',tiles:{all:[8,16]},color:0xb6af54,biomeResource:'savanna',miningTime:.7,category:'자연'});
+BLOCKS.push({name:'붉은 황무지 자원석',tiles:{all:[9,16]},color:0xbd7447,biomeResource:'badlands',miningTime:.7,category:'자연'});
+BLOCKS.push({name:'벚꽃숲 자원석',tiles:{all:[10,16]},color:0xa8bd6d,biomeResource:'cherry',miningTime:.7,category:'자연'});
+BLOCKS.push({name:'대나무숲 자원석',tiles:{all:[11,16]},color:0x78a34d,biomeResource:'bamboo',miningTime:.7,category:'자연'});
+BLOCKS.push({name:'버섯숲 자원석',tiles:{all:[12,16]},color:0xa1889a,biomeResource:'mushroom',miningTime:.7,category:'자연'});
+BLOCKS.push({name:'화산 자원석',tiles:{all:[13,16]},color:0x62565a,biomeResource:'volcanic',miningTime:.7,category:'자연'});
+BLOCKS.push({name:'빙하 자원석',tiles:{all:[14,16]},color:0x91c5d7,biomeResource:'glacier',miningTime:.7,category:'자연'});
+BLOCKS.push({name:'수정 지대 자원석',tiles:{all:[15,16]},color:0xb493db,biomeResource:'crystal',miningTime:.7,category:'자연'});
+BLOCKS.push({name:'붉은 모래',tiles:{all:[0,17]},color:0xbc683c,miningTime:.6,category:'자연',tool:'shovel',gravity:true});
+BLOCKS.push({name:'테라코타',tiles:{all:[1,17]},color:0xa85842,miningTime:.6,category:'자연',tool:'pickaxe'});
+BLOCKS.push({name:'균사토',tiles:{all:[2,17]},color:0x9b7a91,miningTime:.6,category:'자연',tool:'shovel'});
+BLOCKS.push({name:'현무암',tiles:{all:[3,17]},color:0x49444c,miningTime:.6,category:'자연',tool:'pickaxe'});
+BLOCKS.push({name:'빙하 얼음',tiles:{all:[4,17]},color:0x8bc9e0,miningTime:.6,category:'자연',tool:'shovel'});
+BLOCKS.push({name:'벚나무 잎',tiles:{all:[5,17]},color:0xefb4cb,miningTime:.6,category:'자연',cutout:true,tool:'hoe'});
+BLOCKS.push({name:'대나무',tiles:{all:[6,17]},color:0x79a345,miningTime:.6,category:'자연',tool:'cutter'});
+BLOCKS.push({name:'수정 블록',tiles:{all:[7,17]},color:0xb194df,miningTime:.6,category:'자연',tool:'pickaxe',emission:7});
+ITEMS[ITEM.PRAIRIE_FIBER]={name:'풀섬유',category:'바이옴',biome:'plains',color:0x8ab75a,variant:0,tiles:{all:[0,18]},useHint:'평원 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.PRAIRIE_FIBER,output:ITEM.STRING,count:1,required:2});
+ITEMS[ITEM.WILDFLOWER_SEED]={name:'들꽃씨앗',category:'바이옴',biome:'plains',color:0x8ab75a,variant:1,tiles:{all:[1,18]},useHint:'평원 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.WILDFLOWER_SEED,output:ITEM.WHEAT_SEEDS,count:2,required:1});
+ITEMS[ITEM.WIND_FEATHER]={name:'바람깃털',category:'바이옴',biome:'plains',color:0x8ab75a,variant:2,tiles:{all:[2,18]},useHint:'평원 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.WIND_FEATHER,output:ITEM.FEATHER,count:2,required:1});
+ITEMS[ITEM.OAK_TWIG]={name:'참나무 가지',category:'바이옴',biome:'forest',color:0x579943,variant:0,tiles:{all:[3,18]},useHint:'숲 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.OAK_TWIG,output:BLOCK.PLANK,count:4,required:1});
+ITEMS[ITEM.FOREST_BERRY]={name:'숲딸기',category:'바이옴',biome:'forest',color:0x579943,variant:1,tiles:{all:[4,18]},useHint:'숲 자원석 채굴 · 제작법에서 활용' + " · 우클릭: 먹기",food:3};
+BIOME_ITEMS.push({id:ITEM.FOREST_BERRY,output:ITEM.DYE_RED,count:1,required:1});
+ITEMS[ITEM.LIVING_SAP]={name:'생명의 수액',category:'바이옴',biome:'forest',color:0x579943,variant:2,tiles:{all:[5,18]},useHint:'숲 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.LIVING_SAP,output:BLOCK.GLOWSTONE,count:1,required:2});
+ITEMS[ITEM.JUNGLE_VINE]={name:'덩굴',category:'바이옴',biome:'jungle',color:0x438a3e,variant:0,tiles:{all:[6,18]},useHint:'정글 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.JUNGLE_VINE,output:ITEM.STRING,count:2,required:2});
+ITEMS[ITEM.CACAO_FRUIT]={name:'카카오 열매',category:'바이옴',biome:'jungle',color:0x438a3e,variant:1,tiles:{all:[7,18]},useHint:'정글 자원석 채굴 · 제작법에서 활용' + " · 우클릭: 먹기",food:2};
+BIOME_ITEMS.push({id:ITEM.CACAO_FRUIT,output:ITEM.COCOA,count:2,required:1});
+ITEMS[ITEM.JUNGLE_AMBER]={name:'밀림 호박석',category:'바이옴',biome:'jungle',color:0x438a3e,variant:2,tiles:{all:[8,18]},useHint:'정글 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.JUNGLE_AMBER,output:ITEM.GOLD_NUGGET,count:3,required:1});
+ITEMS[ITEM.SWAMP_MOSS]={name:'늪이끼',category:'바이옴',biome:'swamp',color:0x66824a,variant:0,tiles:{all:[9,18]},useHint:'늪지대 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.SWAMP_MOSS,output:BLOCK.MOSSY_COBBLE,count:1,required:2});
+ITEMS[ITEM.BOG_MUSHROOM]={name:'늪버섯',category:'바이옴',biome:'swamp',color:0x66824a,variant:1,tiles:{all:[10,18]},useHint:'늪지대 자원석 채굴 · 제작법에서 활용' + " · 우클릭: 먹기",food:2};
+BIOME_ITEMS.push({id:ITEM.BOG_MUSHROOM,output:ITEM.DYE_BROWN,count:2,required:1});
+ITEMS[ITEM.ANCIENT_CLAY_BEAD]={name:'고대 진흙구슬',category:'바이옴',biome:'swamp',color:0x66824a,variant:2,tiles:{all:[11,18]},useHint:'늪지대 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.ANCIENT_CLAY_BEAD,output:BLOCK.CLAY,count:4,required:1});
+ITEMS[ITEM.PINE_NEEDLE]={name:'솔잎',category:'바이옴',biome:'taiga',color:0x63876c,variant:0,tiles:{all:[12,18]},useHint:'침엽수림 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.PINE_NEEDLE,output:ITEM.DYE_GREEN,count:2,required:2});
+ITEMS[ITEM.SPRUCE_TWIG]={name:'가문비 가지',category:'바이옴',biome:'taiga',color:0x63876c,variant:1,tiles:{all:[13,18]},useHint:'침엽수림 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.SPRUCE_TWIG,output:BLOCK.SPRUCE_PLANKS,count:4,required:1});
+ITEMS[ITEM.RESIN_AMBER]={name:'송진 호박',category:'바이옴',biome:'taiga',color:0x63876c,variant:2,tiles:{all:[14,18]},useHint:'침엽수림 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.RESIN_AMBER,output:BLOCK.TORCH,count:4,required:1});
+ITEMS[ITEM.SNOW_CRYSTAL]={name:'눈결정',category:'바이옴',biome:'snowy',color:0xc8dcdb,variant:0,tiles:{all:[15,18]},useHint:'설산 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.SNOW_CRYSTAL,output:BLOCK.SNOW,count:2,required:2});
+ITEMS[ITEM.FROST_WOOD]={name:'서리목',category:'바이옴',biome:'snowy',color:0xc8dcdb,variant:1,tiles:{all:[0,19]},useHint:'설산 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.FROST_WOOD,output:ITEM.STICK,count:4,required:1});
+ITEMS[ITEM.FROST_HEART]={name:'서리심장',category:'바이옴',biome:'snowy',color:0xc8dcdb,variant:2,tiles:{all:[1,19]},useHint:'설산 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.FROST_HEART,output:BLOCK.GLASS,count:4,required:1});
+ITEMS[ITEM.SANDSTONE_CHIP]={name:'사암조각',category:'바이옴',biome:'desert',color:0xdac27e,variant:0,tiles:{all:[2,19]},useHint:'사막 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.SANDSTONE_CHIP,output:BLOCK.SANDSTONE,count:1,required:2});
+ITEMS[ITEM.CACTUS_FRUIT]={name:'선인장 과육',category:'바이옴',biome:'desert',color:0xdac27e,variant:1,tiles:{all:[3,19]},useHint:'사막 자원석 채굴 · 제작법에서 활용' + " · 우클릭: 먹기",food:4};
+BIOME_ITEMS.push({id:ITEM.CACTUS_FRUIT,output:ITEM.DYE_GREEN,count:1,required:1});
+ITEMS[ITEM.SUNSTONE]={name:'태양석',category:'바이옴',biome:'desert',color:0xdac27e,variant:2,tiles:{all:[4,19]},useHint:'사막 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.SUNSTONE,output:BLOCK.GLOWSTONE,count:1,required:2});
+ITEMS[ITEM.GRANITE_CHIP]={name:'화강암 조각',category:'바이옴',biome:'highland',color:0x8d9d86,variant:0,tiles:{all:[5,19]},useHint:'고지대 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.GRANITE_CHIP,output:BLOCK.POLISHED_STONE,count:2,required:2});
+ITEMS[ITEM.MOUNTAIN_IRON]={name:'산철 조각',category:'바이옴',biome:'highland',color:0x8d9d86,variant:1,tiles:{all:[6,19]},useHint:'고지대 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.MOUNTAIN_IRON,output:ITEM.IRON_NUGGET,count:3,required:1});
+ITEMS[ITEM.ECHO_CRYSTAL]={name:'산울림 수정',category:'바이옴',biome:'highland',color:0x8d9d86,variant:2,tiles:{all:[7,19]},useHint:'고지대 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.ECHO_CRYSTAL,output:ITEM.LAPIS,count:2,required:2});
+ITEMS[ITEM.ACACIA_TWIG]={name:'아카시아 가지',category:'바이옴',biome:'savanna',color:0xb6af54,variant:0,tiles:{all:[8,19]},useHint:'사바나 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.ACACIA_TWIG,output:BLOCK.PLANK,count:4,required:1});
+ITEMS[ITEM.DRY_GRASS_SEED]={name:'건초씨앗',category:'바이옴',biome:'savanna',color:0xb6af54,variant:1,tiles:{all:[9,19]},useHint:'사바나 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.DRY_GRASS_SEED,output:ITEM.WHEAT_SEEDS,count:3,required:1});
+ITEMS[ITEM.AMBER_FANG]={name:'호박빛 송곳니',category:'바이옴',biome:'savanna',color:0xb6af54,variant:2,tiles:{all:[10,19]},useHint:'사바나 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.AMBER_FANG,output:ITEM.BONE_MEAL,count:3,required:1});
+ITEMS[ITEM.RED_CLAY]={name:'붉은점토',category:'바이옴',biome:'badlands',color:0xbd7447,variant:0,tiles:{all:[11,19]},useHint:'붉은 황무지 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.RED_CLAY,output:BLOCK.TERRACOTTA,count:2,required:2});
+ITEMS[ITEM.BADLANDS_COPPER]={name:'황야 구리조각',category:'바이옴',biome:'badlands',color:0xbd7447,variant:1,tiles:{all:[12,19]},useHint:'붉은 황무지 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.BADLANDS_COPPER,output:ITEM.COPPER_INGOT,count:1,required:3});
+ITEMS[ITEM.WASTELAND_FOSSIL]={name:'황야화석',category:'바이옴',biome:'badlands',color:0xbd7447,variant:2,tiles:{all:[13,19]},useHint:'붉은 황무지 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.WASTELAND_FOSSIL,output:ITEM.BONE_MEAL,count:4,required:1});
+ITEMS[ITEM.CHERRY_TWIG]={name:'벚나무 가지',category:'바이옴',biome:'cherry',color:0xa8bd6d,variant:0,tiles:{all:[14,19]},useHint:'벚꽃숲 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.CHERRY_TWIG,output:BLOCK.PLANK,count:4,required:1});
+ITEMS[ITEM.CHERRY_PETAL]={name:'벚꽃잎',category:'바이옴',biome:'cherry',color:0xa8bd6d,variant:1,tiles:{all:[15,19]},useHint:'벚꽃숲 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.CHERRY_PETAL,output:ITEM.DYE_PINK,count:2,required:1});
+ITEMS[ITEM.SPRING_ESSENCE]={name:'봄의 정수',category:'바이옴',biome:'cherry',color:0xa8bd6d,variant:2,tiles:{all:[0,20]},useHint:'벚꽃숲 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.SPRING_ESSENCE,output:ITEM.GOLDEN_APPLE,count:1,required:3});
+ITEMS[ITEM.BAMBOO_STALK]={name:'대나무줄기',category:'바이옴',biome:'bamboo',color:0x78a34d,variant:0,tiles:{all:[1,20]},useHint:'대나무숲 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.BAMBOO_STALK,output:BLOCK.BAMBOO,count:2,required:1});
+ITEMS[ITEM.BAMBOO_SHOOT]={name:'죽순',category:'바이옴',biome:'bamboo',color:0x78a34d,variant:1,tiles:{all:[2,20]},useHint:'대나무숲 자원석 채굴 · 제작법에서 활용' + " · 우클릭: 먹기",food:5};
+BIOME_ITEMS.push({id:ITEM.BAMBOO_SHOOT,output:ITEM.WHEAT_SEEDS,count:2,required:1});
+ITEMS[ITEM.JADE_SHARD]={name:'비취조각',category:'바이옴',biome:'bamboo',color:0x78a34d,variant:2,tiles:{all:[3,20]},useHint:'대나무숲 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.JADE_SHARD,output:ITEM.EMERALD,count:1,required:4});
+ITEMS[ITEM.MUSHROOM_STEM]={name:'버섯줄기',category:'바이옴',biome:'mushroom',color:0xa1889a,variant:0,tiles:{all:[4,20]},useHint:'버섯숲 자원석 채굴 · 제작법에서 활용' + " · 우클릭: 먹기",food:3};
+BIOME_ITEMS.push({id:ITEM.MUSHROOM_STEM,output:ITEM.DYE_BROWN,count:1,required:1});
+ITEMS[ITEM.GLOW_SPORE]={name:'발광포자',category:'바이옴',biome:'mushroom',color:0xa1889a,variant:1,tiles:{all:[5,20]},useHint:'버섯숲 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.GLOW_SPORE,output:BLOCK.TORCH,count:4,required:1});
+ITEMS[ITEM.MYCELIUM_CORE]={name:'균사핵',category:'바이옴',biome:'mushroom',color:0xa1889a,variant:2,tiles:{all:[6,20]},useHint:'버섯숲 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.MYCELIUM_CORE,output:ITEM.BONE_MEAL,count:4,required:1});
+ITEMS[ITEM.BASALT_CHIP]={name:'현무암 조각',category:'바이옴',biome:'volcanic',color:0x62565a,variant:0,tiles:{all:[7,20]},useHint:'화산 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.BASALT_CHIP,output:BLOCK.BASALT,count:2,required:2});
+ITEMS[ITEM.OBSIDIAN_SHARD]={name:'흑요석 조각',category:'바이옴',biome:'volcanic',color:0x62565a,variant:1,tiles:{all:[8,20]},useHint:'화산 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.OBSIDIAN_SHARD,output:BLOCK.STONE_BRICKS,count:4,required:2});
+ITEMS[ITEM.MAGMA_CORE]={name:'용암핵',category:'바이옴',biome:'volcanic',color:0x62565a,variant:2,tiles:{all:[9,20]},useHint:'화산 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.MAGMA_CORE,output:BLOCK.GLOWSTONE,count:2,required:1});
+ITEMS[ITEM.GLACIER_SHARD]={name:'빙하조각',category:'바이옴',biome:'glacier',color:0x91c5d7,variant:0,tiles:{all:[10,20]},useHint:'빙하 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.GLACIER_SHARD,output:BLOCK.ICE,count:2,required:2});
+ITEMS[ITEM.BLUE_ICE]={name:'푸른얼음',category:'바이옴',biome:'glacier',color:0x91c5d7,variant:1,tiles:{all:[11,20]},useHint:'빙하 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.BLUE_ICE,output:BLOCK.GLASS,count:4,required:1});
+ITEMS[ITEM.AURORA_CRYSTAL]={name:'오로라결정',category:'바이옴',biome:'glacier',color:0x91c5d7,variant:2,tiles:{all:[12,20]},useHint:'빙하 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.AURORA_CRYSTAL,output:ITEM.DYE_CYAN,count:4,required:1});
+ITEMS[ITEM.CRYSTAL_SHARD]={name:'수정조각',category:'바이옴',biome:'crystal',color:0xb493db,variant:0,tiles:{all:[13,20]},useHint:'수정 지대 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.CRYSTAL_SHARD,output:BLOCK.CRYSTAL_BLOCK,count:1,required:3});
+ITEMS[ITEM.AMETHYST]={name:'자수정',category:'바이옴',biome:'crystal',color:0xb493db,variant:1,tiles:{all:[14,20]},useHint:'수정 지대 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.AMETHYST,output:ITEM.DYE_PURPLE,count:3,required:1});
+ITEMS[ITEM.RESONANT_CORE]={name:'공명수정핵',category:'바이옴',biome:'crystal',color:0xb493db,variant:2,tiles:{all:[15,20]},useHint:'수정 지대 자원석 채굴 · 제작법에서 활용'};
+BIOME_ITEMS.push({id:ITEM.RESONANT_CORE,output:ITEM.DIAMOND,count:1,required:4});
+
 function swordItem(name, attackDamage, maxDurability, tile) {
   return { name, toolType: 'sword', tier: 1, speed: 1, attackDamage, maxDurability, tiles: { all: tile } };
 }
@@ -242,7 +401,8 @@ const PLACEABLE_IDS = [
   BLOCK.COPPER_ORE, BLOCK.REDSTONE_ORE, BLOCK.LAPIS_ORE, BLOCK.DIAMOND_ORE, BLOCK.EMERALD_ORE, BLOCK.SNOW
 ];
 
-PLACEABLE_IDS.push(...WOOL_TYPES.map(x=>x.block),...STORAGE_TYPES.map(x=>x.block),BLOCK.LANTERN);
+PLACEABLE_IDS.push(...WOOL_TYPES.map(x=>x.block),...STORAGE_TYPES.map(x=>x.block),BLOCK.LANTERN,
+  ...Object.values(BIOMES).map(b=>b.resource),BLOCK.RED_SAND,BLOCK.TERRACOTTA,BLOCK.MYCELIUM,BLOCK.BASALT,BLOCK.ICE,BLOCK.CHERRY_LEAVES,BLOCK.BAMBOO,BLOCK.CRYSTAL_BLOCK);
 
 const BLOCK_DROPS = {
   [BLOCK.FARMLAND]:BLOCK.DIRT,[BLOCK.WHEAT_CROP]:0,[BLOCK.CARROT_CROP]:0,[BLOCK.POTATO_CROP]:0,
@@ -265,6 +425,13 @@ function getBlockDrop(id, rnd, tool) {
   if (id === BLOCK.AIR || id === BLOCK.WATER || id === BLOCK.WATER_FLOW || id === BLOCK.BEDROCK) return 0;
   const def = BLOCKS[id];
   if (!def) return 0;
+  if (def.biomeResource) {
+    const loot=BIOMES[def.biomeResource].loot;
+    const roll=Math.max(0,Math.min(.999999,Number(rnd ? rnd() : Math.random())||0))*100;
+    let edge=0;
+    for(const drop of loot){edge+=drop.chance;if(roll<edge)return drop.id;}
+    return loot[loot.length-1].id;
+  }
   // Hoes let survival players collect leaf blocks for mossy-stone crafting.
   if ([BLOCK.LEAVES,BLOCK.BIRCH_LEAVES,BLOCK.SPRUCE_LEAVES].includes(id) && tool?.toolType==='hoe') return id;
   if (id === BLOCK.LEAVES || id === BLOCK.BIRCH_LEAVES) {

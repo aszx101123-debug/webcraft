@@ -82,7 +82,7 @@ check('corrupted or unexpected saved data is sanitized',()=>{
   const p=WorldMilestones.getProgress();
   assert.equal(p.counts.wood,0);
   assert.equal(p.counts.placed,10000000);
-  assert.equal(p.biomes,8);
+  assert.equal(p.biomes,16);
   assert.equal(p.travelled,0);
   assert.equal(p.goals.find(x=>x.id==='wood').completed,true);
   assert.ok(!WorldMilestones.serialize().completed.includes('bogus'));
@@ -105,7 +105,7 @@ check('game scripts and both pages include the milestone lifecycle',()=>{
   assert.ok(interactions.includes("WorldMilestones.record('place'"));
   for(const page of ['play.html','mobile-test.html']){
     const html=gamePage(page);
-    assert.ok(html.includes('js/game/world-milestones.js?v=v136'));
+    assert.ok(html.includes('js/game/world-milestones.js?v=v180'));
     assert.ok(html.includes('id="journal-milestones"'));
     assert.ok(html.includes('id="milestone-unlock"'));
   }

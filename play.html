@@ -23,10 +23,11 @@
 <link rel="stylesheet" href="css/v137-touch.css?v=v137">
 <link rel="stylesheet" href="css/classic-furnace.css?v=v140">
 <link rel="stylesheet" href="css/classic.css?v=v171">
+<link rel="stylesheet" href="css/biome-guide.css?v=v180">
 </head>
 <body>
 
-<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.7.1 · 재료 자동 사용 · 바로 제작 · 최대 제작</div>
+<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.8.0 · 지형 16종 · 전용 아이템 48종 · 지형 도감</div>
 <div id="boot-error" class="boot-error hidden" role="alert">
   <div class="boot-error-panel">
     <div class="boot-error-icon">!</div>
@@ -130,6 +131,7 @@
         <p><kbd>F1</kbd> HUD 숨기기 · <kbd>F3</kbd> 디버그 · <kbd>F5</kbd> 시점 · 크리에이티브에서 <kbd>Space</kbd> 두 번: 비행</p>
         <button id="btn-crafting" class="btn small">인벤토리 열기</button>
       </details>
+      <button id="btn-biome-guide" class="btn" type="button" aria-controls="overlay-biome-guide">지형 도감 · 등장 확률과 전용 아이템</button>
       <details class="classic-help">
         <summary class="btn">새 아이템 사용법...</summary>
         <p>괭이로 흙의 윗면을 갈고 씨앗·당근·감자를 심으세요. 물은 4블록 안에 두고, 어두운 곳에는 횃불이나 랜턴을 설치하세요. 다 자라면 우클릭으로 수확합니다.</p>
@@ -318,6 +320,18 @@
   </div>
 </div>
 
+<div id="overlay-biome-guide" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="biome-guide-heading" aria-describedby="biome-guide-description">
+  <section class="panel biome-guide-panel">
+    <div class="biome-guide-heading-row">
+      <div><h2 id="biome-guide-heading">지형 도감</h2><p>16개 지형 · 전용 아이템 48종</p></div>
+      <button id="biome-guide-close" type="button" class="btn">메뉴로 돌아가기 (Esc)</button>
+    </div>
+    <p id="biome-guide-description">새 지역을 생성할 때 아래 가중치로 지형을 선택합니다. 실제 면적 비율은 시드와 지역 크기에 따라 달라져요. 지형마다 전용 자원을 채굴하면 아이템 1개가 나오며, 아이템 확률은 해당 자원 1개를 채굴할 때의 확률입니다.</p>
+    <p class="biome-guide-note">등장 확률 합계 100% · 새 지형은 새로 만든 월드에서 탐험하세요. 기존 월드는 이전 지형을 유지합니다.</p>
+    <div id="biome-guide-list" class="biome-guide-grid" aria-label="지형별 등장 확률과 전용 아이템"></div>
+  </section>
+</div>
+
 <div id="overlay-journal" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="journal-heading">
   <section class="panel journal-panel">
     <div class="journal-heading-row">
@@ -406,7 +420,7 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
   addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(() => {}));
 }
 </script>
-<script type="module" src="js/auth-play.js?v=v171"></script>
+<script type="module" src="js/auth-play.js?v=v180"></script>
 <script src="js/i18n.js?v=20261106-languages5"></script>
 </body>
 </html>

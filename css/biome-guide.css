@@ -1,0 +1,19 @@
+#overlay-biome-guide{z-index:100}
+#overlay-biome-guide.hidden{display:none}
+#overlay-biome-guide .biome-guide-panel{width:min(900px,96vw);max-height:92dvh;overflow:auto;background:#c6c6c6;color:#303030;border:3px solid;border-color:#fff #555 #555 #fff;border-radius:0;padding:20px}
+.biome-guide-heading-row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.biome-guide-heading-row h2{margin:0 0 6px;font-size:25px}
+.biome-guide-heading-row p{margin:0;font-size:13px}
+.biome-guide-heading-row button{flex-shrink:0}
+#biome-guide-description{line-height:1.8;font-size:13px;margin:18px 0 8px}
+.biome-guide-note{font-size:12px;line-height:1.7;padding:10px;background:#dedede;border:1px solid #888}
+.biome-guide-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:15px}
+.biome-guide-card{padding:14px;background:#dedede;border:2px solid;border-color:#fff #999 #999 #fff}
+.biome-guide-card.current-biome{outline:3px solid #507544;outline-offset:-3px;background:#dfebd7}
+.biome-guide-card h3{font-size:16px;margin:0 0 10px}
+.biome-guide-chance{font-size:12px;font-weight:bold;line-height:1.6;margin:0 0 10px}
+.biome-guide-resource{font-size:12px;margin:0;padding-top:8px;border-top:1px solid #aaa}
+.biome-guide-card ul{font-size:12px;line-height:1.9;padding-left:18px;margin:7px 0}
+.biome-guide-card small{display:block;font-size:10px;line-height:1.6;color:#555}
+@media(max-width:700px){.biome-guide-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.biome-guide-heading-row{flex-wrap:wrap}}
+@media(max-width:440px){#overlay-biome-guide .biome-guide-panel{padding:12px}.biome-guide-grid{grid-template-columns:1fr}.biome-guide-heading-row button{width:100%}}

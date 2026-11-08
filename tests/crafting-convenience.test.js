@@ -216,7 +216,7 @@ test('both game entries show the personal recipe book by default and ship the up
     assert.ok(html.includes('css/classic.css?v=v171'));
   }
   for(const file of ['config','mobile-test-crafting','mobile-test-ui']){
-    const url='js/game/'+file+'.js?v=v171';
+    const url='js/game/'+file+'.js?v='+(file==='mobile-test-ui'?'v171':'v180');
     assert.ok(worker.includes(url));assert.ok(read('mobile-test.html').includes(url));assert.ok(read('js/auth-play.js').includes(url));
   }
 });

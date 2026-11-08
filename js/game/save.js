@@ -45,9 +45,15 @@ const SaveSystem = (() => {
     return typeof v === 'number' && Number.isFinite(v);
   }
 
+  // Unversioned saves belong to the original generator; unsaved worlds use v2.
+  function generatorVersion(data) {
+    return data ? (data.generatorVersion === 2 ? 2 : 1) : 2;
+  }
+
   function validateWorldData(data) {
     if (!data || typeof data !== 'object') return false;
     if (data.seed !== undefined && !isFiniteNumber(data.seed)) return false;
+    if (data.generatorVersion !== undefined && data.generatorVersion !== 1 && data.generatorVersion !== 2) return false;
     if (data.player) {
       if (!isFiniteNumber(data.player.x) || !isFiniteNumber(data.player.y) || !isFiniteNumber(data.player.z)) return false;
     }
@@ -299,6 +305,6 @@ const SaveSystem = (() => {
 
   return {
     list, get, getActiveId, setActiveId, create, remove, rename,
-    save, load, clear, ensureDefault, exportWorld, importWorld
+    save, load, clear, ensureDefault, exportWorld, importWorld, generatorVersion
   };
 })();
