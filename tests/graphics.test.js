@@ -34,15 +34,16 @@ function canvasDocument() {
   };
 }
 
-function world(biome = 'plains', radius = 0) {
+function world(biome = 'plains', radius = 0, plants = false) {
   const Terrain = {
     idx: (x, y, z) => (x << 10) | (z << 6) | y,
     makeGen: () => ({ genChunk: () => new Uint8Array(16 * 16 * 64), heightAt: () => 0, biomeAt: () => biome })
   };
   const textures = { getTexture: () => null, tileFor: () => ({u0:0,u1:1,v0:0,v1:1}) };
+  if(plants)textures.decorTile=()=>({u0:0,u1:1,v0:0,v1:1});
   const instance = new Function('THREE', 'CONFIG', 'BLOCK', 'BLOCKS', 'Terrain', 'Textures', 'Player',
-    'BlockFurniture', 'getBlockVisualBoxes', 'isSolidBlock', source('js/game/world.js') + '\nreturn World;')(
-    THREE, CONFIG, BLOCK, BLOCKS, Terrain, textures, {pos:{y:10}}, {stateAt:()=>({})}, getBlockVisualBoxes, isSolidBlock);
+    'BlockFurniture', 'getBlockVisualBoxes', 'isSolidBlock', 'Noise', source('js/game/voxel-lighting.js') + '\n' + source('js/game/world.js') + '\nreturn World;')(
+    THREE, CONFIG, BLOCK, BLOCKS, Terrain, textures, {pos:{y:10}}, {stateAt:()=>({})}, getBlockVisualBoxes, isSolidBlock, Noise);
   instance.init(new THREE.Scene(), 1, null);
   instance.update(8, 8, radius, (radius * 2 + 1) ** 2, 99);
   return instance;
@@ -137,6 +138,33 @@ test('glowstone uses the unlit emissive batch and registers a nearby light', () 
   assert.equal(chunk.torches.length, 1);
 });
 
+test('grass and flowers are deterministic visual geometry and never modify saved blocks',()=>{
+  const w=world('plains',0,true);
+  for(let x=0;x<16;x++)for(let z=0;z<16;z++)w.setBlock(x,0,z,BLOCK.GRASS,false);
+  w.update(8,8,0,0,99);
+  const ch=w.getChunk(0,0),original=Array.from(ch.plantMesh.geometry.attributes.position.array);
+  assert.ok(original.length>0);
+  assert.deepEqual(w.getEdits(),[],'decoration must not create gameplay blocks');
+  w.invalidateAt(8,0,8);
+  w.update(8,8,0,0,99);
+  assert.deepEqual(Array.from(ch.plantMesh.geometry.attributes.position.array),original);
+  const x=Math.floor((original[0]+original[3]+original[6]+original[9])/4);
+  const z=Math.floor((original[2]+original[5]+original[8]+original[11])/4);
+  w.setBlock(x,0,z,BLOCK.AIR);
+  w.update(8,8,0,0,99);
+  assert.equal(ch.plantMesh.geometry.attributes.position.array.length,original.length-24);
+});
+
+test('decorations do not float over edits or grow through a sealed roof',()=>{
+  const w=world('plains',0,true);
+  for(let x=0;x<16;x++)for(let z=0;z<16;z++){
+    w.setBlock(x,0,z,BLOCK.GRASS,false);
+    w.setBlock(x,2,z,BLOCK.STONE,false);
+  }
+  w.update(8,8,0,0,99);
+  assert.ok(!w.getChunk(0,0).plantMesh);
+});
+
 test('16px sRGB atlas preserves real leaf holes and both meat and bone pixels', () => {
   const Textures = new Function('document','THREE','Noise','BLOCKS','ITEMS', source('js/game/mobile-test-textures.js') + '\nreturn Textures;')(
     canvasDocument(), THREE, Noise, BLOCKS, ITEMS);
@@ -204,14 +232,15 @@ test('PC auth loader, mobile entry and offline cache load graphics before the ga
   const worker = source('service-worker.js');
   for (const page of ['play.html','mobile-test.html']) {
     const html = gamePage(page);
-    for (const file of ['config','mobile-test-textures','graphics','world','mobile-test-main']) {
-      const url = 'js/game/' + file + '.js?v=v150';
+    for (const file of ['config','mobile-test-textures','graphics','voxel-lighting','world','mobile-test-main']) {
+      const url = 'js/game/' + file + '.js?v=v160';
       assert.ok(html.includes(url), page + ': ' + url);
       assert.ok(worker.includes(url), 'offline: ' + url);
       assert.ok(fs.existsSync(path.join(__dirname, '..', url.split('?')[0])));
     }
     assert.ok(html.indexOf('js/game/noise.js') < html.indexOf('js/game/graphics.js'));
     assert.ok(html.indexOf('js/game/graphics.js') < html.indexOf('js/game/mobile-test-main.js'));
+    assert.ok(html.indexOf('js/game/voxel-lighting.js') < html.indexOf('js/game/world.js'));
   }
-  assert.ok(source('play.html').includes('js/auth-play.js?v=v150'));
+  assert.ok(source('play.html').includes('js/auth-play.js?v=v160'));
 });

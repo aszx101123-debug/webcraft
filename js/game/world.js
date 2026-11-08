@@ -11,19 +11,21 @@ const World = (() => {
   let pendingSet = new Set();
   let fluidLevels = new Map();
   let waterSources = new Set();
-  let matSolid = null, matWater = null, matTorch = null;
+  let matSolid = null, matWater = null, matTorch = null, matPlants = null;
+  const lightMap = VoxelLighting.create();
+  const daylight = { value: 1 };
   let torchLights = [], torchLightTick = 0;
   const blockChangeListeners = new Set();
 
   const key = (cx, cz) => cx + ',' + cz;
 
   const FACES = [
-    { key: 'side',   n: [1, 0, 0],  shade: .8,  c: [[1, 0, 1], [1, 0, 0], [1, 1, 0], [1, 1, 1]], uv: [[0, 0], [1, 0], [1, 1], [0, 1]] },
-    { key: 'side',   n: [-1, 0, 0], shade: .8,  c: [[0, 0, 0], [0, 0, 1], [0, 1, 1], [0, 1, 0]], uv: [[0, 0], [1, 0], [1, 1], [0, 1]] },
+    { key: 'side',   n: [1, 0, 0],  shade: .6,  c: [[1, 0, 1], [1, 0, 0], [1, 1, 0], [1, 1, 1]], uv: [[0, 0], [1, 0], [1, 1], [0, 1]] },
+    { key: 'side',   n: [-1, 0, 0], shade: .6,  c: [[0, 0, 0], [0, 0, 1], [0, 1, 1], [0, 1, 0]], uv: [[0, 0], [1, 0], [1, 1], [0, 1]] },
     { key: 'top',    n: [0, 1, 0],  shade: 1,   c: [[0, 1, 1], [1, 1, 1], [1, 1, 0], [0, 1, 0]], uv: [[0, 0], [1, 0], [1, 1], [0, 1]] },
-    { key: 'bottom', n: [0, -1, 0], shade: .55, c: [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1]], uv: [[0, 0], [1, 0], [1, 1], [0, 1]] },
-    { key: 'side',   n: [0, 0, 1],  shade: .9,  c: [[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]], uv: [[0, 0], [1, 0], [1, 1], [0, 1]] },
-    { key: 'side',   n: [0, 0, -1], shade: .9,  c: [[1, 0, 0], [0, 0, 0], [0, 1, 0], [1, 1, 0]], uv: [[0, 0], [1, 0], [1, 1], [0, 1]] }
+    { key: 'bottom', n: [0, -1, 0], shade: .5, c: [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1]], uv: [[0, 0], [1, 0], [1, 1], [0, 1]] },
+    { key: 'side',   n: [0, 0, 1],  shade: .8,  c: [[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]], uv: [[0, 0], [1, 0], [1, 1], [0, 1]] },
+    { key: 'side',   n: [0, 0, -1], shade: .8,  c: [[1, 0, 0], [0, 0, 0], [0, 1, 0], [1, 1, 0]], uv: [[0, 0], [1, 0], [1, 1], [0, 1]] }
   ];
 
   // Sample the two side voxels and diagonal outside each face corner.
@@ -96,12 +98,13 @@ const World = (() => {
     seed = seedNum;
     gen = Terrain.makeGen(seed);
     if (!matSolid) {
-      matSolid = new THREE.MeshLambertMaterial({ map: Textures.getTexture(), vertexColors: true, alphaTest: .5 });
+      matSolid = VoxelLighting.material({ map: Textures.getTexture(), vertexColors: true, alphaTest: .5 }, daylight);
       matTorch = new THREE.MeshBasicMaterial({ map: Textures.getTexture(), vertexColors: true, alphaTest: .5 });
-      matWater = new THREE.MeshLambertMaterial({
+      matWater = VoxelLighting.material({
         map: Textures.getTexture(), vertexColors: true, transparent: true,
-        opacity: .64, depthWrite: false, side: THREE.DoubleSide
-      });
+        opacity: .72, depthWrite: false, side: THREE.DoubleSide
+      }, daylight);
+      matPlants = VoxelLighting.material({ map: Textures.getTexture(), vertexColors: true, alphaTest: .5, side: THREE.DoubleSide }, daylight);
     }
     if (!torchLights.length) {
       for (let i = 0; i < 4; i++) {
@@ -118,6 +121,7 @@ const World = (() => {
     if (ch.mesh) { group.remove(ch.mesh); ch.mesh.geometry.dispose(); ch.mesh = null; }
     if (ch.waterMesh) { group.remove(ch.waterMesh); ch.waterMesh.geometry.dispose(); ch.waterMesh = null; }
     if (ch.torchMesh) { group.remove(ch.torchMesh); ch.torchMesh.geometry.dispose(); ch.torchMesh = null; }
+    if (ch.plantMesh) { group.remove(ch.plantMesh); ch.plantMesh.geometry.dispose(); ch.plantMesh = null; }
   }
 
   function getChunk(cx, cz) { return chunks.get(key(cx, cz)); }
@@ -161,14 +165,8 @@ const World = (() => {
 
   function invalidateAt(x,y,z) {
     const cx=x>>4,cz=z>>4;
-    markDirty(cx,cz);
-    if((x&15)===0)markDirty(cx-1,cz);
-    if((x&15)===15)markDirty(cx+1,cz);
-    if((z&15)===0)markDirty(cx,cz-1);
-    if((z&15)===15)markDirty(cx,cz+1);
-    // Corner lighting also crosses diagonal chunk boundaries.
-    if(((x&15)===0||(x&15)===15)&&((z&15)===0||(z&15)===15))
-      markDirty(cx+((x&15)===0?-1:1),cz+((z&15)===0?-1:1));
+    // Sky and torch light can spread up to 15 blocks across a chunk boundary.
+    for(let dx=-1;dx<=1;dx++)for(let dz=-1;dz<=1;dz++)markDirty(cx+dx,cz+dz);
   }
 
   function onBlockChanged(listener) {
@@ -224,14 +222,18 @@ const World = (() => {
 
   function buildChunkMesh(ch) {
     disposeChunk(ch);
-    const pos = [], nor = [], uv = [], col = [], ind = [];
-    const wp = [], wn = [], wu = [], wc = [], wi = [];
+    const pos = [], nor = [], uv = [], col = [], ind = [], levels = [];
+    const wp = [], wn = [], wu = [], wc = [], wi = [], waterLevels = [];
     const tp = [], tn = [], tu = [], tc = [], ti = [];
     const ox = ch.cx * C, oz = ch.cz * C;
     const biomeTints = Array.from({ length: C * C }, (_, i) =>
       BIOME_TINTS[gen.biomeAt ? gen.biomeAt(ox + (i >> 4), oz + (i & 15)) : 'plains'] || BIOME_TINTS.plains);
     const light = [1, 1, 1, 1];
     ch.torches = [];
+    lightMap.build(ox, oz, (wx, wz) => {
+      const neighbor = chunks.get(key(wx >> 4, wz >> 4));
+      return neighbor ? { data: neighbor.data, offset: Terrain.idx(wx & 15, 0, wz & 15) } : null;
+    });
 
     function getNb(lx, y, lz) {
       if (y < 0 || y >= H) return BLOCK.AIR;
@@ -275,6 +277,7 @@ const World = (() => {
             nor.push(n[0],n[1],n[2]);
             uv.push(u[0]?tile.u1:tile.u0,u[1]?tile.v1:tile.v0);
             col.push(face.shade,face.shade,face.shade);
+            lightMap.faceLight(levels,x,y,z,n,face.ao[j]);
           }
           ind.push(vi,vi+1,vi+2,vi,vi+2,vi+3);
         }
@@ -311,6 +314,7 @@ const World = (() => {
           light[i] = emissive ? 1 : f.shade * (liquid || B.cutout ? 1 : cornerLight(getNb, x, y, z, f.ao[i]));
           const shade = light[i];
           CC.push(shade * (tint ? tint[0] : 1), shade * (tint ? tint[1] : 1), shade * (tint ? tint[2] : 1));
+          if (!emissive) lightMap.faceLight(liquid ? waterLevels : levels, x, y, z, f.n, f.ao[i]);
         }
         // Choose the diagonal that avoids a visible crease through the AO gradient.
         if (light[0] + light[2] > light[1] + light[3])
@@ -325,6 +329,7 @@ const World = (() => {
       g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
       g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
       g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+      g.setAttribute('voxelLight', new THREE.Float32BufferAttribute(levels, 2));
       g.setIndex(ind);
       ch.mesh = new THREE.Mesh(g, matSolid);
       group.add(ch.mesh);
@@ -345,11 +350,64 @@ const World = (() => {
       g.setAttribute('normal', new THREE.Float32BufferAttribute(wn, 3));
       g.setAttribute('uv', new THREE.Float32BufferAttribute(wu, 2));
       g.setAttribute('color', new THREE.Float32BufferAttribute(wc, 3));
+      g.setAttribute('voxelLight', new THREE.Float32BufferAttribute(waterLevels, 2));
       g.setIndex(wi);
       ch.waterMesh = new THREE.Mesh(g, matWater);
       ch.waterMesh.renderOrder = 1;
       group.add(ch.waterMesh);
     }
+    buildPlants(ch, biomeTints);
+  }
+
+  function buildPlants(ch, biomeTints) {
+    if (typeof Textures.decorTile !== 'function') return;
+    const positions = [], normals = [], uvs = [], colors = [], lights = [], indices = [];
+    const ox = ch.cx * C, oz = ch.cz * C;
+    const changed = edits.get(key(ch.cx, ch.cz));
+    for (let x = 0; x < C; x++) for (let z = 0; z < C; z++) {
+      const wx = ox + x, wz = oz + z;
+      const roll = Noise.hash2(wx, wz, seed + 473);
+      if (roll > .3) continue;
+      const y = gen.heightAt(wx, wz);
+      if (y >= H - 2 || ch.data[Terrain.idx(x,y,z)] !== BLOCK.GRASS ||
+          ch.data[Terrain.idx(x,y+1,z)] !== BLOCK.AIR ||
+          changed?.has(Terrain.idx(x,y,z)) || changed?.has(Terrain.idx(x,y+1,z))) continue;
+      const brightness = lightMap.sample(x,y+1,z);
+      if (brightness[0] < 10) continue;
+      const biome = gen.biomeAt(wx,wz);
+      const kind = roll < .025 && biome === 'plains'
+        ? (Noise.hash2(wx,wz,seed+474) < .5 ? 'poppy' : 'daisy')
+        : (biome === 'taiga' ? 'fern' : 'grass');
+      const tile = Textures.decorTile(kind);
+      const tint = kind === 'grass' || kind === 'fern' ? biomeTints[x*C+z] : [1,1,1];
+      const jitter = Noise.hash2(wx,wz,seed+475);
+      const height = kind === 'grass' ? .55 + jitter * .35 : .8;
+      const cx = wx + .35 + jitter * .3, cz = wz + .35 + Noise.hash2(wx,wz,seed+476) * .3;
+      // Two intersecting, alpha-cut pixel planes, like vanilla tall grass.
+      for (const direction of [-1,1]) {
+        const base = positions.length / 3;
+        for (let i = 0; i < 4; i++) {
+          const right = i === 1 || i === 2, top = i >= 2;
+          positions.push(cx+(right ? .43 : -.43), y+1+(top?height:0), cz+(right ? .43 : -.43)*direction);
+          normals.push(-direction*.707,0,.707);
+          uvs.push(right?tile.u1:tile.u0,top?tile.v1:tile.v0);
+          const shade = top ? 1 : .85;
+          colors.push(tint[0]*shade,tint[1]*shade,tint[2]*shade);
+          lights.push(brightness[0],brightness[1]);
+        }
+        indices.push(base,base+1,base+2,base,base+2,base+3);
+      }
+    }
+    if (!positions.length) return;
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+    geometry.setAttribute('normal',new THREE.Float32BufferAttribute(normals,3));
+    geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
+    geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+    geometry.setAttribute('voxelLight',new THREE.Float32BufferAttribute(lights,2));
+    geometry.setIndex(indices);
+    ch.plantMesh = new THREE.Mesh(geometry,matPlants);
+    group.add(ch.plantMesh);
   }
 
   function updateTorchLights(px, pz) {
@@ -421,6 +479,7 @@ const World = (() => {
     chunkCount: () => chunks.size,
     isReady: () => pending.length === 0 && dirtySet.size === 0,
     getSeed: () => seed,
+    setDaylight: value => { daylight.value = .12 + .88 * Math.max(0,Math.min(1,value)); },
     getGroup: () => group,
     getFluidLevel, setFluidLevel, getWaterSources
 

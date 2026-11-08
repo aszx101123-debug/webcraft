@@ -67,7 +67,7 @@ const Drops={spawn:(id,count)=>drops.push({id,count})};
 const UI={renderHotbar(){},showToast(){}};
 const runtime=new Function('THREE','CONFIG','BLOCK','BLOCKS','Terrain','Textures','Player',
  'Inventory','UI','Drops','ITEMS','getItemDef','isBlockId','isPlaceable','isSolidBlock','getBlockBoxes','getBlockVisualBoxes','getItemName','document',
- src('js/game/world.js')+'\n'+src('js/game/block-furniture.js')+'\nreturn {World,BlockFurniture}')(THREE,CONFIG,BLOCK,BLOCKS,Terrain,Textures,Player,
+ src('js/game/voxel-lighting.js')+'\n'+src('js/game/world.js')+'\n'+src('js/game/block-furniture.js')+'\nreturn {World,BlockFurniture}')(THREE,CONFIG,BLOCK,BLOCKS,Terrain,Textures,Player,
  Inventory,UI,Drops,ITEMS,getItemDef,isBlockId,isPlaceable,isSolidBlock,getBlockBoxes,getBlockVisualBoxes,getItemName,document);
 const {World,BlockFurniture}=runtime;const scene=new Group();
 World.init(scene,173,null);World.update(2,2,0,1,1);BlockFurniture.init(null);

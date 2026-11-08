@@ -1,6 +1,6 @@
 'use strict';
 
-(() => {
+window.webcraftBoot = (async () => {
   const params = new URLSearchParams(location.search);
   let classicOptions = ClassicSettings.get();
   ClassicSettings.bind(options => { classicOptions = options; });
@@ -50,6 +50,7 @@
   scene.add(sun);
 
   Textures.init();
+  await Textures.loadClassicPack();
   World.init(scene, seed, saved ? saved.edits : null);
   WorldJournal.init(saved?.journal);
   WorldMilestones.init(saved?.milestones);
@@ -232,6 +233,8 @@
   function updateSky(dt) {
     state.time = (state.time + dt / CONFIG.DAY_LENGTH) % 1;
     const f = atmosphere.update(state.time, Player.pos, weather.type, state.renderDist, Player.headSubmerged);
+    World.setDaylight(f);
+    Textures.animate(dt);
     Mobs.setEnv(f < .28, f);
     const hours = (state.time * 24 + 6) % 24;
     const hh = String(Math.floor(hours)).padStart(2, '0');

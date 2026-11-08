@@ -4,14 +4,19 @@ const Textures = (() => {
   const TS=16, GRID=12, SIZE=TS*GRID;
   let canvas = null, ctx = null, texture = null;
   const iconCache = {};
+  let gpuCanvas = null, gpuContext = null, waterStrip = null, waterFrame = 0, waterElapsed = 0;
 
   function cl(v) { return Math.max(0, Math.min(255, Math.round(v))); }
   function css(r, g, b, a = 1) { return `rgba(${cl(r)},${cl(g)},${cl(b)},${a})`; }
 
   function init() {
+    gpuCanvas = gpuContext = waterStrip = null;
+    waterFrame = waterElapsed = 0;
+    for(const id of Object.keys(iconCache))delete iconCache[id];
     canvas = document.createElement('canvas');
     canvas.width = canvas.height = SIZE;
     ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
     const rng = Noise.mulberry32(20260101);
     const P = (col, row, x, y, style) => { if (!style) return; ctx.fillStyle = style; ctx.fillRect(col * TS + x, row * TS + y, 1, 1); };
     const vary = (r, g, b, amt) => { const d = (rng() * 2 - 1) * amt; return css(r + d, g + d, b + d); };
@@ -438,6 +443,27 @@ const Textures = (() => {
     }); // chest clasp
     const armorColors=[[150,105,75],[120,125,135],[190,195,205],[220,180,55],[95,220,245]];let ac=0;const armorTile=(r,g,b)=>(x,y)=>vary(r,g,b,10);for(let row=8;row<10;row++)for(let col=0;col<10;col++){const q=armorColors[Math.min(4,Math.floor(ac/4))];fill(col,row,armorTile(...q));ac++;}
 
+    // Local fallback plant sprites are also available when an image fails to load.
+    const grass = [
+      '................','................','....g.......g...',
+      '...lg...g..lg...','..lg....lg.lg...','..lg..g.lglg....',
+      '...lg.lglg.g....','...lglglg.lg....','....lglg.lg.....',
+      '...g.lglglg.....','....g.lglg......','.....glglg......',
+      '......lglg......','.....glglg......','......ggg.......','......ggg.......'
+    ];
+    for (let col=0;col<2;col++) fill(col,11,(x,y)=> {
+      const pixel=grass[y][col ? 15-x : x];
+      return pixel==='l'?'#83b34c':pixel==='g'?'#5d9135':null;
+    });
+    for (let col=2;col<4;col++) fill(col,11,(x,y)=> {
+      if(y>=8 && (x===7||x===8))return '#5d8b39';
+      if(y===12 && x>=4 && x<=7)return '#76a14b';
+      const d=Math.abs(x-7.5)+Math.abs(y-6);
+      if(d>5)return null;
+      if(d<2)return col===2?'#a62325':'#e3bf41';
+      return col===2?'#e84835':'#eeeee3';
+    });
+
     function hashCell(cx, cy) { return (cx * 7 + cy * 13) % 5 / 5; }
 
     texture = new THREE.CanvasTexture(canvas);
@@ -449,6 +475,10 @@ const Textures = (() => {
   }
 
   function tileUV(col, row) {
+    if (gpuCanvas) return {
+      u0: (col*32+8.25)/512, u1: (col*32+23.75)/512,
+      v0: 1-(row*32+23.75)/512, v1: 1-(row*32+8.25)/512
+    };
     const e = 1 / (SIZE*4);
     return {
       u0: col / GRID + e,
@@ -456,6 +486,85 @@ const Textures = (() => {
       v0: 1 - (row + 1) / GRID + e,
       v1: 1 - row / GRID - e
     };
+  }
+
+  function copyGPUTile(col,row) {
+    const sx=col*TS, sy=row*TS, x=col*32+8, y=row*32+8;
+    gpuContext.clearRect(col*32,row*32,32,32);
+    gpuContext.drawImage(canvas,sx,sy,16,16,x,y,16,16);
+    gpuContext.drawImage(canvas,sx,sy,1,16,x-8,y,8,16);
+    gpuContext.drawImage(canvas,sx+15,sy,1,16,x+16,y,8,16);
+    gpuContext.drawImage(canvas,sx,sy,16,1,x,y-8,16,8);
+    gpuContext.drawImage(canvas,sx,sy+15,16,1,x,y+16,16,8);
+    for(const dx of [0,1])for(const dy of [0,1])
+      gpuContext.drawImage(canvas,sx+dx*15,sy+dy*15,1,1,x+(dx?16:-8),y+(dy?16:-8),8,8);
+  }
+
+  async function loadClassicPack() {
+    const controller = new AbortController();
+    const timeout = setTimeout(()=>controller.abort(),5000);
+    const loadImage = url => new Promise((resolve,reject) => {
+      const img = new Image();
+      const timer = setTimeout(()=>reject(new Error('Texture image timed out')),5000);
+      img.onload = () => { clearTimeout(timer); resolve(img); };
+      img.onerror = () => { clearTimeout(timer); reject(new Error('Texture image unavailable')); };
+      img.src = url;
+    });
+    try {
+      const [response, atlas, water] = await Promise.all([
+        fetch('img/classic/pack.json?v=v160',{signal:controller.signal}),
+        loadImage('img/classic/atlas.png?v=v160'),
+        loadImage('img/classic/water.png?v=v160')
+      ]);
+      if(!response.ok) return false;
+      const pack = await response.json();
+      if(!Array.isArray(pack.tiles)||atlas.width!==SIZE||atlas.height!==SIZE||water.width!==TS||water.height%TS!==0)return false;
+      for(const tile of pack.tiles){
+        const [col,row] = tile.at;
+        if(!Number.isInteger(col)||!Number.isInteger(row)||col<0||row<0||col>=GRID||row>=GRID)return false;
+      }
+      for(const tile of pack.tiles)ctx.clearRect(tile.at[0]*TS,tile.at[1]*TS,TS,TS);
+      ctx.drawImage(atlas,0,0);
+      waterStrip = water;
+      // Eight-pixel gutters keep all four mip levels inside their own tile.
+      gpuCanvas = document.createElement('canvas');
+      gpuCanvas.width = gpuCanvas.height = 512;
+      gpuContext = gpuCanvas.getContext('2d');
+      gpuContext.imageSmoothingEnabled = false;
+      for(let row=0;row<GRID;row++)for(let col=0;col<GRID;col++)copyGPUTile(col,row);
+      texture.image = gpuCanvas;
+      texture.minFilter = THREE.NearestMipmapLinearFilter;
+      texture.generateMipmaps = true;
+      texture.needsUpdate = true;
+      for(const id of Object.keys(iconCache))delete iconCache[id];
+      return true;
+    } catch (_) {
+      gpuCanvas = gpuContext = waterStrip = null;
+      texture.image = canvas;
+      texture.minFilter = THREE.NearestFilter;
+      texture.generateMipmaps = false;
+      texture.needsUpdate = true;
+      return false; // The generated atlas remains fully playable offline.
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  function animate(dt) {
+    if(!waterStrip||dt<=0)return;
+    waterElapsed += dt;
+    if(waterElapsed<.125)return;
+    const frames = waterStrip.height / TS;
+    waterFrame = (waterFrame+Math.floor(waterElapsed/.125))%frames;
+    waterElapsed %= .125;
+    ctx.clearRect(5*TS,TS,TS,TS);
+    ctx.drawImage(waterStrip,0,waterFrame*TS,TS,TS,5*TS,TS,TS,TS);
+    copyGPUTile(5,1);
+    texture.needsUpdate = true;
+  }
+
+  function decorTile(kind) {
+    return tileUV(({grass:0,fern:1,poppy:2,daisy:3})[kind]??0,11);
   }
 
   function tileFor(blockId, faceKey) {
@@ -575,7 +684,7 @@ const Textures = (() => {
   }
 
   return {
-    init, tileUV, tileFor, blockIcon, hudIcons,
+    init, loadClassicPack, animate, decorTile, tileUV, tileFor, blockIcon, hudIcons,
     getTexture: () => texture,
     getAtlas: () => canvas
   };

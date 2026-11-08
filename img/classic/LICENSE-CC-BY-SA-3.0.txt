@@ -1,0 +1,10 @@
+Creative Commons Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0)
+
+License URI: https://creativecommons.org/licenses/by-sa/3.0/
+Legal code: https://creativecommons.org/licenses/by-sa/3.0/legalcode
+
+The texture media in this directory, including source PNGs and the adapted atlas
+and water animation, are distributed under the license at the URI above.
+
+Attribution: XSSheep (Pixel Perfection), VoxeLibre contributors.
+See README.txt, pack.json and UPSTREAM-LEGAL.md for sources and modifications.

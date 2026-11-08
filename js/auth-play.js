@@ -11,13 +11,14 @@ try {
   } else {
     const sources = [
       "pogl-game/vendor/three.min.js",
-      "js/game/config.js?v=v150",
+      "js/game/config.js?v=v160",
       "js/game/classic-settings.js?v=v140",
       "js/game/noise.js",
       "js/game/terrain.js?v=v132",
-      "js/game/mobile-test-textures.js?v=v150",
-      "js/game/graphics.js?v=v150",
-      "js/game/world.js?v=v150",
+      "js/game/mobile-test-textures.js?v=v160",
+      "js/game/graphics.js?v=v160",
+      "js/game/voxel-lighting.js?v=v160",
+      "js/game/world.js?v=v160",
       "js/game/world-journal.js?v=v136",
       "js/game/world-milestones.js?v=v136",
       "js/game/block-furniture.js?v=v133",
@@ -34,7 +35,7 @@ try {
       "js/game/save.js?v=v129",
       "js/game/mobile-test-crafting.js?v=v137",
       "js/game/mobile-test-ui.js?v=v140",
-      "js/game/mobile-test-main.js?v=v150"
+      "js/game/mobile-test-main.js?v=v160"
     ];
     for (const src of sources) {
       await new Promise((resolve, reject) => {
@@ -45,6 +46,7 @@ try {
         document.body.appendChild(script);
       });
     }
+    await window.webcraftBoot;
     notice.remove();
   }
 } catch (error) {
