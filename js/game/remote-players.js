@@ -1,7 +1,7 @@
 'use strict';
 
 const RemotePlayers = (()=>{
-  function create(scene,selfId){
+  function create(scene,selfId,limit=3){
     const peers=new Map(),group=new THREE.Group();scene.add(group);
     const part=(w,h,d,color,x,y,z)=>{const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({color}));mesh.position.set(x,y,z);return mesh;};
     function make(member){
@@ -22,7 +22,8 @@ const RemotePlayers = (()=>{
     }
     function remove(id){const p=peers.get(id);if(!p)return;group.remove(p.mesh);p.mesh.traverse(object=>{object.geometry?.dispose();if(object.material){object.material.map?.dispose();object.material.dispose();}});peers.delete(id);}
     function members(roster){
-      for(const member of roster)if(member.id!==selfId&&!peers.has(member.id)&&peers.size<3)peers.set(member.id,make(member));
+      for(const id of [...peers.keys()])if(!roster.some(p=>p.id===id))remove(id);
+      for(const member of roster)if(member.id!==selfId&&!peers.has(member.id)&&peers.size<Math.min(24,limit))peers.set(member.id,make(member));
       for(const id of [...peers.keys()])if(!roster.some(p=>p.id===id))remove(id);
     }
     function pose(id,value){

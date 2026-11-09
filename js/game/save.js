@@ -203,6 +203,11 @@ const SaveSystem = (() => {
   function saveRoom(room,data) {
     return /^[A-HJ-NP-Z2-9]{12}$/.test(room)&&validateWorldData(data)&&writeJSON(PREFIX+'room:'+room,data);
   }
+  function loadServer(key){
+    if(!/^[A-Za-z0-9:_-]{1,100}$/.test(key))return null;
+    const value=readJSON(PREFIX+'server:'+key);return validateWorldData(value)?value:null;
+  }
+  function saveServer(key,data){return /^[A-Za-z0-9:_-]{1,100}$/.test(key)&&validateWorldData(data)&&writeJSON(PREFIX+'server:'+key,data);}
 
   function clear(id) {
     if (id) {
@@ -315,6 +320,6 @@ const SaveSystem = (() => {
 
   return {
     list, get, getActiveId, setActiveId, create, remove, rename,
-    save, load, loadRoom, saveRoom, clear, ensureDefault, exportWorld, importWorld, generatorVersion
+    save, load, loadRoom, saveRoom, loadServer, saveServer, clear, ensureDefault, exportWorld, importWorld, generatorVersion
   };
 })();

@@ -17,6 +17,7 @@ let signup = false;
 const requested = new URLSearchParams(location.search).get("next");
 const next = requested && /^(?:[\w-]+\.html)(?:\?[^#]*)?$/.test(requested) ? requested : "play.html";
 enter.href = next;
+$("#auth-guest").href = next;
 
 function friendlyError(error) {
   switch (error?.code) {

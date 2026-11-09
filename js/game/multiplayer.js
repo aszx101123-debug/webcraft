@@ -2,6 +2,7 @@
 
 const Multiplayer = (() => {
   let context=null,core=null,channel=null,client=null,adapter=null,initial=null,timer=null;
+  let dedicated=null;
   let status='offline',connected=false,applying=0,lastPose=0,lastState=0,frameParts=null,frameNumber=0;
   let prepareResolve=null,prepareReject=null,prepareTimer=null;
   const poses=new Map(),leases=new Map();
@@ -56,6 +57,7 @@ const Multiplayer = (() => {
     adapter?.event?.(data);
   }
   async function prepare(params){
+    if(params.get('server')){dedicated=DedicatedMultiplayer;try{return await dedicated.prepare(params);}catch(error){dedicated=null;throw error;}}
     const raw=params.get('room');if(!raw)return null;
     const room=MultiplayerCore.roomCode(raw);
     if(!MultiplayerCore.validRoom(room))throw Error('방 코드는 영문·숫자 12자리입니다.');
@@ -157,7 +159,7 @@ const Multiplayer = (() => {
     void request('release',{kind,pos,state});leases.delete(key);
   }
   function canUseContainer(kind,pos){const lease=leases.get(containerKey(kind,pos));return !context||connected&&core?.ready&&lease?.owner===context.id&&lease.expires>Date.now();}
-  return {prepare,bind,leave,request,lockContainer,releaseContainer,canUseContainer,containerKey,validateSnapshot,
+  const api={prepare,bind,leave,request,lockContainer,releaseContainer,canUseContainer,containerKey,validateSnapshot,
     useUtility:(...args)=>adapter?.utility?.(...args),
     fireArrow:(...args)=>adapter?.fireArrow?.(...args),
     toggleDoor:pos=>adapter?.toggleDoor?.(pos),
@@ -176,4 +178,5 @@ const Multiplayer = (() => {
     get context(){return context;},get initial(){return initial;},get active(){return !!context;},
     get isHost(){return !!context?.host;},get ready(){return !!context&&connected&&!!core?.ready;},
     get applying(){return applying>0;},get status(){return status;},get members(){return core?.roster||[];}};
+  return new Proxy(api,{get:(target,key)=>dedicated&&key!=='prepare'?dedicated[key]:target[key]});
 })();

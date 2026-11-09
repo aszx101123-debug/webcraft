@@ -10,6 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install dedicated server dependency
+        run: npm ci --prefix server --ignore-scripts --no-fund --no-audit
       - name: Check JavaScript syntax
         run: |
           node --check js/game/config.js
@@ -32,9 +37,11 @@ jobs:
         run: npm test
       - name: Check active game and service worker syntax
         run: |
-          for file in js/game/*.js js/*.js service-worker.js; do
+          for file in js/game/*.js js/*.js server/*.cjs service-worker.js; do
             node --check "$file"
           done
+      - name: Check 100 connected players
+        run: npm run loadtest
 
       - name: Package POGL upload
         uses: actions/upload-artifact@v4

@@ -110,3 +110,15 @@ test('a rejected guest arrow refunds ammunition and accepted fire wears the orig
   accepted=true;const pending=adapter.fireArrow('main',eye,direction);g.Inventory.setSelected(1);await pending;
   assert.equal(g.Inventory.countItem(g.ITEM.ARROW),1);assert.equal(bow.durability,9);
 });
+test('a delayed rejected edit cannot overwrite a newer canonical block change',async()=>{
+  let respond;
+  const mp={context:{host:false,id:'guest0001'},active:true,isHost:false,ready:true,applying:false,leases:new Map(),members:[],
+    poseFor:()=>null,bind(){},request:()=>new Promise(resolve=>{respond=resolve;})};
+  const g=game({realDrops:true,realFurniture:true,multiplayerEngine:true,multiplayer:mp});
+  g.World.setBlock(1,1,1,g.BLOCK.DIRT);
+  const adapter=g.MultiplayerEngine.bind({scene:g.scene,state:{mode:'survival',started:true,time:.2},seed:123});
+  g.World.setBlock(1,1,1,g.BLOCK.AIR);await Promise.resolve();
+  adapter.commit({kind:'blocks',changes:[[1,1,1,g.BLOCK.STONE]]});
+  respond({ok:false,id:g.BLOCK.DIRT});await Promise.resolve();await Promise.resolve();
+  assert.equal(g.World.getBlock(1,1,1),g.BLOCK.STONE);
+});

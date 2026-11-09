@@ -7,9 +7,9 @@ const MultiplayerEngine = (()=>{
   const vector=p=>new THREE.Vector3(p.x,p.y,p.z);
   const q=n=>Math.round(n*1000)/1000;
   function bind({scene,state,seed,onResync,onStatus,onContainerDenied}){
-    const context=Multiplayer.context,avatars=RemotePlayers.create(scene,context.id);
+    const context=Multiplayer.context,avatars=RemotePlayers.create(scene,context.id,context.server?24:3);
     let applying=false,batch=[],scheduled=false,busy=false,utilityBusy=false,arrowBusy=false,lastLeaseBeat=0;
-    const actions=new Map(),pendingEdits=new Map();
+    const actions=new Map(),pendingEdits=new Map(),canonicalBlocks=new Map();let canonicalVersion=0;
     const metadata=()=>({objects:BlockFurniture.serialize(),furnaces:FurnaceSystem.serialize(),farming:Farming.serialize()});
     const selfPose=()=>({x:q(Player.pos.x),y:q(Player.pos.y),z:q(Player.pos.z),yaw:q(Player.yaw),pitch:q(Player.pitch),
       speed:q(Math.hypot(Player.vel.x,Player.vel.z)),dead:Player.dead||!state.started,tool:Inventory.selectedId()||0,offhand:Inventory.getEquipment().offhand?.id||0,appearance:PlayerModel.getAppearance()});
@@ -177,7 +177,8 @@ const MultiplayerEngine = (()=>{
     function commit(value){
       if(value?.kind!=='blocks'||!Array.isArray(value.changes)||value.changes.length>64)return;
       applying=true;
-      try{for(const [x,y,z,id] of value.changes)World.applyRemoteBlock(x,y,z,id);
+      try{for(const [x,y,z,id] of value.changes){World.applyRemoteBlock(x,y,z,id);canonicalBlocks.set([x,y,z].join(','),{id,version:++canonicalVersion});}
+        while(canonicalBlocks.size>16384)canonicalBlocks.delete(canonicalBlocks.keys().next().value);
         if(Array.isArray(value.objects)){
           const rows=new Map(BlockFurniture.serialize());for(const entry of value.objects){const current=rows.get(entry[0])||{};rows.set(entry[0],{...current,...entry[1]});}BlockFurniture.applyNetwork([...rows]);
         }}finally{applying=false;}
@@ -203,13 +204,13 @@ const MultiplayerEngine = (()=>{
     const unsubscribe=World.onBlockChanged((x,y,z,id,old,record)=>{
       if(applying||Multiplayer.applying||record===false)return;
       if(context.host){batch.push([x,y,z,id]);if(!scheduled){scheduled=true;queueMicrotask(flush);}return;}
-      const value={x,y,z,id,old},k=key(value);pendingEdits.set(k,value);
+      const value={x,y,z,id,old},k=key(value);value.version=canonicalBlocks.get(k)?.version||0;pendingEdits.set(k,value);
       queueMicrotask(()=>{
         value.meta=BlockFurniture.stateAt(x,y,z);
         if(value.meta)value.meta={facing:value.meta.facing,half:value.meta.half};
         void Multiplayer.request('edit',value).then(result=>{
           if(!result.ok){
-            if(pendingEdits.get(k)===value){applying=true;try{World.applyRemoteBlock(x,y,z,Number.isInteger(result.id)?result.id:old);}finally{applying=false;}}
+            if(pendingEdits.get(k)===value){const canonical=canonicalBlocks.get(k);applying=true;try{World.applyRemoteBlock(x,y,z,canonical&&canonical.version>value.version?canonical.id:Number.isInteger(result.id)?result.id:old);}finally{applying=false;}}
             refundEdit(value);UI.showToast('다른 변경이 먼저 적용되었습니다. 다시 시도해 주세요.');
           }
           if(pendingEdits.get(k)===value)pendingEdits.delete(k);
@@ -239,7 +240,8 @@ const MultiplayerEngine = (()=>{
     }
     async function furnaceInteract(pos,slot,held,right){
       if(busy)return {ok:false};busy=true;
-      try{const result=await Multiplayer.request('furnace-interact',{kind:'furnace',pos,slot,held,right});
+      const wireHeld=held?{...held,count:Math.min(64,Number.isFinite(held.count)?held.count:64)}:null;
+      try{const result=await Multiplayer.request('furnace-interact',{kind:'furnace',pos,slot,held:wireHeld,right});
         if(result.ok)containerState('furnace',pos,result.state);return result;
       }finally{busy=false;}
     }
@@ -299,14 +301,16 @@ const MultiplayerEngine = (()=>{
       entities:()=>({mobs:Mobs.networkSnapshot(),drops:Drops.networkSnapshot(),time:state.time}),
       initial:snapshot=>{applyState(snapshot);entities(snapshot.entities);},
       snapshotReceived:snapshot=>{
-        World.init(scene,seed,snapshot.edits,2);BlockPhysics.init();Fluids.init();applyState(snapshot);entities(snapshot.entities);pendingEdits.clear();onResync?.();
+        World.init(scene,seed,snapshot.edits,2);BlockPhysics.init();Fluids.init();applyState(snapshot);entities(snapshot.entities);pendingEdits.clear();canonicalBlocks.clear();onResync?.();
       },
       applyState,
       event:data=>{
         if(data?.kind==='entities')entities(data.value);
         else if(data?.kind==='damage'&&Number.isFinite(data.amount)&&data.amount>0&&data.amount<=40&&data.source&&['x','y','z'].every(k=>Number.isFinite(data.source[k])))Player.damage(data.amount,String(data.cause||'몹의 공격').slice(0,80),data.source);
       },
-      members:members=>{avatars.members(members);const label=document.getElementById('mp-members');if(label)label.textContent=members.map(p=>p.name).join(' · ');},
+      members:members=>{avatars.members(members);const label=document.getElementById('mp-members');if(label)label.textContent=context.server?'접속 '+Multiplayer.onlineCount+'/100 · 주변 '+Math.max(0,members.length-1)+'명':members.map(p=>p.name).join(' · ');},
+      region:value=>{applying=true;try{World.mergeRemoteEdits(value.edits);applyState({metadata:value.metadata});}finally{applying=false;}},
+      correction:pos=>{Player.pos.set(pos.x,pos.y,pos.z);Player.vel.set(0,0,0);},
       pose:(id,pose)=>avatars.pose(id,pose),
       frame:dt=>{avatars.update(dt);if(context.host)World.setInterestPoints(peerPlayers().map(p=>p.pos));},
       networkTick:()=>{

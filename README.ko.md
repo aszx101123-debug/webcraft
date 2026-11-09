@@ -21,6 +21,12 @@ A free, Minecraft-inspired voxel sandbox for desktop and mobile browsers. **No d
 
 마음에 들면 저장소에 ⭐를 눌러주세요. 플레이 중 발견한 버그나 아이디어는 [Issues](https://github.com/aszx101123-debug/webcraft/issues)에 남겨주세요.
 
+## 100명 공개 서버 준비
+
+별도 Node.js 서버와 공개 서버 목록, 로그인 닉네임 기능을 준비했습니다. 로그인 계정은 영문자로 시작하는 3~16자리 영문·숫자·밑줄 닉네임을 정하며, 비회원은 서버가 `Guest1`, `Guest2`처럼 배정합니다. 이름 중복과 Guest 이름 예약은 서버에서 확인하고, 게스트 번호는 재시작 후에도 이어집니다.
+
+**상시 실행 호스팅은 아직 개설하지 않았습니다.** 추천 구성은 Render 1 CPU·2 GB RAM, 싱가포르, 영구 디스크 1 GB입니다. 2026-11-09 확인 기준 서버·디스크 기본 비용은 월 US$25.25이며 트래픽·세금 등은 별도입니다. 기존 4인 친구 방은 계속 이용할 수 있습니다. 설정과 실행 방법은 [서버 배포 안내](server/README.md), [render.yaml](render.yaml), [Docker Compose](compose.yaml)를 참고하세요.
+
 ## 친구와 멀티플레이
 
 1. [멀티플레이](https://aszx101123-debug.github.io/webcraft/multiplayer.html)에서 이름을 입력하고 서바이벌 또는 크리에이티브 방을 만드세요.
