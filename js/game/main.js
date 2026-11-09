@@ -711,8 +711,9 @@
       const p = Player.pos;
       const mc = Mobs.counts();
       UI.setHUD(`FPS ${fps} · x ${p.x.toFixed(0)} y ${p.y.toFixed(0)} z ${p.z.toFixed(0)} · 청크 ${World.chunkCount()} · 몹 ${mc.total}`);
-      UI.updateSurvival(state.mode, Player.hp, Player.food, Player.air);
     }
+
+    UI.updateSurvival(state.mode, Player.hp, Player.food, Player.air, Player.headSubmerged);
 
     renderer.render(scene, camera);
   }

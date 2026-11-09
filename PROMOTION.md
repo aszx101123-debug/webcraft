@@ -1,4 +1,27 @@
-# WebCraft 공유하기
+# Share WebCraft / WebCraft 공유하기
+
+## English introduction
+
+**WebCraft — a free browser voxel sandbox. Mine, build, explore. No install or login.**
+
+Gather your first log, craft a pickaxe and build a shelter before nightfall. Or switch to creative mode and fly with unlimited blocks. WebCraft is a Minecraft-inspired single-player sandbox for desktop and mobile browsers, built with JavaScript, Three.js and WebGL.
+
+- Survival and creative modes
+- 16 biomes, caves, ores, weather and a day/night cycle
+- Crafting, farming, cooking and hostile mobs
+- Local world autosaves and backup export/import
+
+▶ [Play now](https://aszx101123-debug.github.io/webcraft/play.html?lang=en)
+
+📖 [English game guide](https://aszx101123-debug.github.io/webcraft/en.html) · ⭐ [GitHub](https://github.com/aszx101123-debug/webcraft)
+
+The game is free to play without an account. Credit rewards and badge exchanges require signing in; guests receive no credits. Worlds are saved in the current browser. WebCraft is not affiliated with Mojang Studios or Microsoft.
+
+## Short English post
+
+> Built a free voxel sandbox that runs in your browser: WebCraft. Mine, craft and survive, or build with unlimited blocks in creative mode. Desktop + mobile. No download or login to play. Try it: https://aszx101123-debug.github.io/webcraft/en.html
+
+## 한국어 소개
 
 **플레이:** https://aszx101123-debug.github.io/webcraft/play.html
 

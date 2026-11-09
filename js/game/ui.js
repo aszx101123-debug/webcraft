@@ -464,7 +464,7 @@ const UI = (() => {
     }
   }
 
-  function updateSurvival(mode, hp, food, air) {
+  function updateSurvival(mode, hp, food, air, submerged = false) {
     const el = $('survival-hud');
     if (mode !== GAME_MODE.SURVIVAL) {
       if (!el.classList.contains('hidden')) el.classList.add('hidden');
@@ -472,14 +472,14 @@ const UI = (() => {
       return;
     }
     el.classList.remove('hidden');
-    const sig = mode + hp + '/' + food + '/' + air;
+    const sig = mode + hp + '/' + food + '/' + air + '/' + submerged;
     if (sig === lastSurvivalSig) return;
     lastSurvivalSig = sig;
     const icons = Textures.hudIcons();
     iconRow($('hearts'), hp, SURVIVAL.MAX_HP, { full: icons.heart, half: icons.heartHalf, empty: icons.heartEmpty });
     iconRow($('foods'), food, SURVIVAL.MAX_FOOD, { full: icons.food, half: icons.foodHalf, empty: icons.foodEmpty });
     const airs = $('airs');
-    if (air >= SURVIVAL.MAX_AIR) {
+    if (!submerged && air >= SURVIVAL.MAX_AIR) {
       airs.innerHTML = '';
     } else {
       airs.innerHTML = '';

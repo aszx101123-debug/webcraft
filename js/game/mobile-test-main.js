@@ -1308,8 +1308,9 @@ window.webcraftBoot = (async () => {
           '카메라: '+(state.thirdPersonView===0?'1인칭':'3인칭')
         ].join('\n');
       }
-      UI.updateSurvival(state.mode, Player.hp, Player.food, Player.air);
     }
+
+    UI.updateSurvival(state.mode, Player.hp, Player.food, Player.air, Player.headSubmerged);
 
     renderer.render(scene, camera);
   }

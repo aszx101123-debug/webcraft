@@ -20,8 +20,10 @@ const Player = (() => {
     const bx = Math.floor(x), by = Math.floor(y), bz = Math.floor(z);
     const id = World.getBlock(bx, by, bz);
     if (!isWater(id)) return false;
-    const level = World.getFluidLevel(bx, by, bz) || 8;
-    const surface = by + 0.15 + 0.72 * (level / 8);
+    const level = id === BLOCK.WATER ? 8 : (World.getFluidLevel(bx, by, bz) || 1);
+    // Only exposed water has a lowered surface. Covered cells are completely
+    // filled, otherwise every block boundary becomes a false pocket of air.
+    const surface = by + (isWater(World.getBlock(bx, by + 1, bz)) ? 1 : 0.15 + 0.72 * (level / 8));
     return surface >= y;
   }
 

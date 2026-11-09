@@ -46,7 +46,8 @@ function createGame(options = {}) {
       }
     },
     requestAnimationFrame: record('animation'),
-    document: { getElementById: () => null },
+    document: { getElementById: id => id==='underwater-overlay'
+      ? {classList:{toggle:record('underwaterEffect')}} : null },
     UI: {
       isInventoryOpen: () => dialogs.inventory,
       isCraftingOpen: () => dialogs.crafting,
@@ -136,6 +137,17 @@ test('a started, ready world advances all simulation systems with one shared del
   assert.equal(game.count('interaction'), 1);
   assert.equal(game.count('render'), 1);
   assert.equal(game.count('animation'), 1, 'the next frame should be scheduled once');
+});
+
+test('the active game passes head submersion to the air HUD before oxygen decreases',()=>{
+  const game=createGame();game.player.headSubmerged=true;game.player.air=10;
+  game.frame();
+  const call=game.calls.survivalHUD[0];
+  assert.equal(call[3],10);assert.equal(call[4],true);
+  assert.deepEqual(game.calls.underwaterEffect[0],['show',true]);
+  game.player.headSubmerged=false;game.frame();
+  assert.deepEqual(game.calls.underwaterEffect[1],['show',false]);
+  assert.equal(game.calls.survivalHUD[1][4],false);
 });
 
 test('the Esc pause state freezes simulation while retaining rendering and streaming', () => {

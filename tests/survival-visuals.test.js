@@ -36,6 +36,19 @@ function hudRuntime(textureFile,uiFile){
 }
 
 for(const [textureFile,uiFile] of [['textures.js','ui.js'],['mobile-test-textures.js','mobile-test-ui.js']]){
+  test(uiFile+': full air bubbles appear on entering water before air starts decreasing',()=>{
+    const {UI,icons,nodes}=hudRuntime(textureFile,uiFile);
+    UI.updateSurvival('survival',20,20,10,false);
+    assert.equal(nodes.get('airs').children.length,0);
+    UI.updateSurvival('survival',20,20,10,true);
+    assert.equal(nodes.get('airs').children.length,10);
+    assert.ok(nodes.get('airs').children.every(img=>img.src===icons.bubble));
+    UI.updateSurvival('survival',20,20,9,true);
+    assert.equal(nodes.get('airs').children.length,9);
+    UI.updateSurvival('survival',20,20,10,false);
+    assert.equal(nodes.get('airs').children.length,0);
+  });
+
   test(uiFile+': ten hearts and drumsticks show full, half and empty values and restore after creative',()=>{
     const {UI,icons,nodes}=hudRuntime(textureFile,uiFile);
     UI.updateSurvival('survival',17,15,10);

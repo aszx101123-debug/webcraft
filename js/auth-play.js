@@ -7,7 +7,7 @@ document.body.appendChild(notice);
 try {
   const sources = [
     "pogl-game/vendor/three.min.js",
-    "js/game/config.js?v=v186",
+    "js/game/config.js?v=v187",
     "js/game/classic-settings.js?v=v140",
     "js/game/noise.js",
     "js/game/terrain-legacy.js?v=v180",
@@ -15,12 +15,12 @@ try {
     "js/game/mobile-test-textures.js?v=v185",
     "js/game/graphics.js?v=v170",
     "js/game/voxel-lighting.js?v=v170",
-    "js/game/world.js?v=v185",
+    "js/game/world.js?v=v187",
     "js/game/world-journal.js?v=v180",
     "js/game/world-milestones.js?v=v180",
     "js/game/block-furniture.js?v=v170",
     "js/game/block-physics.js?v=v132",
-    "js/game/player.js?v=v185",
+    "js/game/player.js?v=v187",
     "js/skin-studio.js?v=v131",
     "js/game/mobile-test-player-model.js?v=v185",
     "js/game/fluids.js?v=v129",
@@ -33,8 +33,8 @@ try {
     "js/game/item-actions.js?v=v170",
     "js/game/save.js?v=v180",
     "js/game/mobile-test-crafting.js?v=v184",
-    "js/game/mobile-test-ui.js?v=v185",
-    "js/game/mobile-test-main.js?v=v181"
+    "js/game/mobile-test-ui.js?v=v187",
+    "js/game/mobile-test-main.js?v=v187"
   ];
   for (const src of sources) {
     await new Promise((resolve, reject) => {
