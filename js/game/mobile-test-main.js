@@ -22,7 +22,7 @@ window.webcraftBoot = (async () => {
   }
   if(!room)SaveSystem.setActiveId(worldId);
   let worldMeta = room ? {id:worldId,name:'멀티 '+room.room,seed:room.seed} : SaveSystem.get(worldId);
-  let saved = room ? SaveSystem.loadRoom(room.room) : SaveSystem.load(worldId);
+  let saved = room?.server ? Multiplayer.initial?.playerSave||SaveSystem.loadServer(room.saveKey) : room ? SaveSystem.loadRoom(room.room) : SaveSystem.load(worldId);
   if(room&&saved?.seed!==room.seed)saved=null;
   if (!worldMeta) {
     worldId = SaveSystem.ensureDefault(seedFromParam(params.get('seed')));
@@ -298,9 +298,10 @@ window.webcraftBoot = (async () => {
   }
 
   let saveBadgeTimer=null;
+  let lastServerSave=Promise.resolve({ok:true});
   function doSave(silent) {
-    const save = room ? data=>SaveSystem.saveRoom(room.room,data) : data=>SaveSystem.save(worldId,data);
-    const ok = save({
+    const save = room?.server ? data=>SaveSystem.saveServer(room.saveKey,data) : room ? data=>SaveSystem.saveRoom(room.room,data) : data=>SaveSystem.save(worldId,data);
+    const payload={
       version: 8,
       savedAt: Date.now(),
       worldId,
@@ -333,7 +334,9 @@ window.webcraftBoot = (async () => {
       farming: Farming.serialize(),
       journal: WorldJournal.serialize(),
       milestones: WorldMilestones.serialize()
-    });
+    };
+    const ok=save(payload);
+    if(room?.server)lastServerSave=Multiplayer.checkpoint(payload);
     const badge=document.getElementById('save-indicator');
     if(badge && state.started){
       badge.textContent=ok?'✓ 월드 저장됨':'⚠ 저장 공간을 확인해 주세요';
@@ -966,7 +969,7 @@ window.webcraftBoot = (async () => {
   }
 
   function openWorldMenu() {
-    if(room){if(doSave(true)){void Multiplayer.leave();location.href='multiplayer.html';}return;}
+    if(room){if(doSave(true)){if(room.server)void lastServerSave.then(result=>{if(!result.ok){UI.showToast('서버에 저장하지 못했습니다. 연결 후 다시 시도해 주세요.');return;}void Multiplayer.leave();location.href='servers.html';});else{void Multiplayer.leave();location.href='multiplayer.html';}}return;}
     if(state.started && !doSave(true)){
       UI.showToast('저장하지 못했습니다. 월드 백업을 확인해 주세요.');
       return;
@@ -1057,7 +1060,7 @@ window.webcraftBoot = (async () => {
   // Backup files are private local JSON downloads, not uploaded to any server.
   document.getElementById('btn-export-world')?.addEventListener('click', () => {
     if (!doSave(true)) { UI.showToast('월드 저장에 실패해 백업할 수 없습니다'); return; }
-    const snapshot = room ? {type:'webcraft-world-export',formatVersion:1,exportedAt:new Date().toISOString(),meta:{name:worldMeta.name,seed},world:SaveSystem.loadRoom(room.room)} : SaveSystem.exportWorld(worldId);
+    const snapshot = room ? {type:'webcraft-world-export',formatVersion:1,exportedAt:new Date().toISOString(),meta:{name:worldMeta.name,seed},world:room.server?SaveSystem.loadServer(room.saveKey):SaveSystem.loadRoom(room.room)} : SaveSystem.exportWorld(worldId);
     if (!snapshot) { UI.showToast('백업 데이터를 찾지 못했습니다'); return; }
     try {
       const blob = new Blob([JSON.stringify(snapshot)], { type: 'application/json' });
@@ -1103,8 +1106,8 @@ window.webcraftBoot = (async () => {
     }
   });
 
-  document.getElementById('btn-home').addEventListener('click', () => {
-    if(doSave(true))location.href='index.html';
+  document.getElementById('btn-home').addEventListener('click', async () => {
+    if(doSave(true)){if(room?.server){const result=await lastServerSave;if(!result.ok){UI.showToast('서버에 저장하지 못했습니다. 다시 시도해 주세요.');return;}void Multiplayer.leave();}location.href='index.html';}
     else UI.showToast('저장하지 못했습니다. 백업 후 다시 시도해 주세요.');
   });
   document.getElementById('btn-respawn').addEventListener('click', () => {
@@ -1142,7 +1145,7 @@ window.webcraftBoot = (async () => {
   });
   const shareSeedBtn = document.getElementById('btn-share-seed');
   shareSeedBtn.addEventListener('click', async () => {
-    const url = room ? new URL('multiplayer.html?room='+room.room,location.href).href : location.origin + location.pathname + '?seed=' + encodeURIComponent(seed);
+    const url = room?.server ? new URL('servers.html',location.href).href : room ? new URL('multiplayer.html?room='+room.room,location.href).href : location.origin + location.pathname + '?seed=' + encodeURIComponent(seed);
     try {
       await navigator.clipboard.writeText(url);
       UI.showToast(room?'초대 링크를 복사했습니다':'시드 링크를 복사했습니다');
@@ -1180,7 +1183,7 @@ window.webcraftBoot = (async () => {
     document.body.classList.add('multiplayer-playing');
     document.getElementById('mp-hud')?.classList.remove('hidden');
     document.querySelector('#overlay-start .world-section')?.classList.add('hidden');
-    document.querySelector('#overlay-start .tip').textContent='최대 4명 협동 플레이 · 메뉴를 열어도 월드는 계속됩니다. 방장은 게임을 열어 두세요.';
+    document.querySelector('#overlay-start .tip').textContent=room.server?'최대 100명 공개 서버 · 메뉴를 열어도 월드는 계속됩니다.':'최대 4명 협동 플레이 · 메뉴를 열어도 월드는 계속됩니다. 방장은 게임을 열어 두세요.';
     document.querySelector('#overlay-pause .tip').textContent='20초마다 자동 저장 · 멀티플레이에서는 메뉴를 열어도 월드가 계속됩니다.';
     document.getElementById('btn-worlds').textContent='저장하고 방 나가기';
     shareSeedBtn.textContent='친구 초대 링크 복사';

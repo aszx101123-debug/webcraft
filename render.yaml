@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: webcraft-server
+    runtime: docker
+    plan: 1c-2g
+    region: singapore
+    numInstances: 1
+    autoDeployTrigger: "off"
+    healthCheckPath: /health
+    dockerfilePath: ./Dockerfile
+    disk:
+      name: webcraft-worlds
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: MAX_PLAYERS
+        value: "100"
+      - key: DATA_FILE
+        value: /data/webcraft.sqlite
+      - key: ALLOWED_ORIGINS
+        value: https://aszx101123-debug.github.io

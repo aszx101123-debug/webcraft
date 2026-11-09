@@ -1,4 +1,4 @@
-// Retain this loader URL for older entry pages; playing needs no auth SDK or session.
+// Single-player needs no auth SDK; multiplayer initializes its transport only when requested.
 const notice = document.createElement("div");
 notice.setAttribute("role", "status");
 notice.style.cssText = "position:fixed;inset:0;z-index:999999;background:#101a20;color:white;display:grid;place-items:center;font:20px sans-serif";
@@ -7,7 +7,7 @@ document.body.appendChild(notice);
 try {
   const sources = [
     "pogl-game/vendor/three.min.js",
-    "js/game/config.js?v=v190",
+    "js/game/config.js?v=v1100",
     "js/game/classic-settings.js?v=v140",
     "js/game/noise.js",
     "js/game/terrain-legacy.js?v=v180",
@@ -15,7 +15,7 @@ try {
     "js/game/mobile-test-textures.js?v=v185",
     "js/game/graphics.js?v=v170",
     "js/game/voxel-lighting.js?v=v170",
-    "js/game/world.js?v=v190",
+    "js/game/world.js?v=v1100",
     "js/game/world-journal.js?v=v180",
     "js/game/world-milestones.js?v=v180",
     "js/game/block-furniture.js?v=v190",
@@ -31,14 +31,16 @@ try {
     "js/game/mobs.js?v=v190",
     "js/game/farming.js?v=v190",
     "js/game/item-actions.js?v=v190",
-    "js/game/save.js?v=v190",
+    "js/game/save.js?v=v1100",
     "js/game/mobile-test-crafting.js?v=v184",
     "js/game/mobile-test-ui.js?v=v190",
     "js/game/multiplayer-core.js?v=v190",
-    "js/game/multiplayer.js?v=v190",
-    "js/game/remote-players.js?v=v190",
-    "js/game/multiplayer-engine.js?v=v190",
-    "js/game/mobile-test-main.js?v=v190"
+    "js/server-config.js?v=v1100",
+    "js/game/dedicated-multiplayer.js?v=v1100",
+    "js/game/multiplayer.js?v=v1100",
+    "js/game/remote-players.js?v=v1100",
+    "js/game/multiplayer-engine.js?v=v1100",
+    "js/game/mobile-test-main.js?v=v1100"
   ];
   for (const src of sources) {
     await new Promise((resolve, reject) => {

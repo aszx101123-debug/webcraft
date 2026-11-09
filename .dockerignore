@@ -1,0 +1,12 @@
+.git
+**/node_modules
+server/data
+**/*.sqlite*
+**/*.log
+tests
+test
+.openai
+.env*
+
+**/.env*
+server/test

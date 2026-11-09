@@ -24,11 +24,11 @@
 <link rel="stylesheet" href="css/classic-furnace.css?v=v140">
 <link rel="stylesheet" href="css/classic.css?v=v185">
 <link rel="stylesheet" href="css/biome-guide.css?v=v180">
-<link rel="stylesheet" href="css/multiplayer.css?v=v190">
+<link rel="stylesheet" href="css/multiplayer.css?v=v1100">
 </head>
 <body>
 
-<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.9.0 · 협동 멀티플레이 · 서바이벌 / 크리에이티브</div>
+<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.10.0 · 협동 멀티플레이 · 서바이벌 / 크리에이티브</div>
 <div id="boot-error" class="boot-error hidden" role="alert">
   <div class="boot-error-panel">
     <div class="boot-error-icon">!</div>
@@ -396,7 +396,7 @@
   });
 })();
 </script>
-<script src="js/game/config.js?v=v190"></script>
+<script src="js/game/config.js?v=v1100"></script>
 <script src="js/game/classic-settings.js?v=v140"></script>
 <script src="js/game/noise.js"></script>
 <script src="js/game/terrain-legacy.js?v=v180"></script>
@@ -404,7 +404,7 @@
 <script src="js/game/mobile-test-textures.js?v=v185"></script>
 <script src="js/game/graphics.js?v=v170"></script>
 <script src="js/game/voxel-lighting.js?v=v170"></script>
-<script src="js/game/world.js?v=v190"></script>
+<script src="js/game/world.js?v=v1100"></script>
 <script src="js/game/world-journal.js?v=v180"></script>
 <script src="js/game/world-milestones.js?v=v180"></script>
 <script src="js/game/block-furniture.js?v=v190"></script>
@@ -420,14 +420,16 @@
 <script src="js/game/mobs.js?v=v190"></script>
 <script src="js/game/farming.js?v=v190"></script>
 <script src="js/game/item-actions.js?v=v190"></script>
-<script src="js/game/save.js?v=v190"></script>
+<script src="js/game/save.js?v=v1100"></script>
 <script src="js/game/mobile-test-crafting.js?v=v184"></script>
 <script src="js/game/mobile-test-ui.js?v=v190"></script>
 <script src="js/game/multiplayer-core.js?v=v190"></script>
-<script src="js/game/multiplayer.js?v=v190"></script>
-<script src="js/game/remote-players.js?v=v190"></script>
-<script src="js/game/multiplayer-engine.js?v=v190"></script>
-<script src="js/game/mobile-test-main.js?v=v190"></script>
+<script src="js/server-config.js?v=v1100"></script>
+<script src="js/game/dedicated-multiplayer.js?v=v1100"></script>
+<script src="js/game/multiplayer.js?v=v1100"></script>
+<script src="js/game/remote-players.js?v=v1100"></script>
+<script src="js/game/multiplayer-engine.js?v=v1100"></script>
+<script src="js/game/mobile-test-main.js?v=v1100"></script>
 <script>
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(() => {}));

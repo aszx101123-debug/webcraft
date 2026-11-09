@@ -21,6 +21,12 @@ WebCraft is a free, Minecraft-inspired voxel sandbox game that runs in desktop a
 
 Both game modes work without an account. **Guests do not receive credits.** Daily credit rewards and badge exchanges require signing in and are checked by the server. Worlds are stored in the current browser; account sign-in does not provide cloud world storage.
 
+## Dedicated public servers (v1.10.0 preparation)
+
+A dedicated Node.js server and Korean/English lobby are prepared for a 100-player target, in survival and creative mode. Signed-in accounts choose an English nickname; guests receive server-assigned names such as `Guest1` and `Guest2`. The server persists names, guest numbers and shared worlds independently of a player's browser.
+
+**Public hosting is not provisioned yet.** The existing live 4-player rooms remain available. See the [server deployment guide](server/README.md) and [Render Blueprint](render.yaml) for the recommended one-instance host, persistent disk, current baseline pricing and rollout steps.
+
 ## Play with friends
 
 1. Open **[Multiplayer](https://aszx101123-debug.github.io/webcraft/multiplayer.html?lang=en)** and enter a display name.
@@ -80,6 +86,7 @@ python -m http.server 8000
 Open `http://localhost:8000/play.html?lang=en`. No build step is required for the static game. Multiplayer and account credit features use the configured Supabase backend. Single-player still works without the auth SDK.
 
 ```sh
+npm ci --prefix server
 npm test
 ```
 

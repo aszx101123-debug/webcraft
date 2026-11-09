@@ -1,0 +1,16 @@
+services:
+  webcraft:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      MAX_PLAYERS: "100"
+      DATA_FILE: /data/webcraft.sqlite
+      ALLOWED_ORIGINS: http://localhost:8080,http://127.0.0.1:8080,https://aszx101123-debug.github.io
+    volumes:
+      - webcraft-data:/data
+    restart: unless-stopped
+    stop_grace_period: 20s
+volumes:
+  webcraft-data:

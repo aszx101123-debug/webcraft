@@ -503,6 +503,17 @@ const World = (() => {
       (id!==0&&!BLOCKS[id]))return false;
     ensureChunkAt(x,z);return setBlock(x,y,z,id);
   }
+  function mergeRemoteEdits(entries){
+    if(!Array.isArray(entries)||entries.length>169)return;
+    for(const entry of entries){
+      if(!Array.isArray(entry)||entry.length!==2||typeof entry[0]!=='string'||! /^-?\d+,-?\d+$/.test(entry[0])||!Array.isArray(entry[1])||entry[1].length>16384)continue;
+      const [cx,cz]=entry[0].split(',').map(Number);if(Math.abs(cx)>62500||Math.abs(cz)>62500)continue;
+      const clean=entry[1].filter(pair=>Array.isArray(pair)&&pair.length===2&&Number.isInteger(pair[0])&&pair[0]>=0&&pair[0]<16384&&Number.isInteger(pair[1])&&(pair[1]===0||BLOCKS[pair[1]]));
+      edits.set(entry[0],new Map(clean));const chunk=chunks.get(entry[0]);
+      if(chunk){chunk.data=gen.genChunk(cx,cz);for(const [i,id] of clean)chunk.data[i]=id;markDirty(cx,cz);}
+      for(const [i,id] of clean)if(id===BLOCK.WATER)waterSources.add((cx*16+((i>>10)&15))+','+(i&63)+','+(cz*16+((i>>6)&15)));
+    }
+  }
 
   return {
     init, update, getBlock, setBlock, getChunk, getEdits, onBlockChanged, invalidateAt,
@@ -515,7 +526,7 @@ const World = (() => {
     getSeed: () => seed,
     setDaylight: value => { daylight.value = .12 + .88 * Math.max(0,Math.min(1,value)); },
     getGroup: () => group,
-    getFluidLevel, setFluidLevel, getWaterSources,ensureChunkAt,applyRemoteBlock,
+    getFluidLevel, setFluidLevel, getWaterSources,ensureChunkAt,applyRemoteBlock,mergeRemoteEdits,
     setInterestPoints:points=>{interestPoints=Array.isArray(points)?points.slice(0,3).filter(p=>Number.isFinite(p?.x)&&Number.isFinite(p?.z)).map(p=>[Math.floor(p.x)>>4,Math.floor(p.z)>>4]):[];}
 
   };
