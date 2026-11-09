@@ -305,8 +305,8 @@ const Terrain = (() => {
           const height=1+Math.floor(Noise.hash2(wx,wz,seed+4603)*3);
           for(let y=1;y<=height;y++)if(data[idx(x,h+y,z)]===BLOCK.AIR)data[idx(x,h+y,z)]=BLOCK.CRYSTAL_BLOCK;
         }
-        if(data[idx(x,h+1,z)]===BLOCK.AIR && data[idx(x,h+2,z)]===BLOCK.AIR && Noise.hash2(wx,wz,seed+4611)<.024)
-          data[idx(x,h+1,z)]=BIOMES[biome].resource;
+        // Do not place WebCraft-only biome resource stones on the landscape.
+        // Keep their IDs for backward compatibility with previously saved edits.
       }
       return data;
     }
