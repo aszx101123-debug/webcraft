@@ -109,6 +109,9 @@ const Interact = (() => {
 
   function breakNow(survival) {
     if (!target) return false;
+    if(typeof Multiplayer!=='undefined'&&Multiplayer.active&&!Multiplayer.canEditBlock(target)){
+      UI.showToast('다른 플레이어가 사용 중이거나 연결을 기다리고 있습니다.');return false;
+    }
     if (BLOCKS[target.id].unbreakable) return false;
     const tool = survival ? Inventory.selectedTool() : null;
     const dropId = survival ? (target.id===BLOCK.WOOD_DOOR_TOP
@@ -117,11 +120,11 @@ const Interact = (() => {
     const ok = World.setBlock(target.x, target.y, target.z, BLOCK.AIR);
     if(ok && target.id===BLOCK.FURNACE && typeof FurnaceSystem!=='undefined'){
       for(const stack of FurnaceSystem.remove(target.x,target.y,target.z))
-        Drops.spawn(stack.id,stack.count,target.x+.5,target.y+.5,target.z+.5);
+        Drops.spawn(stack.id,stack.count,target.x+.5,target.y+.5,target.z+.5,undefined,{world:true});
     }
     if(ok && survival && typeof WorldMilestones!=='undefined')WorldMilestones.record('mine',target.id,'survival');
     if (ok && survival) {
-      if (dropId) Drops.spawn(dropId, 1, target.x + .5, target.y + .5, target.z + .5);
+      if (dropId) Drops.spawn(dropId, 1, target.x + .5, target.y + .5, target.z + .5,undefined,{world:true});
       Player.addExhaustion(SURVIVAL.MINE_COST);
       if (tool) Inventory.damageSelectedTool(1);
       UI.renderHotbar();

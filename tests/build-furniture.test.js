@@ -138,9 +138,19 @@ check('desktop and mobile pages load new storage UI scripts',()=>{
  for(const name of ['play.html','mobile-test.html']){
   const html=gamePage(name);
   assert.ok(html.includes('id="overlay-chest"'));
-  assert.ok(html.includes('block-furniture.js?v=v170'));
+  assert.match(html,/block-furniture\.js\?v=v\d+/);
   assert.ok(html.includes('v133-build.css?v=v133'));
  }
+});
+check('remote edits survive unloading and reloading a previously unstreamed chunk',()=>{
+ const x=3200,z=3200,y=12;
+ assert.equal(World.applyRemoteBlock(x,y,z,BLOCK.DIRT),true);
+ assert.equal(World.getBlock(x,y,z),BLOCK.DIRT);
+ assert.ok(World.getEdits().some(([k])=>k==='200,200'));
+ World.update(2,2,0,1,1);assert.equal(World.getChunk(200,200),undefined);
+ World.ensureChunkAt(x,z);assert.equal(World.getBlock(x,y,z),BLOCK.DIRT);
+ assert.equal(World.applyRemoteBlock(x,0,z,BLOCK.AIR),false);
+ assert.equal(World.applyRemoteBlock(x,y,z,99999),false);
 });
 check('modern homepage and responsive script are connected',()=>{
  const html=src('index.html');

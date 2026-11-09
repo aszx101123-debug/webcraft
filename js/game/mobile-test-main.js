@@ -2,6 +2,7 @@
 
 window.webcraftBoot = (async () => {
   const params = new URLSearchParams(location.search);
+  const room = await Multiplayer.prepare(params);
   let classicOptions = ClassicSettings.get();
   ClassicSettings.bind(options => { classicOptions = options; });
 
@@ -13,22 +14,30 @@ window.webcraftBoot = (async () => {
     return h % 2147483647;
   }
 
-  let worldId = params.get('world') || SaveSystem.getActiveId();
+  let worldId = room ? 'room-'+room.room : params.get('world') || SaveSystem.getActiveId();
   if (!worldId) worldId = SaveSystem.ensureDefault(seedFromParam(params.get('seed')));
   if (!worldId) {
     document.body.textContent = '월드를 만들 수 없습니다. 브라우저 저장 공간을 확인해 주세요.';
     return;
   }
-  SaveSystem.setActiveId(worldId);
-  let worldMeta = SaveSystem.get(worldId);
-  let saved = SaveSystem.load(worldId);
+  if(!room)SaveSystem.setActiveId(worldId);
+  let worldMeta = room ? {id:worldId,name:'멀티 '+room.room,seed:room.seed} : SaveSystem.get(worldId);
+  let saved = room ? SaveSystem.loadRoom(room.room) : SaveSystem.load(worldId);
+  if(room&&saved?.seed!==room.seed)saved=null;
   if (!worldMeta) {
     worldId = SaveSystem.ensureDefault(seedFromParam(params.get('seed')));
     worldMeta = SaveSystem.get(worldId);
     saved = SaveSystem.load(worldId);
   }
-  const seed = saved?.seed ?? worldMeta.seed;
-  const generatorVersion = SaveSystem.generatorVersion(saved);
+  if(room&&Multiplayer.initial){
+    const initial=Multiplayer.initial;
+    saved={...saved,version:8,seed:room.seed,generatorVersion:2,mode:room.mode,time:initial.time,
+      edits:initial.edits,blockObjects:initial.metadata?.objects,furnaces:initial.metadata?.furnaces,farming:initial.metadata?.farming};
+    if(!saved.player&&initial.spawn)saved.player={...initial.spawn};
+    if(!saved.spawn&&initial.spawn)saved.spawn={...initial.spawn};
+  }
+  const seed = room ? room.seed : saved?.seed ?? worldMeta.seed;
+  const generatorVersion = room ? 2 : SaveSystem.generatorVersion(saved);
 
   const renderer = new THREE.WebGLRenderer({ antialias: false });
   const isTouch = params.get('controls') === 'touch' || (params.get('controls') !== 'desktop' && (matchMedia('(pointer: coarse)').matches || (navigator.maxTouchPoints > 0 && matchMedia('(max-width: 800px)').matches)));
@@ -92,10 +101,11 @@ window.webcraftBoot = (async () => {
     sound: saved ? saved.sound !== false : true,
     suppressPause: false,
     paused: false,
-    mode: saved && saved.version >= 2 && saved.mode ? saved.mode : GAME_MODE.SURVIVAL
+    mode: room ? room.mode : saved && saved.version >= 2 && saved.mode ? saved.mode : GAME_MODE.SURVIVAL
   };
 
   Player.setMode(state.mode);
+  Mobs.setMode(state.mode);
   let savedHotbar = null;
   if (saved && Array.isArray(saved.hotbar)) {
     savedHotbar = saved.hotbar.map(s => (typeof s === 'number' && s > 0) ? { id: s, count: -1 } : s);
@@ -274,8 +284,8 @@ window.webcraftBoot = (async () => {
     camera.updateProjectionMatrix();
   }
 
-  function updateSky(dt) {
-    state.time = (state.time + dt / CONFIG.DAY_LENGTH) % 1;
+  function updateSky(dt,advance=true) {
+    state.time = (state.time + (advance?dt / CONFIG.DAY_LENGTH:0)) % 1;
     const f = atmosphere.update(state.time, Player.pos, weather.current === 'clear' ? 'clear' : 'rain', state.renderDist, Player.headSubmerged);
     World.setDaylight(f);
     Textures.animate(dt);
@@ -289,7 +299,8 @@ window.webcraftBoot = (async () => {
 
   let saveBadgeTimer=null;
   function doSave(silent) {
-    const ok = SaveSystem.save(worldId, {
+    const save = room ? data=>SaveSystem.saveRoom(room.room,data) : data=>SaveSystem.save(worldId,data);
+    const ok = save({
       version: 8,
       savedAt: Date.now(),
       worldId,
@@ -364,6 +375,7 @@ window.webcraftBoot = (async () => {
     `월드: ${worldMeta.name} · 시드: ${seed} · ${saved ? `${modeLabel} 월드 불러옴` : '새 월드 생성'}`;
 
   function setMode(mode) {
+    if(room)return;
     state.mode = mode;
     Player.setMode(mode);
     Inventory.setMode(mode);
@@ -591,6 +603,7 @@ window.webcraftBoot = (async () => {
   let lastSpaceTap = -Infinity;
   const canvas = renderer.domElement;
   function resumeInput() {
+    if(room&&!Multiplayer.ready){state.paused=true;UI.showOverlay('pause');UI.showToast('월드 연결을 기다려 주세요.');return;}
     if (isTouch) {
       touchActive = true;
       state.paused = false;
@@ -604,6 +617,8 @@ window.webcraftBoot = (async () => {
   }
 
   function beginGameplay(mode) {
+    if(room&&!Multiplayer.ready)return;
+    if(room)mode=room.mode;
     WorldJournal.close(false);
     BlockFurniture.closeChest(false);
     state.mode = mode;
@@ -951,6 +966,7 @@ window.webcraftBoot = (async () => {
   }
 
   function openWorldMenu() {
+    if(room){if(doSave(true)){void Multiplayer.leave();location.href='multiplayer.html';}return;}
     if(state.started && !doSave(true)){
       UI.showToast('저장하지 못했습니다. 월드 백업을 확인해 주세요.');
       return;
@@ -974,16 +990,16 @@ window.webcraftBoot = (async () => {
   const startBtn = document.getElementById('start-btn');
   const btnSurvival = document.getElementById('btn-start-survival');
   const btnCreative = document.getElementById('btn-start-creative');
-  if (saved) {
+  if (saved || room) {
     btnSurvival.classList.add('hidden');
     btnCreative.classList.add('hidden');
-    startBtn.textContent = `이어서 플레이 (${modeLabel})`;
+    startBtn.textContent = room ? `멀티플레이 참가 (${modeLabel})` : `이어서 플레이 (${modeLabel})`;
   } else {
     startBtn.classList.add('hidden');
   }
   startBtn.addEventListener('click', () => {
     if (!state.ready) return;
-    SaveSystem.setActiveId(worldId);
+    if(!room)SaveSystem.setActiveId(worldId);
     beginGameplay(state.mode);
   });
   btnSurvival.addEventListener('click', () => {
@@ -1041,7 +1057,7 @@ window.webcraftBoot = (async () => {
   // Backup files are private local JSON downloads, not uploaded to any server.
   document.getElementById('btn-export-world')?.addEventListener('click', () => {
     if (!doSave(true)) { UI.showToast('월드 저장에 실패해 백업할 수 없습니다'); return; }
-    const snapshot = SaveSystem.exportWorld(worldId);
+    const snapshot = room ? {type:'webcraft-world-export',formatVersion:1,exportedAt:new Date().toISOString(),meta:{name:worldMeta.name,seed},world:SaveSystem.loadRoom(room.room)} : SaveSystem.exportWorld(worldId);
     if (!snapshot) { UI.showToast('백업 데이터를 찾지 못했습니다'); return; }
     try {
       const blob = new Blob([JSON.stringify(snapshot)], { type: 'application/json' });
@@ -1108,6 +1124,7 @@ window.webcraftBoot = (async () => {
   });
   const modeBtn = document.getElementById('btn-mode');
   function syncModeBtn() {
+    if(room){modeBtn.textContent='방 모드: '+modeLabel;modeBtn.disabled=true;return;}
     modeBtn.textContent = state.mode === GAME_MODE.SURVIVAL
       ? '모드: 서바이벌 (전환)'
       : '모드: 크리에이티브 (전환)';
@@ -1125,12 +1142,12 @@ window.webcraftBoot = (async () => {
   });
   const shareSeedBtn = document.getElementById('btn-share-seed');
   shareSeedBtn.addEventListener('click', async () => {
-    const url = location.origin + location.pathname + '?seed=' + encodeURIComponent(seed);
+    const url = room ? new URL('multiplayer.html?room='+room.room,location.href).href : location.origin + location.pathname + '?seed=' + encodeURIComponent(seed);
     try {
       await navigator.clipboard.writeText(url);
-      UI.showToast('시드 링크를 복사했습니다');
+      UI.showToast(room?'초대 링크를 복사했습니다':'시드 링크를 복사했습니다');
     } catch (e) {
-      prompt('시드 링크를 복사하세요:', url);
+      prompt(room?'초대 링크를 복사하세요:':'시드 링크를 복사하세요:', url);
     }
   });
 
@@ -1159,6 +1176,29 @@ window.webcraftBoot = (async () => {
   addEventListener('beforeunload', () => { if (state.started) doSave(true); });
   setInterval(() => { if (state.started) doSave(true); }, CONFIG.AUTOSAVE_SEC * 1000);
 
+  if(room){
+    document.body.classList.add('multiplayer-playing');
+    document.getElementById('mp-hud')?.classList.remove('hidden');
+    document.querySelector('#overlay-start .world-section')?.classList.add('hidden');
+    document.querySelector('#overlay-start .tip').textContent='최대 4명 협동 플레이 · 메뉴를 열어도 월드는 계속됩니다. 방장은 게임을 열어 두세요.';
+    document.querySelector('#overlay-pause .tip').textContent='20초마다 자동 저장 · 멀티플레이에서는 메뉴를 열어도 월드가 계속됩니다.';
+    document.getElementById('btn-worlds').textContent='저장하고 방 나가기';
+    shareSeedBtn.textContent='친구 초대 링크 복사';
+    const inviteBtn=document.getElementById('btn-invite-room');
+    inviteBtn?.classList.remove('hidden');inviteBtn?.addEventListener('click',()=>shareSeedBtn.click());
+    document.getElementById('btn-multiplayer')?.classList.add('hidden');
+    document.getElementById('btn-import-world')?.classList.add('hidden');
+    document.getElementById('btn-newworld').closest('.row').classList.add('hidden');
+    MultiplayerEngine.bind({scene,state,seed,
+      onResync:()=>{state.ready=false;UI.setStartEnabled(false);Interact.cancelBreak();miningHeld=false;},
+      onStatus:value=>{
+        if(value==='ready')return;
+        for(const k of Object.keys(keys))keys[k]=false;
+        disableTouchInput();miningHeld=false;Interact.cancelBreak();state.paused=true;
+        if(state.started){UI.showOverlay('pause');document.exitPointerLock?.();}
+      },onContainerDenied:()=>{state.paused=true;UI.showOverlay('pause');}});
+  }
+
   let frames = 0, fpsTime = 0, fps = 0;
   const clock = new THREE.Clock();
   let hudTick = 0;
@@ -1168,7 +1208,10 @@ window.webcraftBoot = (async () => {
   function loop() {
     requestAnimationFrame(loop);
     const dt = Math.min(clock.getDelta(), .05);
-    const worldRunning = state.ready && state.started && !state.paused && !Player.dead;
+    const multiplayer = typeof Multiplayer!=='undefined'&&Multiplayer.active;
+    const networkReady = !multiplayer||Multiplayer.ready;
+    const authority = !multiplayer||Multiplayer.isHost;
+    const worldRunning = state.ready && networkReady && (multiplayer ? state.started||authority : state.started&&!state.paused&&!Player.dead);
 
     if (!state.ready) {
       World.update(Player.pos.x, Player.pos.z, state.renderDist, isTouch ? 4 : 8, isTouch ? 6 : 12);
@@ -1177,7 +1220,7 @@ window.webcraftBoot = (async () => {
         UI.setStartEnabled(true);
       }
     } else {
-      const active = worldRunning && !UI.isInventoryOpen() && !UI.isCraftingOpen() && !UI.isFurnaceOpen() && !UI.isPickerOpen() && !BlockFurniture.isChestOpen() && !WorldJournal.isOpen();
+      const active = worldRunning && state.started && !state.paused && !Player.dead && !UI.isInventoryOpen() && !UI.isCraftingOpen() && !UI.isFurnaceOpen() && !UI.isPickerOpen() && !BlockFurniture.isChestOpen() && !WorldJournal.isOpen();
       if (active) {
         Player.update(dt, keys);
         const discovery=WorldJournal.update(dt,Player.pos,World.biomeAt(Player.pos.x,Player.pos.z));
@@ -1218,29 +1261,28 @@ window.webcraftBoot = (async () => {
         if (mined) {
           blip(95, .12, 'triangle', .09);
         }
-      } else if(worldRunning){
+      } else if(worldRunning&&state.started&&!Player.dead){
         // Inventories do not pause a Minecraft-style world; player input does.
         Player.update(dt, {});
       }
       if(worldRunning){
-        updateSky(dt);
+        updateSky(dt,authority);
         updateWeather(dt);
         Fluids.update(Player.pos.x, Player.pos.y, Player.pos.z, dt);
-        BlockPhysics.update(dt);
-        FurnaceSystem.update(dt);
-        Farming.update(dt,state.time);
-        ItemActions.update(dt);
+        if(authority){BlockPhysics.update(dt);FurnaceSystem.update(dt);Farming.update(dt,state.time);}
+        if(state.started&&!Player.dead)ItemActions.update(dt);
         if(UI.isFurnaceOpen() && ++furnaceUITick%6===0)UI.renderFurnace();
         const sprinting = active && (keys['ControlLeft'] || keys['ControlRight']) &&
           !(keys['ShiftLeft'] || keys['ShiftRight']) && keys['KeyW'] && !Player.flying;
-        Player.survivalTick(dt, sprinting);
+        if(state.started&&!Player.dead)Player.survivalTick(dt, sprinting);
         Mobs.update(dt, true);
-        Drops.update(dt, Player.pos, state.mode === GAME_MODE.SURVIVAL && !Player.dead);
+        Drops.update(dt, Player.pos, state.started && state.mode === GAME_MODE.SURVIVAL && !Player.dead);
       }
       World.update(Player.pos.x, Player.pos.z, state.renderDist, isTouch ? 1 : 2, isTouch ? 2 : 4);
     }
 
-    const sprinting = worldRunning && (state.locked || (isTouch&&touchActive)) &&
+    if(multiplayer)Multiplayer.frame(dt);
+    const sprinting = worldRunning && !state.paused && !Player.dead && (state.locked || (isTouch&&touchActive)) &&
       (keys['ControlLeft'] || keys['ControlRight']) && !(keys['ShiftLeft'] || keys['ShiftRight']) &&
       keys['KeyW'] && !Player.flying;
     const targetFov = Math.min(120,classicOptions.fov + (sprinting ? 8 : 0));

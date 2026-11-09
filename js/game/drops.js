@@ -4,6 +4,7 @@ const Drops = (() => {
   let scene = null, group = null;
   let list = [];
   let onCollect = null;
+  let network=null,nextNetworkId=1,nextPickupAt=0;
 
   function init(scene_, onCollect_) {
     scene = scene_;
@@ -34,12 +35,15 @@ const Drops = (() => {
     return new THREE.Mesh(geo, mat);
   }
 
-  function spawn(id, count, x, y, z, durability) {
+  function spawn(id, count, x, y, z, durability,origin) {
+    if(network?.replica){if(!origin?.world)network.spawn?.({id,count,x,y,z,durability});return;}
     if (!group || !id) return;
+    if(network&&list.length>=128)remove(0);
     const mesh = makeMesh(id);
     mesh.position.set(x, y, z);
     group.add(mesh);
     list.push({
+      networkId:nextNetworkId++,
       id, count: count || 1, mesh, durability,
       vx: (Math.random() - .5) * 2.4,
       vy: 2.6 + Math.random() * 1.2,
@@ -57,6 +61,16 @@ const Drops = (() => {
 
   function update(dt, playerPos, canPickup) {
     if (!group) return;
+    if(network?.replica){
+      for(const d of list){
+        d.mesh.position.lerp(d.target,Math.min(1,dt*14));d.mesh.rotation.y+=dt*2;
+        if(canPickup&&!d.pending&&Date.now()>=nextPickupAt&&playerPos.distanceTo(d.target)<1.7&&Inventory.canAdd(d.id,1)){
+          d.pending=true;nextPickupAt=Date.now()+200;
+          Promise.resolve(network.pickup?.(d.networkId)).finally(()=>{d.pending=false;});
+        }
+      }
+      return;
+    }
     const solidAt = (x, y, z) => isSolidBlock(World.getBlock(Math.floor(x), Math.floor(y), Math.floor(z)));
     for (let i = list.length - 1; i >= 0; i--) {
       const d = list[i];
@@ -108,5 +122,32 @@ const Drops = (() => {
 
   function count() { return list.length; }
 
-  return { init, reset, spawn, update, count };
+  function networkSnapshot(){
+    const q=n=>Math.round(n*1000)/1000;
+    return list.slice(0,128).map(d=>[d.networkId,d.id,d.count,q(d.mesh.position.x),q(d.mesh.position.y),q(d.mesh.position.z),d.durability||0]);
+  }
+  function applyNetwork(rows){
+    if(!network?.replica||!Array.isArray(rows)||rows.length>128)return;
+    const keep=new Set();
+    for(const row of rows){
+      if(!Array.isArray(row)||row.length!==7||!row.every(Number.isFinite)||!Number.isInteger(row[0])||!Number.isInteger(row[1])||
+        !getItemDef(row[1])||!Number.isInteger(row[2])||row[2]<1||row[2]>64||row.slice(3,6).some(v=>Math.abs(v)>1000000))continue;
+      let d=list.find(d=>d.networkId===row[0]);
+      if(!d){const mesh=makeMesh(row[1]);mesh.position.set(row[3],row[4],row[5]);group.add(mesh);
+        d={networkId:row[0],id:row[1],mesh,target:new THREE.Vector3(),pending:false};list.push(d);}
+      if(d.id!==row[1])continue;
+      d.count=row[2];d.durability=row[6]||undefined;d.target.set(row[3],row[4],row[5]);keep.add(d.networkId);
+    }
+    for(let i=list.length-1;i>=0;i--)if(!keep.has(list[i].networkId))remove(i);
+  }
+  function takeNetworkDrop(id,capacity,pos){
+    const index=list.findIndex(d=>d.networkId===id);
+    if(index<0||!Number.isInteger(capacity)||capacity<1||capacity>64)return null;
+    const d=list[index];
+    if(d.noPickup>0||d.mesh.position.distanceTo(pos)>2.6)return null;
+    const stack={id:d.id,count:Math.min(capacity,d.count),...(d.durability?{durability:d.durability}:{})};
+    d.count-=stack.count;if(d.count<=0)remove(index);return stack;
+  }
+
+  return { init, reset, spawn, update, count,networkSnapshot,applyNetwork,takeNetworkDrop,setNetwork:value=>{network=value;} };
 })();

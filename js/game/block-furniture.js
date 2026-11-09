@@ -109,6 +109,7 @@ const BlockFurniture = (() => {
   }
 
   function toggleDoor(x,y,z) {
+    if(typeof Multiplayer!=='undefined'&&Multiplayer.active&&!Multiplayer.isHost){Multiplayer.toggleDoor({x,y,z});return true;}
     const [bx,by,bz]=rootCoords(x,y,z);
     if(World.getBlock(bx,by,bz)!==BLOCK.WOOD_DOOR)return false;
     const k=key(bx,by,bz),meta=state.get(k)||defaultState(BLOCK.WOOD_DOOR);
@@ -138,7 +139,9 @@ const BlockFurniture = (() => {
   }
   function setOnClose(fn){onClose=fn;}
   function closeChest(notify=true) {
+    if(typeof Multiplayer!=='undefined'&&Multiplayer.active&&Multiplayer.containerBusy)return false;
     const wasOpen=!!openKey;
+    if(openKey&&typeof Multiplayer!=='undefined'&&Multiplayer.active)Multiplayer.releaseContainer('chest',openKey);
     openKey=null;
     document.getElementById('overlay-chest')?.classList.add('hidden');
     if(wasOpen&&notify&&onClose)onClose();
@@ -160,6 +163,8 @@ const BlockFurniture = (() => {
   }
   function deposit(index) {
     if(!openKey)return false;
+    if(typeof Multiplayer!=='undefined'&&Multiplayer.active&&!Multiplayer.canUseContainer('chest',openKey))return false;
+    if(typeof Multiplayer!=='undefined'&&Multiplayer.active&&!Multiplayer.isHost){void Multiplayer.chestTransfer(openKey,'deposit',index);return true;}
     const coords=parse(openKey),meta=chestAt(...coords);
     const stack=Inventory.getSlots()[index];
     if(!meta||!stack)return false;
@@ -186,6 +191,8 @@ const BlockFurniture = (() => {
   }
   function withdraw(index) {
     if(!openKey)return false;
+    if(typeof Multiplayer!=='undefined'&&Multiplayer.active&&!Multiplayer.canUseContainer('chest',openKey))return false;
+    if(typeof Multiplayer!=='undefined'&&Multiplayer.active&&!Multiplayer.isHost){void Multiplayer.chestTransfer(openKey,'withdraw',index);return true;}
     const meta=chestAt(...parse(openKey));
     const stack=meta?.chest[index];
     if(!stack)return false;
@@ -228,7 +235,10 @@ const BlockFurniture = (() => {
     meta.chest.forEach((item,i)=>addSlot(grid,item,()=>withdraw(i),'상자 '+(i+1)+'번 칸'));
     Inventory.getSlots().forEach((item,i)=>addSlot(inventoryGrid,item,()=>deposit(i),'가방 '+(i+1)+'번 칸'));
   }
-  function openChest(x,y,z){
+  function openChest(x,y,z,granted=false){
+    if(!granted&&typeof Multiplayer!=='undefined'&&Multiplayer.active){
+      void Multiplayer.lockContainer('chest',{x,y,z}).then(ok=>{if(ok)openChest(x,y,z,true);});return true;
+    }
     const meta=chestAt(x,y,z);
     if(!meta)return false;
     openKey=key(x,y,z);
@@ -241,11 +251,44 @@ const BlockFurniture = (() => {
     if(!meta)return;
     for(const item of meta.chest){
       if(item && typeof Drops!=='undefined'){
-        Drops.spawn(item.id,item.count,x+.5,y+.5,z+.5,item.durability);
+        Drops.spawn(item.id,item.count,x+.5,y+.5,z+.5,item.durability,{world:true});
       }
     }
     meta.chest=Array(SLOT_COUNT).fill(null);
   }
-  return {init,place,stateAt,getState:stateAt,toggleDoor,serialize,openChest,closeChest,
-    isChestOpen,setOnClose,deposit,withdraw,releaseContents,renderChest};
+  function applyNetwork(entries,preserve=[]){
+    if(!Array.isArray(entries))return;
+    const protectedKeys=new Set(preserve),seen=new Set();
+    for(const entry of entries.slice(0,5000)){
+      if(!Array.isArray(entry)||entry.length!==2||typeof entry[0]!=='string'||!entry[1]||typeof entry[1]!=='object')continue;
+      const coords=parse(entry[0]);if(!validCoord(...coords))continue;
+      const k=entry[0],raw=entry[1];seen.add(k);if(protectedKeys.has(k))continue;
+      const clean={};
+      if(['north','south','east','west'].includes(raw.facing))clean.facing=raw.facing;
+      if(['top','bottom'].includes(raw.half))clean.half=raw.half;
+      if(typeof raw.open==='boolean')clean.open=raw.open;
+      if(Array.isArray(raw.chest)&&raw.chest.length===SLOT_COUNT)clean.chest=raw.chest.map(validStack);
+      if(JSON.stringify(state.get(k))!==JSON.stringify(clean)){state.set(k,clean);touch(...coords);}
+    }
+    for(const k of [...state.keys()])if(!seen.has(k)&&!protectedKeys.has(k)){state.delete(k);touch(...parse(k));}
+    if(openKey)renderChest();
+  }
+  function networkDeposit(pos,raw){
+    const meta=chestAt(pos.x,pos.y,pos.z),stack=validStack(raw);
+    if(!meta||!stack||!canChestHold(meta.chest,stack))return false;
+    let left=stack.count;
+    const gear=!!(getItemDef(stack.id).toolType||getItemDef(stack.id).armorType);
+    if(!gear)for(const slot of meta.chest){
+      if(slot?.id!==stack.id)continue;const amount=Math.min(left,stackLimit(stack.id)-slot.count);slot.count+=amount;left-=amount;if(!left)break;
+    }
+    for(let i=0;i<SLOT_COUNT&&left;i++)if(!meta.chest[i]){const amount=Math.min(left,stackLimit(stack.id));meta.chest[i]={...stack,count:amount};left-=amount;}
+    if(openKey)renderChest();return true;
+  }
+  function networkWithdraw(pos,index){
+    if(!Number.isInteger(index)||index<0||index>=SLOT_COUNT)return null;
+    const meta=chestAt(pos.x,pos.y,pos.z),stack=meta?.chest[index];if(!stack)return null;
+    meta.chest[index]=null;if(openKey)renderChest();return {...stack};
+  }
+  return {init,place,stateAt,getState:stateAt,toggleDoor,serialize,openChest,closeChest,applyNetwork,
+    isChestOpen,setOnClose,deposit,withdraw,releaseContents,renderChest,networkDeposit,networkWithdraw,ensureChest:chestAt};
 })();

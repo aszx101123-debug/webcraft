@@ -37,7 +37,7 @@
   "description":"A free, Minecraft-inspired browser voxel sandbox with survival and creative modes, desktop and mobile controls, and locally saved worlds.",
   "genre":["Sandbox","Survival"],
   "gamePlatform":"Web browser",
-  "playMode":"SinglePlayer",
+  "playMode":["SinglePlayer","MultiPlayer","CoOp"],
   "isAccessibleForFree":true,
   "inLanguage":["en","ko","ja"]
 }
@@ -47,7 +47,7 @@
 <nav class="site-nav" aria-label="Main navigation">
   <div class="wrap nav-shell">
     <a class="logo" href="en.html" aria-label="WebCraft home">WebCraft</a>
-    <div class="nav-actions"><a href="index.html?lang=ko" lang="ko">한국어</a><a class="btn btn-sm" href="play.html?lang=en&amp;v=20261109-v187">Play now</a></div>
+    <div class="nav-actions"><a href="index.html?lang=ko" lang="ko">한국어</a><a class="btn btn-sm" href="play.html?lang=en&amp;v=20261109-v190">Play now</a></div>
   </div>
 </nav>
 <header class="hero" id="top">
@@ -58,10 +58,11 @@
     <p class="classic-splash">Mine. Build. Explore.</p>
     <p class="english-intro">Gather your first log, craft a pickaxe, and build a home before nightfall. Or take to the skies with unlimited blocks in creative mode.</p>
     <div class="classic-menu-buttons">
-      <a class="btn btn-green" href="play.html?lang=en&amp;v=20261109-v187">Play in your browser</a>
+      <a class="btn btn-green" href="play.html?lang=en&amp;v=20261109-v190">Play in your browser</a>
+      <a class="btn" href="multiplayer.html?lang=en">Play with friends</a>
       <a class="btn" href="https://github.com/aszx101123-debug/webcraft">View on GitHub</a>
     </div>
-    <p class="classic-menu-note">Free single-player game · Desktop &amp; mobile<br>No download or login needed to play. Credit rewards require an account.</p>
+    <p class="classic-menu-note">Single-player &amp; 4-player co-op · Desktop &amp; mobile<br>No download or login needed to play. Credit rewards require an account.</p>
   </div>
 </header>
 <main>
@@ -80,6 +81,7 @@
       <figure class="english-preview"><img src="img/shot-forest.png" alt="Generated forest terrain preview in WebCraft" width="900" height="560" loading="lazy"><figcaption>Generated terrain preview</figcaption></figure>
     </div>
   </section>
+  <section id="multiplayer"><div class="wrap"><div class="sec-head"><h2>Survive and build together</h2><p>Create a room, choose survival or creative and share the invite link. Up to 4 players share blocks, mobs, drops, chests and furnaces. No login is required.</p><p>Keep the host’s game tab open. Menus do not pause the shared world. Worlds save in the host’s browser; your inventory and survival stats stay on your own device. Invite people you trust; this is cooperative play without PvP.</p></div><a class="btn btn-green" href="multiplayer.html?lang=en">Create or join a room</a></div></section>
   <section id="controls">
     <div class="wrap classic-controls">
       <div><div class="sec-head"><h2>Start with a few familiar controls</h2></div><table class="keys-table"><tbody>
@@ -96,11 +98,11 @@
       <details class="classic-details"><summary>Do I need an account?</summary><p>Both game modes work without signing in. Daily credit rewards and badge exchanges are for signed-in accounts; guests do not receive credits.</p></details>
       <details class="classic-details"><summary>Where is my world saved?</summary><p>In your current browser, rather than an account cloud. Use the backup controls in the Esc menu before clearing browser data or changing devices.</p></details>
       <details class="classic-details"><summary>Is this official Minecraft?</summary><p>No. WebCraft is an independent, Minecraft-inspired fan project and is not affiliated with Mojang Studios or Microsoft.</p></details>
-      <div class="english-final-cta"><a class="btn btn-green" href="play.html?lang=en&amp;v=20261109-v187">Start your world</a></div>
+      <div class="english-final-cta"><a class="btn btn-green" href="play.html?lang=en&amp;v=20261109-v190">Start your world</a></div>
     </div>
   </section>
 </main>
 <footer><div class="wrap"><p>WebCraft · A free browser sandbox<br><a href="https://github.com/aszx101123-debug/webcraft">Source &amp; feedback</a> · <a href="index.html?lang=ko" lang="ko">한국어</a></p><p>Pixel textures: XSSheep / Pixel Perfection and VoxeLibre contributors.<br><a href="img/classic/README.txt">Attribution and CC BY-SA 3.0 license</a></p></div></footer>
-<script>if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('service-worker.js?v=v187').catch(()=>{}));</script>
+<script>if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('service-worker.js?v=v190').catch(()=>{}));</script>
 </body>
 </html>
