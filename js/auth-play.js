@@ -11,7 +11,7 @@ try {
   } else {
     const sources = [
       "pogl-game/vendor/three.min.js",
-      "js/game/config.js?v=v180",
+      "js/game/config.js?v=v184",
       "js/game/classic-settings.js?v=v140",
       "js/game/noise.js",
       "js/game/terrain-legacy.js?v=v180",
@@ -36,7 +36,7 @@ try {
       "js/game/farming.js?v=v170",
       "js/game/item-actions.js?v=v170",
       "js/game/save.js?v=v180",
-      "js/game/mobile-test-crafting.js?v=v180",
+      "js/game/mobile-test-crafting.js?v=v184",
       "js/game/mobile-test-ui.js?v=v171",
       "js/game/mobile-test-main.js?v=v181"
     ];
