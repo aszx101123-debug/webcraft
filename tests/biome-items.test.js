@@ -9,41 +9,44 @@ function runtime(){
     '\nreturn {BIOMES,BIOME_ITEMS,BLOCK,BLOCKS,ITEM,ITEMS,Inventory,Crafting,GAME_MODE,getBlockDrop,isBlockId,isPlaceable,getItemDef};')();
 }
 
-test('each biome has three exclusive survival drops with exact 60/30/10 intervals',()=>{
+test('retired biome collectibles retain their IDs and metadata without new drops or placement',()=>{
   const g=runtime(),seen=new Set();
   assert.equal(Object.values(g.BIOMES).reduce((n,b)=>n+b.chance,0),100);
   for(const [key,biome] of Object.entries(g.BIOMES)){
-    assert.ok(g.isBlockId(biome.resource));assert.ok(g.isPlaceable(biome.resource));
+    assert.ok(g.isBlockId(biome.resource));assert.equal(g.isPlaceable(biome.resource),false);
+    assert.equal(g.BLOCKS[biome.resource].hidden,true);
     assert.equal(g.BLOCKS[biome.resource].biomeResource,key);
     const counts=new Map();
     for(let n=0;n<1000;n++){
       const id=g.getBlockDrop(biome.resource,()=> (n+.5)/1000,null);
       counts.set(id,(counts.get(id)||0)+1);
     }
-    assert.deepEqual([...counts.values()],[600,300,100]);
+    assert.deepEqual([...counts.entries()],[[0,1000]]);
     for(const [index,drop] of biome.loot.entries()){
       assert.equal(seen.has(drop.id),false);seen.add(drop.id);
       assert.equal(g.ITEMS[drop.id].biome,key);
-      assert.equal(counts.get(drop.id),drop.chance*10);
-      assert.equal(g.getBlockDrop(biome.resource,()=>[0,.6,.9][index]),drop.id);
+      assert.equal(g.ITEMS[drop.id].hidden,true);
+      assert.equal(g.getBlockDrop(biome.resource,()=>[0,.6,.9][index]),0);
     }
-    assert.equal(g.getBlockDrop(biome.resource,()=>1),biome.loot[2].id);
+    assert.equal(g.getBlockDrop(biome.resource,()=>1),0);
   }
   assert.equal(seen.size,48);
 });
 
-test('all 48 collectible materials produce useful results through personal crafting without leftover inputs',()=>{
+test('retired collectible recipes cannot consume saved items or create outputs',()=>{
   const g=runtime(),I=g.Inventory,C=g.Crafting;
   assert.equal(g.BIOME_ITEMS.length,48);
   for(const material of g.BIOME_ITEMS){
     I.init(g.GAME_MODE.SURVIVAL);C.resetGrid(2);
     assert.equal(I.add(material.id,material.required),material.required);
-    assert.equal(C.autofill('biome-'+material.id),true,material.id);
-    assert.equal(C.getMatch()?.outputId,material.output);
-    assert.equal(C.craftGrid(),true);
-    assert.equal(I.countItem(material.id),0);
-    assert.equal(I.countItem(material.output),material.count);
-    assert.equal(I.serialize().filter(Boolean).reduce((n,s)=>n+s.count,0),material.count);
+    const saved=JSON.stringify(I.serialize());
+    assert.equal(C.autofill('biome-'+material.id),false,material.id);
+    assert.equal(C.craftRecipe('biome-'+material.id).success,false);
+    assert.equal(C.getMatch(),null);
+    assert.equal(C.craftGrid(),false);
+    assert.equal(JSON.stringify(I.serialize()),saved);
+    assert.equal(I.countItem(material.output),0);
+    assert.equal(C.getRecipes().some(recipe=>recipe.id==='biome-'+material.id),false);
   }
 });
 

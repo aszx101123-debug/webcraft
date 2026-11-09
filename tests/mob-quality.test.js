@@ -57,7 +57,7 @@ const document={
 const THREE={Group:Obj,Mesh,MeshLambertMaterial:Material,CanvasTexture,
   BoxGeometry:Geometry,TorusGeometry:Geometry,Vector3:V,NearestFilter:1};
 const drops=[],world={block:null};
-const World={getBlock:()=>world.block??BLOCK.AIR,getChunk:()=>({})};
+const World={getBlock:()=>world.block??BLOCK.AIR,getChunk:()=>({}),biomeAt:()=> 'plains'};
 const Drops={spawn:(id,count)=>drops.push({id,count})};
 const Player={pos:new V(0,0,0),onGround:true,inWater:false,vel:new V(),dead:false,
   damage:()=>{}};

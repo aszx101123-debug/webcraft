@@ -210,7 +210,8 @@ const PlayerModel = (() => {
     if (!Number.isInteger(id) || id <= 0) return null;
     if (id < 100 && BLOCKS[id]) {
       const size = firstPersonView ? .37 : .25;
-      const geometry = new THREE.BoxGeometry(size, size, size);
+      const width = BLOCKS[id].shape === 'cactus' ? size * .875 : size;
+      const geometry = new THREE.BoxGeometry(width, size, width);
       const uv = geometry.attributes.uv;
       const faces = ['side','side','top','bottom','side','side'];
       for (let face = 0; face < 6; face++) {

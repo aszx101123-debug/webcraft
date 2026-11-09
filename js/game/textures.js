@@ -215,10 +215,35 @@ const Textures = (() => {
       });
     }
 
+    paintCactus();
     texture = new THREE.CanvasTexture(canvas);
     texture.magFilter = THREE.NearestFilter;
     texture.minFilter = THREE.NearestFilter;
     texture.generateMipmaps = false;
+  }
+
+  function paintCactus() {
+    const tiles = BLOCKS[39].tiles;
+    // Dedicated opaque tiles stay intact when the classic atlas is loaded.
+    for (const [face, tile] of Object.entries(tiles)) {
+      for (let y = 0; y < TS; y++) for (let x = 0; x < TS; x++) {
+        const grain = (x * 13 + y * 7) % 5 - 2;
+        let rgb;
+        if (face === 'side') {
+          const rib = x % 4, spineY = (Math.floor(x / 4) % 2) * 3 + 1;
+          rgb = rib === 0 ? [35,91,33] : rib === 1 ? [105,157,55] : [67,127,41];
+          if (rib === 2 && y % 7 === spineY) rgb = [31,55,23];
+          if (rib === 3 && y % 7 === spineY) rgb = [190,196,113];
+        } else {
+          const ring = Math.max(Math.abs(x - 7.5), Math.abs(y - 7.5));
+          rgb = face === 'bottom' ? (ring > 5.5 ? [56,91,32] : [135,141,70])
+            : ring > 6.5 ? [36,88,31] : ring > 5.5 ? [103,156,55]
+            : ring < 2 ? [164,183,89] : [91,145,45];
+        }
+        ctx.fillStyle = css(rgb[0] + grain, rgb[1] + grain, rgb[2] + grain);
+        ctx.fillRect(tile[0] * TS + x, tile[1] * TS + y, 1, 1);
+      }
+    }
   }
 
   function tileUV(col, row) {
@@ -254,7 +279,9 @@ const Textures = (() => {
     const sideTile = B.tiles.side || B.tiles.all;
     const draw = (tile, m, dark) => {
       g.save();
-      g.setTransform(m[0], m[1], m[2], m[3], m[4], m[5]);
+      const inset = B.shape === 'cactus' ? .875 : 1;
+      g.setTransform(m[0] * inset, m[1], m[2] * inset, m[3],
+        24 + (m[4] - 24) * inset, m[5]);
       g.drawImage(canvas, tile[0] * TS, tile[1] * TS, TS, TS, 0, 0, TS, TS);
       if (dark) { g.fillStyle = `rgba(15,20,28,${dark})`; g.fillRect(0, 0, TS, TS); }
       g.restore();
@@ -270,61 +297,58 @@ const Textures = (() => {
 
   function hudIcons() {
     if (hudCache) return hudCache;
+    // Original 9px sprites: dark outline, a bright highlight and a shaded edge.
     const heart = [
-      '.XX..XX.',
-      'XXXXXXXX',
-      'XXXXXXXX',
-      'XXXXXXXX',
-      '.XXXXXX.',
-      '..XXXX..',
-      '...XX...'
+      '.OO...OO.',
+      'OHHHOHHHO',
+      'OHLHHHLHO',
+      'OHLLLLLLO',
+      'OSLLLLLSO',
+      '.OSLLLSO.',
+      '..OSLSO..',
+      '...OSO...',
+      '....O....'
     ];
     const drumstick = [
-      '..XXXX..',
-      '.XXXXXX.',
-      '.XXXXXX.',
-      '..XXXX..',
-      '...XXB..',
-      '....BB..',
-      '...BB...'
+      '..OOO....',
+      '.OHHHO...',
+      'OHLLLHO..',
+      'OSLLLHO..',
+      'OSLLLSO..',
+      '.OSSSOBO.',
+      '..OOOBWBO',
+      '.....OBBO',
+      '......OO.'
     ];
     const bubble = [
-      '..XXX..',
-      '.XXXXX.',
-      'XXOXXXX',
-      'XXXXXXX',
-      'XXXXXXX',
-      '.XXXXX.',
-      '..XXX..'
+      '..XXX..', '.XXXXX.', 'XXOXXXX', 'XXXXXXX',
+      'XXXXXXX', '.XXXXX.', '..XXX..'
     ];
-    const make = (pattern, colors) => {
-      const rows = pattern.length, cols = pattern[0].length;
+    const make = (pattern, colors, half = null) => {
       const c = document.createElement('canvas');
-      c.width = cols;
-      c.height = rows;
+      c.width = pattern[0].length;
+      c.height = pattern.length;
       const g = c.getContext('2d');
-      for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+      for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) {
         const ch = pattern[y][x];
-        const color = colors[ch];
+        const empty = half && (half === 'left' ? x > 4 : x < 4);
+        const color = empty && ch !== 'O' && ch !== '.' ? colors.empty : colors[ch];
         if (color) { g.fillStyle = color; g.fillRect(x, y, 1, 1); }
       }
       return c.toDataURL();
     };
-    const heartColors = full => full
-      ? { X: '#e8352e' }
-      : { X: '#3d434c' };
-    const halfColors = { L: '#e8352e', R: '#3d434c' };
-    const halfHeart = make(heart.map(r => r.split('').map((c, i) => c === '.' ? '.' : (i < 4 ? 'L' : 'R')).join('')), halfColors);
-    const foodColors = full => full
-      ? { X: '#b5713a', B: '#e8e2d0' }
-      : { X: '#3d434c', B: '#3d434c' };
+    const heartColors = { O:'#1b0b10', H:'#ff9696', L:'#f22d3b', S:'#a40e20', empty:'#35252b' };
+    const foodColors = { O:'#20100c', H:'#e9b17b', L:'#b96b35', S:'#783815', B:'#d9c9a2', W:'#fff5d7', empty:'#382b23' };
+    const emptyColors = colors => Object.fromEntries(Object.entries(colors).map(([key,value]) =>
+      [key, key === 'O' ? value : colors.empty]));
     hudCache = {
-      heart: make(heart, heartColors(true)),
-      heartHalf: halfHeart,
-      heartEmpty: make(heart, heartColors(false)),
-      food: make(drumstick, foodColors(true)),
-      foodEmpty: make(drumstick, foodColors(false)),
-      bubble: make(bubble, { X: '#55aef0', O: '#cfe8ff' })
+      heart: make(heart, heartColors),
+      heartHalf: make(heart, heartColors, 'left'),
+      heartEmpty: make(heart, emptyColors(heartColors)),
+      food: make(drumstick, foodColors),
+      foodHalf: make(drumstick, foodColors, 'right'),
+      foodEmpty: make(drumstick, emptyColors(foodColors)),
+      bubble: make(bubble, { X:'#55aef0', O:'#cfe8ff' })
     };
     return hudCache;
   }

@@ -2,6 +2,8 @@
 :root {
   --classic-slot: 44px;
   --classic-hud-width: calc(var(--classic-slot) * 9 + 12px);
+  --classic-stat-size: 18px;
+  --classic-stat-step: 16px;
   --classic-paper: #c6c6c6;
   --classic-ink: #373737;
   --classic-slot-fill: #8b8b8b;
@@ -104,12 +106,19 @@ button, input, select { font-family: inherit; }
   box-shadow: none;
 }
 #hearts, #foods, #airs { gap: 0; }
+#hearts, #foods { flex-shrink: 0; }
+/* Hunger fills from the right, opposite to the hearts on the left. */
+#foods { flex-direction: row-reverse; }
 #hearts img, #foods img,
 body.touch-device #hearts img, body.touch-device #foods img {
-  width: min(18px, 4vw);
-  height: min(18px, 4vw);
-  filter: drop-shadow(1px 1px #222);
+  width: var(--classic-stat-size);
+  height: var(--classic-stat-size);
+  flex: 0 0 var(--classic-stat-size);
+  image-rendering: pixelated;
+  filter: none;
 }
+#hearts img + img { margin-left: calc(var(--classic-stat-step) - var(--classic-stat-size)); }
+#foods img + img { margin-right: calc(var(--classic-stat-step) - var(--classic-stat-size)); }
 #airs img { width: min(16px, 3.6vw); height: min(16px, 3.6vw); }
 .hud-right { gap: 4px; }
 #item-name {
@@ -395,7 +404,7 @@ body.classic-hud-hidden #debug-panel {
 }
 
 @media (max-width: 480px) {
-  :root { --classic-slot: calc((100vw - 24px) / 9); }
+  :root { --classic-slot: calc((100vw - 24px) / 9); --classic-stat-size: 14px; --classic-stat-step: 12px; }
   .overlay { padding: 8px; }
   .overlay .panel { max-width: 96vw; max-height: calc(100dvh - 16px); padding: 14px; }
   #hotbar .cnt { font-size: 11px; }
@@ -412,9 +421,8 @@ body.classic-hud-hidden #debug-panel {
 }
 
 @media (max-height: 500px) and (orientation: landscape) {
-  :root { --classic-slot: 34px; }
+  :root { --classic-slot: 34px; --classic-stat-size: 14px; --classic-stat-step: 12px; }
   #survival-hud, body.touch-device #survival-hud { bottom: calc(var(--classic-slot) + 15px + env(safe-area-inset-bottom)); }
-  #hearts img, #foods img, body.touch-device #hearts img, body.touch-device #foods img { width: 14px; height: 14px; }
   #airs img { width: 12px; height: 12px; }
   #item-name { bottom: calc(var(--classic-slot) + 48px + env(safe-area-inset-bottom)); }
 }

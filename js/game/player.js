@@ -178,11 +178,13 @@ const Player = (() => {
     const reach=.075;
     const x0=Math.floor(pos.x-HW-reach),x1=Math.floor(pos.x+HW+reach);
     const z0=Math.floor(pos.z-HW-reach),z1=Math.floor(pos.z+HW+reach);
-    const y0=Math.floor(pos.y+.06),y1=Math.floor(pos.y+PH-.06);
+    const y0=Math.floor(pos.y-reach),y1=Math.floor(pos.y+PH-.06);
     for(let x=x0;x<=x1;x++)for(let z=z0;z<=z1;z++)for(let y=y0;y<=y1;y++){
       if(World.getBlock(x,y,z)!==BLOCK.CACTUS)continue;
-      if(pos.x+HW+reach<=x||pos.x-HW-reach>=x+1||
-         pos.z+HW+reach<=z||pos.z-HW-reach>=z+1)continue;
+      const b=getBlockBoxes(BLOCK.CACTUS)[0];
+      if(pos.x+HW+reach<=x+b[0]||pos.x-HW-reach>=x+b[3]||
+         pos.z+HW+reach<=z+b[2]||pos.z-HW-reach>=z+b[5]||
+         pos.y+PH<=y+b[1]||pos.y-reach>=y+b[4])continue;
       cactusDamageCooldown=.9;
       damage(1,'선인장 가시',null);
       return;

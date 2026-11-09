@@ -38,7 +38,7 @@ test('seeded region selection reaches every biome with the published region prob
   }
 });
 
-test('each biome has its own surface and naturally exposed, mineable resource nodes',()=>{
+test('each biome retains its surface without generating retired resource nodes',()=>{
   const gen=Terrain.makeGen(20261108);
   for(const [id,point] of representatives(gen)) {
     let resources=0,surfaces=0;
@@ -57,10 +57,13 @@ test('each biome has its own surface and naturally exposed, mineable resource no
           assert.equal(data[Terrain.idx(x,h+2,z)],BLOCK.AIR,'resource has an exposed upper face');
         }
       }
-      for(const block of data)assert.ok(block===BLOCK.AIR || BLOCKS[block],'valid block ID '+block);
+      for(const block of data){
+        assert.ok(block===BLOCK.AIR || BLOCKS[block],'valid block ID '+block);
+        assert.equal(!!BLOCKS[block]?.biomeResource,false,'no retired biome resource '+block);
+      }
     }
     assert.ok(surfaces>0,id+' has the declared surface material');
-    assert.ok(resources>0,id+' has accessible biome resources');
+    assert.equal(resources,0,id+' has no retired biome resources');
   }
 });
 

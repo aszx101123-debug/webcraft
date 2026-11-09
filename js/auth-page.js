@@ -39,6 +39,7 @@ function setMode(isSignup) {
   status("");
 }
 function loggedIn(user) {
+  $("#auth-guest").hidden = true;
   form.hidden = true;
   toggle.hidden = true;
   resend.hidden = true;

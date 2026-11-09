@@ -186,7 +186,22 @@ test('failed image loading preserves the generated atlas and valid legacy UVs',a
   assert.doesNotThrow(()=>Textures.animate(.2));
 });
 
-test('texture startup promise is awaited by the signed-in game loader',()=>{
+test('three opaque cactus faces stay distinct after loading the classic texture pack',async()=>{
+  const {Textures}=packRuntime();
+  const tiles=BLOCKS[BLOCK.CACTUS].tiles;
+  const snapshot=()=>Object.values(tiles).map(([col,row])=>
+    Array.from({length:256},(_,i)=>Textures.getAtlas().pixels.get((col*16+i%16)+','+(row*16+(i>>4)))));
+  const before=snapshot();
+  for(const pixels of before)assert.equal(pixels.filter(Boolean).length,256);
+  assert.notDeepEqual(before[0],before[1]);assert.notDeepEqual(before[0],before[2]);
+  assert.equal(await Textures.loadClassicPack(),true);
+  assert.deepEqual(snapshot(),before,'pack does not overwrite original cactus art');
+  const gpu=Textures.getTexture().image.pixels;
+  for(const [col,row] of Object.values(tiles))for(let y=0;y<16;y++)for(let x=0;x<16;x++)
+    assert.equal(gpu.get((col*32+8+x)+','+(row*32+8+y)),Textures.getAtlas().pixels.get((col*16+x)+','+(row*16+y)));
+});
+
+test('texture startup promise is awaited by the guest game loader',()=>{
   assert.ok(source('js/game/mobile-test-main.js').includes('window.webcraftBoot = (async'));
   assert.ok(source('js/auth-play.js').indexOf('await window.webcraftBoot')<source('js/auth-play.js').indexOf('notice.remove()'));
 });

@@ -10,6 +10,7 @@ const core = new Function(source('js/game/config.js') + '\nreturn {CONFIG,BLOCK,
 const { CONFIG, BLOCK, BLOCKS, ITEMS, getBlockVisualBoxes, isSolidBlock } = core;
 const Noise = new Function(source('js/game/noise.js') + '\nreturn Noise;')();
 const gamePage = require('./helpers/game-page');
+const gameAssets = require('./helpers/game-assets');
 
 function canvasDocument() {
   return {
@@ -68,6 +69,22 @@ function topFace(world, x, y, z) {
   }
   assert.fail('Expected a visible top face');
 }
+
+test('stacked cactus meshes keep their inset sides and only the exposed caps',()=>{
+  const w=world();
+  w.setBlock(8,10,8,BLOCK.CACTUS);w.setBlock(8,11,8,BLOCK.CACTUS);
+  w.update(8,8,0,0,99);
+  const geometry=w.getChunk(0,0).mesh.geometry;
+  assert.equal(geometry.index.count,60,'ten exposed quads, no internal caps');
+  const positions=Array.from(geometry.attributes.position.array);
+  for(const axis of [0,2]){
+    const coordinates=positions.filter((_,i)=>i%3===axis);
+    assert.equal(Math.min(...coordinates),8.0625);
+    assert.equal(Math.max(...coordinates),8.9375);
+  }
+  const heights=positions.filter((_,i)=>i%3===1);
+  assert.equal(Math.min(...heights),10);assert.equal(Math.max(...heights),12);
+});
 const close = (a, b) => assert.ok(Math.abs(a - b) < .00001, `${a} should equal ${b}`);
 
 test('planted crops rebuild as growing crossed pixel planes above lowered farmland',()=>{
@@ -249,12 +266,13 @@ test('cloud movement freezes with world time and remains continuous at midnight'
   assert.ok(Math.abs(clouds.position.x - before) < .02);
 });
 
-test('PC auth loader, mobile entry and offline cache load graphics before the game', () => {
+test('PC guest loader, mobile entry and offline cache load graphics before the game', () => {
   const worker = source('service-worker.js');
   for (const page of ['play.html','mobile-test.html']) {
     const html = gamePage(page);
     for (const file of ['config','mobile-test-textures','graphics','voxel-lighting','world','mobile-test-main']) {
-      const url = 'js/game/' + file + '.js?v='+(['graphics','voxel-lighting'].includes(file)?'v170':'v180');
+      const url = gameAssets(page).find(url=>url.split('?')[0]==='js/game/'+file+'.js');
+      assert.ok(url, page + ': ' + file);
       assert.ok(html.includes(url), page + ': ' + url);
       assert.ok(worker.includes(url), 'offline: ' + url);
       assert.ok(fs.existsSync(path.join(__dirname, '..', url.split('?')[0])));
@@ -263,5 +281,5 @@ test('PC auth loader, mobile entry and offline cache load graphics before the ga
     assert.ok(html.indexOf('js/game/graphics.js') < html.indexOf('js/game/mobile-test-main.js'));
     assert.ok(html.indexOf('js/game/voxel-lighting.js') < html.indexOf('js/game/world.js'));
   }
-  assert.ok(source('play.html').includes('js/auth-play.js?v=v180'));
+  assert.match(source('play.html'),/js\/auth-play\.js\?v=v\d+/);
 });

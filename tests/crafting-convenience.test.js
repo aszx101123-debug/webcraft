@@ -2,6 +2,7 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
 const {test}=require('node:test');
+const gameAssets=require('./helpers/game-assets');
 const source=name=>fs.readFileSync(path.join(__dirname,'../js/game',name+'.js'),'utf8');
 const core=()=>{
   const events=[];
@@ -213,10 +214,11 @@ test('both game entries show the personal recipe book by default and ship the up
       assert.equal(html.split('id="'+id+'"').length-1,1,page+' '+id);
     assert.match(html,/id="inventory-recipe-toggle"[^>]*aria-expanded="true"/);
     assert.ok(html.includes('재료는 자동으로 사용되고 완성품은 가방에 들어갑니다.'));
-    assert.ok(html.includes('css/classic.css?v=v171'));
+    assert.match(html,/css\/classic\.css\?v=v\d+/);
   }
   for(const file of ['config','mobile-test-crafting','mobile-test-ui']){
-    const url='js/game/'+file+'.js?v='+(file==='mobile-test-ui'?'v171':'v180');
+    const url=gameAssets('play.html').find(url=>url.split('?')[0]==='js/game/'+file+'.js');
+    assert.ok(url);
     assert.ok(worker.includes(url));assert.ok(read('mobile-test.html').includes(url));assert.ok(read('js/auth-play.js').includes(url));
   }
 });

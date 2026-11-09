@@ -1025,8 +1025,13 @@ const UI = (() => {
 
   function iconRow(el, value, max, icons) {
     el.innerHTML = '';
+    const amount = Math.ceil(Math.max(0, Math.min(max, value)));
+    el.setAttribute('role', 'meter');
+    el.setAttribute('aria-valuemin', '0');
+    el.setAttribute('aria-valuemax', String(max));
+    el.setAttribute('aria-valuenow', String(Math.max(0, Math.min(max, value))));
     for (let i = 0; i < max / 2; i++) {
-      const left = value - i * 2;
+      const left = amount - i * 2;
       const src = left >= 2 ? icons.full : left === 1 ? icons.half : icons.empty;
       const img = document.createElement('img');
       img.src = src;
@@ -1048,7 +1053,7 @@ const UI = (() => {
     lastSurvivalSig = sig;
     const icons = Textures.hudIcons();
     iconRow($('hearts'), hp, SURVIVAL.MAX_HP, { full: icons.heart, half: icons.heartHalf, empty: icons.heartEmpty });
-    iconRow($('foods'), food, SURVIVAL.MAX_FOOD, { full: icons.food, half: icons.food, empty: icons.foodEmpty });
+    iconRow($('foods'), food, SURVIVAL.MAX_FOOD, { full: icons.food, half: icons.foodHalf, empty: icons.foodEmpty });
     const airs = $('airs');
     if (air >= SURVIVAL.MAX_AIR) {
       airs.innerHTML = '';

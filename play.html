@@ -22,12 +22,12 @@
 <link rel="stylesheet" href="css/v137-inventory.css?v=v137">
 <link rel="stylesheet" href="css/v137-touch.css?v=v137">
 <link rel="stylesheet" href="css/classic-furnace.css?v=v140">
-<link rel="stylesheet" href="css/classic.css?v=v171">
+<link rel="stylesheet" href="css/classic.css?v=v185">
 <link rel="stylesheet" href="css/biome-guide.css?v=v180">
 </head>
 <body>
 
-<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.8.4 · 비공식 지형 아이템 획득·제작 중단</div>
+<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.8.6 · 로그인 없이 플레이 · 크레딧은 계정 전용</div>
 <div id="boot-error" class="boot-error hidden" role="alert">
   <div class="boot-error-panel">
     <div class="boot-error-icon">!</div>
@@ -58,10 +58,10 @@
 <div id="toast"></div>
 
 <div id="survival-hud" class="hidden">
-  <div id="hearts"></div>
+  <div id="hearts" aria-label="체력"></div>
   <div class="hud-right">
     <div id="airs"></div>
-    <div id="foods"></div>
+    <div id="foods" aria-label="배고픔"></div>
   </div>
 </div>
 <div id="item-name"></div>
@@ -420,7 +420,7 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
   addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(() => {}));
 }
 </script>
-<script type="module" src="js/auth-play.js?v=v184"></script>
+<script type="module" src="js/auth-play.js?v=v186"></script>
 <script src="js/i18n.js?v=20261106-languages5"></script>
 </body>
 </html>
