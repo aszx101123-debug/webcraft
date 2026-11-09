@@ -1,12 +1,12 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.8.3-natural-terrain-20261109';
+const VERSION = 'webcraft-v1.8.4-vanilla-biome-items-20261109';
 const CORE = [
   "./",
   "./index.html",
   "./play.html",
   "./auth.html",
-  "./js/auth-play.js?v=v183",
+  "./js/auth-play.js?v=v184",
   "./js/auth-page.js?v=2",
   "./js/supabase-client.js",
   "./js/community-credits-server.js?v=production1",
@@ -39,7 +39,7 @@ const CORE = [
   "./css/classic-home.css?v=v140",
   "./css/community-credits.css?v=phase3",
   "./pogl-game/vendor/three.min.js",
-  "./js/game/config.js?v=v180",
+  "./js/game/config.js?v=v184",
   "./js/game/classic-settings.js?v=v140",
   "./js/game/furnace-system.js?v=v170",
   "./js/game/noise.js",
@@ -64,7 +64,7 @@ const CORE = [
   "./js/game/farming.js?v=v170",
   "./js/game/item-actions.js?v=v170",
   "./js/game/save.js?v=v180",
-  "./js/game/mobile-test-crafting.js?v=v180",
+  "./js/game/mobile-test-crafting.js?v=v184",
   "./js/game/mobile-test-ui.js?v=v171",
   "./js/game/mobile-test-main.js?v=v181",
   "./css/style.css",
