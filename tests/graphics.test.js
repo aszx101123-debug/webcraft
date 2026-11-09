@@ -85,6 +85,27 @@ test('stacked cactus meshes keep their inset sides and only the exposed caps',()
   const heights=positions.filter((_,i)=>i%3===1);
   assert.equal(Math.min(...heights),10);assert.equal(Math.max(...heights),12);
 });
+
+test('covered water fills its cell while the exposed surface retains its fluid height',()=>{
+  const w=world();
+  w.setBlock(8,10,8,BLOCK.WATER_FLOW);w.setFluidLevel(8,10,8,1);
+  w.setBlock(8,11,8,BLOCK.WATER);
+  w.update(8,8,0,0,99);
+  const geometry=w.getChunk(0,0).waterMesh.geometry;
+  const positions=Array.from(geometry.attributes.position.array);
+  const normals=geometry.attributes.normal.array;
+  let coveredSide=false;
+  for(let i=0;i<positions.length;i+=12){
+    if(normals[i+1]!==0)continue;
+    const heights=[0,1,2,3].map(j=>positions[i+j*3+1]);
+    if(Math.min(...heights)===10){
+      assert.equal(Math.max(...heights),11,'covered water has no gap beneath the next cell');
+      coveredSide=true;
+    }
+  }
+  assert.equal(coveredSide,true);
+  close(Math.max(...positions.filter((_,i)=>i%3===1)),11.87);
+});
 const close = (a, b) => assert.ok(Math.abs(a - b) < .00001, `${a} should equal ${b}`);
 
 test('planted crops rebuild as growing crossed pixel planes above lowered farmland',()=>{

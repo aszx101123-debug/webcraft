@@ -1,0 +1,10 @@
+.english-home .site-nav .wrap { justify-content: space-between; gap: 16px; }
+.english-home .nav-actions { display: flex; align-items: center; gap: 18px; }
+.english-home .english-intro { max-width: 51ch; margin: -14px auto 28px; font-size: 15px; line-height: 1.8; text-shadow: 1px 2px #152018; }
+.english-preview { margin: 0; }
+.english-preview img { display: block; width: 100%; height: auto; image-rendering: pixelated; border: 2px solid #17110c; }
+.english-preview figcaption { margin-top: 8px; color: #c7beae; font-size: 11px; }
+.english-home #questions .classic-details { margin-top: 12px; }
+.english-home #questions .classic-details p { padding: 18px 20px; line-height: 1.9; color: #d3ccc1; }
+.english-final-cta { margin-top: 28px; text-align: center; }
+@media (max-width: 640px) { .english-home .english-intro { font-size: 13px; } }

@@ -291,6 +291,11 @@ const World = (() => {
         continue;
       }
 
+      let liquidHeight = 1;
+      if (liquid) {
+        const level = id === BLOCK.WATER ? 8 : (fluidLevels.get((ox + x) + ',' + y + ',' + (oz + z)) || 1);
+        liquidHeight = BLOCKS[getNb(x, y + 1, z)]?.liquid ? 1 : 0.15 + 0.72 * (level / 8);
+      }
       for (const f of FACES) {
         const nb = getNb(x + f.n[0], y + f.n[1], z + f.n[2]);
         if (!torch && !faceVisible(id, nb)) continue;
@@ -303,11 +308,7 @@ const World = (() => {
         for (let i = 0; i < 4; i++) {
           const c = f.c[i];
           let vy = y + c[1];
-          if (liquid) {
-            const level = id === BLOCK.WATER ? 8 : (fluidLevels.get((ox + x) + ',' + y + ',' + (oz + z)) || 1);
-            const topY = y + 0.15 + 0.72 * (level / 8);
-            if (c[1] === 1) vy = topY;
-          }
+          if (liquid && c[1] === 1) vy = y + liquidHeight;
           let vx = ox + x + c[0], vz = oz + z + c[2];
           if (torch) {
             vx = ox + x + .40 + c[0] * .20;
