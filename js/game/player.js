@@ -11,6 +11,8 @@ const Player = (() => {
   let exhaustion = 0, regenT = 0, starveT = 0, airT = 0, drownT = 0;
   let peakY = null, dead = false, lastInWater = false, headSubmerged = false, waterCoverage = 0;
   let onBeforeDamage=null;
+  let cactusDamageCooldown=0;
+
 
   function isWater(id) { return id === BLOCK.WATER || id === BLOCK.WATER_FLOW; }
 
@@ -44,6 +46,7 @@ const Player = (() => {
     yaw = yw; pitch = pt;
     onGround = false; flying = fly && mode === GAME_MODE.CREATIVE;
     sneaking = false;
+    cactusDamageCooldown=0;
     setSpawn(x, y, z);
   }
 
@@ -167,6 +170,25 @@ const Player = (() => {
     return true;
   }
 
+  // Cacti are solid, so standing against a side must count as contact
+  // even when collision resolution keeps the player a tiny gap from the block.
+  function checkCactusContact(dt) {
+    cactusDamageCooldown=Math.max(0,cactusDamageCooldown-dt);
+    if(mode!==GAME_MODE.SURVIVAL||dead||cactusDamageCooldown>0)return;
+    const reach=.075;
+    const x0=Math.floor(pos.x-HW-reach),x1=Math.floor(pos.x+HW+reach);
+    const z0=Math.floor(pos.z-HW-reach),z1=Math.floor(pos.z+HW+reach);
+    const y0=Math.floor(pos.y+.06),y1=Math.floor(pos.y+PH-.06);
+    for(let x=x0;x<=x1;x++)for(let z=z0;z<=z1;z++)for(let y=y0;y<=y1;y++){
+      if(World.getBlock(x,y,z)!==BLOCK.CACTUS)continue;
+      if(pos.x+HW+reach<=x||pos.x-HW-reach>=x+1||
+         pos.z+HW+reach<=z||pos.z-HW-reach>=z+1)continue;
+      cactusDamageCooldown=.9;
+      damage(1,'선인장 가시',null);
+      return;
+    }
+  }
+
   function heal(n) {
     if (!dead) hp = Math.min(SURVIVAL.MAX_HP, hp + n);
   }
@@ -245,6 +267,7 @@ const Player = (() => {
     peakY = null;
     dead = false;
     sneaking = false;
+    cactusDamageCooldown=0;
   }
 
   function update(dt, keys) {
@@ -298,6 +321,8 @@ const Player = (() => {
       if (moveAxis('x', vel.x * dt / steps,protectEdge)) vel.x = 0;
       if (moveAxis('z', vel.z * dt / steps,protectEdge)) vel.z = 0;
     }
+
+    checkCactusContact(dt);
 
     const afterWater = sampleWaterState();
     lastInWater = afterWater.inWater;
