@@ -15,7 +15,7 @@ try {
       "js/game/classic-settings.js?v=v140",
       "js/game/noise.js",
       "js/game/terrain-legacy.js?v=v180",
-      "js/game/terrain.js?v=v182",
+      "js/game/terrain.js?v=v183",
       "js/game/mobile-test-textures.js?v=v180",
       "js/game/graphics.js?v=v170",
       "js/game/voxel-lighting.js?v=v170",
