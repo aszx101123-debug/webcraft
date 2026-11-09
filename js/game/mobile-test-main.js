@@ -181,7 +181,7 @@ window.webcraftBoot = (async () => {
     const biome=World.biomeAt(x,z);
     if(weather.type==='clear'||dryBiomes.has(biome) && climate[biome]===0)return 'clear';
     // Savannas have occasional brief showers, while jungles and swamps stay humid.
-    if(biome==='savanna' && weather.rng /* deterministic position check, no RNG per particle */ &&
+    if(biome==='savanna' &&
        Noise.hash2(Math.floor(x/32),Math.floor(z/32),seed+5531)>.24)return 'clear';
     return winterBiomes.has(biome)?'snow':'rain';
   }
@@ -224,7 +224,8 @@ window.webcraftBoot = (async () => {
     weather.intensity=climate[biome]??1;
     const playerSheltered=Player.headSubmerged || (()=>{
       const x=Math.floor(Player.pos.x),z=Math.floor(Player.pos.z);
-      for(let y=Math.ceil(Player.pos.y+1.6);y<Math.min(CONFIG.HEIGHT,y+12);y++){
+      const roofStart=Math.ceil(Player.pos.y+1.6);
+      for(let y=roofStart;y<Math.min(CONFIG.HEIGHT,roofStart+12);y++){
         const b=World.getBlock(x,y,z);
         if(b!==BLOCK.AIR && b!==BLOCK.WATER && b!==BLOCK.WATER_FLOW)return true;
       }
@@ -246,9 +247,9 @@ window.webcraftBoot = (async () => {
         }
         const wx=originX+a[i],wz=originZ+a[i+2];
         const local=precipitationAt(wx,wz);
-        const draw=local===kind && (i/3 % 10)/10<density && !playerSheltered;
+        const draw=local===kind && (i/3 % 10)/10<density && !playerSheltered && a[i+1]>=0;
         // Hide particles within the same geometry rather than showing snow in adjacent warm biomes.
-        if(draw)visible++;else a[i+1]=Math.min(a[i+1],-2);
+        if(draw)visible++;else a[i+1]=-2;
       }
       attr.needsUpdate=true;
       points.visible=visible>0;
