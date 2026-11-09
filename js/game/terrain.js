@@ -206,12 +206,12 @@ const Terrain = (() => {
         const density = def.treeDensity * (.65 + forestAt(cx*C+tx,cz*C+tz)*.7);
         if (rng() >= density || h <= SEA + 1 || h > 52) continue;
         const ground=data[idx(tx,h,tz)];
-        if (ground!==BLOCK.GRASS && !(localBiome==='taiga' && ground===BLOCK.SNOW)) continue;
+        if (ground!==BLOCK.GRASS && !(['taiga','snowy'].includes(localBiome) && ground===BLOCK.SNOW)) continue;
         const th = localBiome === 'jungle' ? 6 + Math.floor(rng() * 3)
-          : localBiome === 'taiga' ? 6 + Math.floor(rng() * 2)
+          : ['taiga','snowy'].includes(localBiome) ? 6 + Math.floor(rng() * 2)
           : localBiome === 'savanna' ? 3 : 4 + Math.floor(rng() * 2);
         if (h + th + 1 >= H || data[idx(tx,h+1,tz)]!==BLOCK.AIR) continue;
-        const isSpruce=localBiome==='taiga';
+        const isSpruce=['taiga','snowy'].includes(localBiome);
         const isBirch=localBiome==='forest' && rng()<.48;
         const trunkId=isSpruce?BLOCK.SPRUCE_LOG:isBirch?BLOCK.BIRCH_LOG:BLOCK.LOG;
         const leafId=localBiome==='cherry'?BLOCK.CHERRY_LEAVES:
@@ -222,7 +222,7 @@ const Terrain = (() => {
           const index = idx(lx, ly, lz);
           if (data[index] === BLOCK.AIR) data[index] = leafId;
         };
-        if (localBiome === 'taiga') {
+        if (isSpruce) {
           for (let dy = th - 4; dy <= th + 1; dy++) {
             const radius = dy >= th + 1 ? 0 : dy >= th - 1 ? 1 : 2;
             for (let dx = -radius; dx <= radius; dx++)
