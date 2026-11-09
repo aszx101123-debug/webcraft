@@ -271,6 +271,33 @@ const Terrain = (() => {
         const wx=cx*C+x,wz=cz*C+z,h=heights[x*C+z],biome=biomes[x*C+z];
         if(h<SEA || h>=H-6 || data[idx(x,h+1,z)]!==BLOCK.AIR)continue;
         const roll=Noise.hash2(wx,wz,seed+4601);
+        // Winter-region surface detail. Keep generated terrain deterministic and
+        // place decorations only in free space, without changing existing save edits.
+        if(biome==='snowy' && data[idx(x,h,z)]===BLOCK.SNOW) {
+          // Drifted snow on exposed ridges and occasional naturally frozen outcrops.
+          if(roll<.045 && h>SEA+5 && h<H-4) {
+            const layer=1+(Noise.hash2(wx,wz,seed+6812)<.23?1:0);
+            for(let dy=1;dy<=layer;dy++){
+              if(data[idx(x,h+dy,z)]!==BLOCK.AIR)break;
+              data[idx(x,h+dy,z)]=BLOCK.SNOW;
+            }
+          }else if(roll>.986 && h>SEA+6 && data[idx(x,h+1,z)]===BLOCK.AIR) {
+            data[idx(x,h+1,z)]=BLOCK.ICE;
+          }
+        }else if(biome==='glacier' && data[idx(x,h,z)]===BLOCK.ICE && h>SEA+2) {
+          // Small ice pinnacles, far enough apart to preserve passable routes.
+          if(roll<.014 && x>2 && x<C-3 && z>2 && z<C-3 && h<H-8) {
+            const peak=2+Math.floor(Noise.hash2(wx,wz,seed+6813)*4);
+            for(let dy=1;dy<=peak;dy++){
+              if(data[idx(x,h+dy,z)]!==BLOCK.AIR)break;
+              data[idx(x,h+dy,z)]=BLOCK.ICE;
+            }
+            if(data[idx(x+1,h+1,z)]===BLOCK.AIR && Noise.hash2(wx,wz,seed+6814)>.55)
+              data[idx(x+1,h+1,z)]=BLOCK.ICE;
+          }else if(roll>.966 && roll<.974 && h<H-3) {
+            if(data[idx(x,h+1,z)]===BLOCK.AIR)data[idx(x,h+1,z)]=BLOCK.SNOW;
+          }
+        }
         if(biome==='bamboo' && roll<.055) {
           const height=2+Math.floor(Noise.hash2(wx,wz,seed+4602)*4);
           for(let y=1;y<=height;y++)if(data[idx(x,h+y,z)]===BLOCK.AIR)data[idx(x,h+y,z)]=BLOCK.BAMBOO;
