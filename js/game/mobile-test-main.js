@@ -161,70 +161,107 @@ window.webcraftBoot = (async () => {
   };
 
 
+  // Rain/snow are determined by the local biome, including each particle's world position.
+  // Older saves keep their terrain; the weather logic works in both generator versions.
   const weather = {
-    type: 'clear',
-    timer: 110,
+    type: 'clear', timer: 110,
     rng: Noise.mulberry32((seed ^ 0x51f15e) >>> 0),
-    rainPoints: null,
-    snowPoints: null
+    rainPoints: null, snowPoints: null,
+    current: 'clear', biome: '', intensity: 0
   };
-
-  function makeWeatherPoints(count, color, size) {
-    const pos = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      pos[i * 3] = (Math.random() - .5) * 32;
-      pos[i * 3 + 1] = Math.random() * 16;
-      pos[i * 3 + 2] = (Math.random() - .5) * 32;
-    }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const mat = new THREE.PointsMaterial({ color, size, transparent: true, opacity: .7, depthWrite: false });
-    return new THREE.Points(geo, mat);
+  const winterBiomes = new Set(['snowy','glacier']);
+  const dryBiomes = new Set(['desert','badlands','savanna','volcanic']);
+  const climate = {
+    plains: .85, forest: 1, jungle: 1.5, swamp: 1.55,
+    taiga: 1.1, snowy: 1.18, desert: 0, highland: .9,
+    savanna: .23, badlands: 0, cherry: 1.1, bamboo: 1.45,
+    mushroom: 1.25, volcanic: 0, glacier: 1, crystal: .7
+  };
+  function precipitationAt(x,z) {
+    const biome=World.biomeAt(x,z);
+    if(weather.type==='clear'||dryBiomes.has(biome) && climate[biome]===0)return 'clear';
+    // Savannas have occasional brief showers, while jungles and swamps stay humid.
+    if(biome==='savanna' && weather.rng /* deterministic position check, no RNG per particle */ &&
+       Noise.hash2(Math.floor(x/32),Math.floor(z/32),seed+5531)>.24)return 'clear';
+    return winterBiomes.has(biome)?'snow':'rain';
   }
-
-  weather.rainPoints = makeWeatherPoints(420, 0x9bcfff, .085);
-  weather.snowPoints = makeWeatherPoints(260, 0xf2f6ff, .12);
-  weather.rainPoints.visible = false;
-  weather.snowPoints.visible = false;
-  scene.add(weather.rainPoints, weather.snowPoints);
+  function makeWeatherPoints(count,color,size) {
+    const pos=new Float32Array(count*3);
+    for(let i=0;i<count;i++){
+      pos[i*3]=(Math.random()-.5)*28;
+      pos[i*3+1]=Math.random()*16;
+      pos[i*3+2]=(Math.random()-.5)*28;
+    }
+    const geo=new THREE.BufferGeometry();
+    geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+    const mat=new THREE.PointsMaterial({color,size,transparent:true,opacity:.75,depthWrite:false});
+    return new THREE.Points(geo,mat);
+  }
+  weather.rainPoints=makeWeatherPoints(isTouch?180:460,0x9bcfff,.085);
+  weather.snowPoints=makeWeatherPoints(isTouch?140:340,0xf2f6ff,.135);
+  weather.rainPoints.visible=false;
+  weather.snowPoints.visible=false;
+  scene.add(weather.rainPoints,weather.snowPoints);
 
   function chooseWeather() {
-    const r = weather.rng();
-    weather.type = r < .58 ? 'clear' : r < .87 ? 'rain' : 'snow';
-    weather.timer = 100 + weather.rng() * 120;
+    const r=weather.rng();
+    weather.type=r<.55?'clear':'precipitation';
+    weather.timer=95+weather.rng()*155;
   }
+  const weatherWidget=document.createElement('div');
+  weatherWidget.id='biome-weather-hud';
+  weatherWidget.setAttribute('role','status');
+  weatherWidget.style.cssText='position:fixed;right:12px;top:56px;z-index:11;color:#fff;background:#181d24c7;border:1px solid #ffffff55;padding:6px 9px;font:11px sans-serif;pointer-events:none;letter-spacing:.02em;text-shadow:1px 1px #111';
+  document.body.appendChild(weatherWidget);
 
   function updateWeather(dt) {
-    weather.timer -= dt;
-    if (weather.timer <= 0) chooseWeather();
-
-    const snowBiome=World.biomeAt(Player.pos.x,Player.pos.z);
-    const snowArea = ['snowy','taiga','glacier'].includes(snowBiome) || World.heightAt(Player.pos.x, Player.pos.z) >= 40;
-    const actualSnow = weather.type === 'snow' && snowArea;
-    const rain = weather.type === 'rain' || (weather.type === 'snow' && !snowArea);
-    weather.rainPoints.visible = rain;
-    weather.snowPoints.visible = actualSnow;
-
-    const updatePoints = (points, fall, drift) => {
-      if (!points.visible) return;
-      const attr = points.geometry.getAttribute('position');
-      const a = attr.array;
-      for (let i = 0; i < a.length; i += 3) {
-        a[i] += drift * dt * (0.7 + ((i / 3) % 7) * .01);
-        a[i + 1] -= fall * dt;
-        a[i + 2] += drift * dt * .4;
-        if (a[i + 1] < -1) {
-          a[i] = (Math.random() - .5) * 32;
-          a[i + 1] = 12 + Math.random() * 8;
-          a[i + 2] = (Math.random() - .5) * 32;
-        }
+    weather.timer-=dt;
+    if(weather.timer<=0)chooseWeather();
+    const biome=World.biomeAt(Player.pos.x,Player.pos.z);
+    const precip=precipitationAt(Player.pos.x,Player.pos.z);
+    weather.current=precip;
+    weather.biome=biome;
+    weather.intensity=climate[biome]??1;
+    const playerSheltered=Player.headSubmerged || (()=>{
+      const x=Math.floor(Player.pos.x),z=Math.floor(Player.pos.z);
+      for(let y=Math.ceil(Player.pos.y+1.6);y<Math.min(CONFIG.HEIGHT,y+12);y++){
+        const b=World.getBlock(x,y,z);
+        if(b!==BLOCK.AIR && b!==BLOCK.WATER && b!==BLOCK.WATER_FLOW)return true;
       }
-      attr.needsUpdate = true;
-      points.position.set(Player.pos.x, Player.pos.y, Player.pos.z);
+      return false;
+    })();
+    const updatePoints=(points,kind,fall,drift)=>{
+      const attr=points.geometry.getAttribute('position'),a=attr.array;
+      const originX=Player.pos.x,originZ=Player.pos.z;
+      let visible=0;
+      const density=Math.min(1,Math.max(.15,weather.intensity/1.4));
+      for(let i=0;i<a.length;i+=3){
+        a[i]+=drift*dt*(.65+(i%19)*.02);
+        a[i+1]-=fall*dt;
+        a[i+2]+=drift*dt*.38;
+        if(a[i+1]<-1 || Math.abs(a[i])>17 || Math.abs(a[i+2])>17){
+          a[i]=(Math.random()-.5)*29;
+          a[i+1]=12+Math.random()*8;
+          a[i+2]=(Math.random()-.5)*29;
+        }
+        const wx=originX+a[i],wz=originZ+a[i+2];
+        const local=precipitationAt(wx,wz);
+        const draw=local===kind && (i/3 % 10)/10<density && !playerSheltered;
+        // Hide particles within the same geometry rather than showing snow in adjacent warm biomes.
+        if(draw)visible++;else a[i+1]=Math.min(a[i+1],-2);
+      }
+      attr.needsUpdate=true;
+      points.visible=visible>0;
+      points.position.set(originX,Player.pos.y,originZ);
     };
-
-    updatePoints(weather.rainPoints, 18, .6);
-    updatePoints(weather.snowPoints, 2.8, .25);
+    updatePoints(weather.rainPoints,'rain',16.5,.65);
+    updatePoints(weather.snowPoints,'snow',2.7,.21);
+    if(weatherWidget){
+      const names={plains:'평원',forest:'숲',jungle:'정글',swamp:'늪지',taiga:'침엽수림',snowy:'설산',desert:'사막',highland:'고지대',savanna:'사바나',badlands:'붉은 황무지',cherry:'벚꽃숲',bamboo:'대나무숲',mushroom:'버섯숲',volcanic:'화산',glacier:'빙하',crystal:'수정 지대'};
+      const icons={clear:'☀',rain:'☂',snow:'❄'};
+      const effects={clear:'맑음',rain:biome==='jungle'||biome==='swamp'?'강한 비':'비',snow:'눈'};
+      weatherWidget.textContent=(names[biome]||biome)+' · '+icons[precip]+' '+effects[precip];
+    }
   }
 
   const skyNow = new THREE.Color();
@@ -238,14 +275,14 @@ window.webcraftBoot = (async () => {
 
   function updateSky(dt) {
     state.time = (state.time + dt / CONFIG.DAY_LENGTH) % 1;
-    const f = atmosphere.update(state.time, Player.pos, weather.type, state.renderDist, Player.headSubmerged);
+    const f = atmosphere.update(state.time, Player.pos, weather.current === 'clear' ? 'clear' : 'rain', state.renderDist, Player.headSubmerged);
     World.setDaylight(f);
     Textures.animate(dt);
     Mobs.setEnv(f < .28, f);
     const hours = (state.time * 24 + 6) % 24;
     const hh = String(Math.floor(hours)).padStart(2, '0');
     const mm = String(Math.floor((hours % 1) * 60)).padStart(2, '0');
-    const weatherIcon = Player.headSubmerged ? '◌' : (weather.type === 'rain' ? '☔' : weather.type === 'snow' ? '❄' : (f > .45 ? '☀' : '☾'));
+    const weatherIcon = Player.headSubmerged ? '◌' : (weather.current === 'rain' ? '☔' : weather.current === 'snow' ? '❄' : (f > .45 ? '☀' : '☾'));
     UI.setTime(`${weatherIcon} ${hh}:${mm}`);
   }
 
