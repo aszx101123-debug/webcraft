@@ -32,13 +32,13 @@ try {
       "js/game/items.js?v=v170",
       "js/game/furnace-system.js?v=v170",
       "js/game/drops.js?v=v170",
-      "js/game/mobs.js?v=v170",
+      "js/game/mobs.js?v=v181",
       "js/game/farming.js?v=v170",
       "js/game/item-actions.js?v=v170",
       "js/game/save.js?v=v180",
       "js/game/mobile-test-crafting.js?v=v180",
       "js/game/mobile-test-ui.js?v=v171",
-      "js/game/mobile-test-main.js?v=v180"
+      "js/game/mobile-test-main.js?v=v181"
     ];
     for (const src of sources) {
       await new Promise((resolve, reject) => {
