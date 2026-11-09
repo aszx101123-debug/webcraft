@@ -338,10 +338,49 @@ const Mobs = (() => {
     parts.healthBar={group:health,fill};
     return { mesh: g, parts };
   }
+  // Regional mob details: existing species, biome-specific textures and behavior pools.
+  function dressForBiome(mesh,type,biome) {
+    const cold=['snowy','glacier'].includes(biome);
+    const wet=['swamp','jungle','bamboo','mushroom'].includes(biome);
+    const arid=['desert','badlands','savanna','volcanic'].includes(biome);
+    if(!(cold||wet||arid))return;
+    const accents=new THREE.Group();
+    accents.name='regional-mob-details';
+    const mark=(w,h,d,color,x,y,z)=>accents.add(box(w,h,d,color,x,y,z));
+    if(cold){
+      // Frost along backs and shoulders, blue-white fur for cold-weather sheep.
+      if(type==='sheep'||type==='cow'||type==='pig'){
+        mark(.42,.055,.42,0xe5f2f5,0,1.25,-.08);
+        mark(.16,.05,.20,0xc7e6f3,.32,1.1,-.12);
+        mark(.16,.05,.20,0xc7e6f3,-.32,1.1,-.12);
+      }else{
+        mark(.38,.12,.17,0xbfe4ee,0,1.66,-.12);
+        mark(.16,.14,.07,0xe0f5fa,.22,1.46,.05);
+      }
+    }else if(wet){
+      if(type==='spider'||type==='zombie'){
+        mark(.36,.08,.22,0x4c8b60,0,1.12,-.12);
+        mark(.12,.11,.13,0x89ad57,-.23,1.04,-.04);
+      }else{
+        mark(.3,.05,.27,0x779b56,0,.95,-.08);
+      }
+    }else if(arid){
+      if(type==='skeleton'||type==='zombie'){
+        mark(.32,.085,.28,0xc19b68,0,1.68,-.12);
+        mark(.18,.08,.13,0x897153,.17,1.32,.08);
+      }else{
+        mark(.28,.05,.25,0xbba070,0,.96,-.04);
+      }
+    }
+    mesh.add(accents);
+  }
+
   function spawn(type, x, y, z) {
     if (!group) return null;
     const def = MOB_DEFS[type];
     const built = buildMob(type);
+    const biome = World.biomeAt(x,z);
+    dressForBiome(built.mesh,type,biome);
     built.mesh.position.set(x, y, z);
     group.add(built.mesh);
     const m = {
@@ -576,26 +615,47 @@ const Mobs = (() => {
     return true;
   }
 
+  const spawnPools = {
+    plains: {passive:['pig','cow','sheep','chicken'],hostile:['zombie','skeleton','spider']},
+    forest: {passive:['cow','pig','chicken','sheep'],hostile:['spider','zombie','skeleton']},
+    jungle: {passive:['chicken','chicken','pig'],hostile:['spider','spider','zombie']},
+    swamp: {passive:['pig','chicken'],hostile:['spider','zombie','spider']},
+    taiga: {passive:['sheep','cow','chicken'],hostile:['skeleton','spider','zombie']},
+    snowy: {passive:['sheep','sheep','cow'],hostile:['skeleton','skeleton','zombie']},
+    glacier: {passive:['sheep'],hostile:['skeleton','skeleton','spider']},
+    desert: {passive:[],hostile:['skeleton','skeleton','zombie']},
+    badlands: {passive:[],hostile:['skeleton','zombie','spider']},
+    savanna: {passive:['cow','pig','chicken'],hostile:['zombie','skeleton','spider']},
+    highland: {passive:['sheep','sheep','cow'],hostile:['skeleton','spider','zombie']},
+    cherry: {passive:['sheep','pig','chicken'],hostile:['zombie','spider','skeleton']},
+    bamboo: {passive:['chicken','pig'],hostile:['spider','spider','zombie']},
+    mushroom: {passive:['cow','cow'],hostile:['spider','zombie']},
+    volcanic: {passive:[],hostile:['skeleton','zombie','spider']},
+    crystal: {passive:['sheep','chicken'],hostile:['skeleton','spider','zombie']}
+  };
   function trySpawn(category) {
-    const pp = Player.pos;
-    const ang = Math.random() * Math.PI * 2;
-    const dist = 22 + Math.random() * (category === 'hostile' ? 16 : 26);
-    const x = Math.floor(pp.x + Math.cos(ang) * dist);
-    const z = Math.floor(pp.z + Math.sin(ang) * dist);
-    if (!World.getChunk(x >> 4, z >> 4)) return;
-    const y = surfaceY(x, z);
-    if (y <= 1) return;
-    const top = World.getBlock(x, y, z);
-    if (World.getBlock(x, y + 1, z) !== BLOCK.AIR || World.getBlock(x, y + 2, z) !== BLOCK.AIR) return;
-    if (category === 'hostile') {
-      if (!isSolidBlock(top) || top === BLOCK.LEAVES) return;
-      const r = Math.random();
-      spawn(r < .45 ? 'zombie' : r < .75 ? 'skeleton' : 'spider', x + .5, y + 1, z + .5);
-    } else {
-      if (top !== BLOCK.GRASS) return;
-      const r = Math.random();
-      spawn(r < .3 ? 'pig' : r < .55 ? 'cow' : r < .8 ? 'sheep' : 'chicken', x + .5, y + 1, z + .5);
+    const pp=Player.pos;
+    const ang=Math.random()*Math.PI*2;
+    const dist=22+Math.random()*(category==='hostile'?16:26);
+    const x=Math.floor(pp.x+Math.cos(ang)*dist);
+    const z=Math.floor(pp.z+Math.sin(ang)*dist);
+    if(!World.getChunk(x>>4,z>>4))return;
+    const y=surfaceY(x,z);
+    if(y<=1 || y>=CONFIG.HEIGHT-3)return;
+    const top=World.getBlock(x,y,z);
+    if(World.getBlock(x,y+1,z)!==BLOCK.AIR||World.getBlock(x,y+2,z)!==BLOCK.AIR)return;
+    const biome=World.biomeAt(x,z);
+    const pool=(spawnPools[biome]||spawnPools.plains)[category]||[];
+    if(!pool.length)return;
+    if(category==='hostile'){
+      if(!isSolidBlock(top)||top===BLOCK.LEAVES)return;
+    }else{
+      const soils=[BLOCK.GRASS,BLOCK.SNOW,BLOCK.MYCELIUM];
+      if(!soils.includes(top))return;
+      if(biome==='glacier' && Math.random()>.16)return;
     }
+    const kind=pool[Math.floor(Math.random()*pool.length)];
+    spawn(kind,x+.5,y+1,z+.5);
   }
 
   function lerpAngle(a, b, t) {
