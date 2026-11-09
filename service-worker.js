@@ -1,12 +1,12 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.8.2-winter-cactus-20261109';
+const VERSION = 'webcraft-v1.8.3-natural-terrain-20261109';
 const CORE = [
   "./",
   "./index.html",
   "./play.html",
   "./auth.html",
-  "./js/auth-play.js?v=v182",
+  "./js/auth-play.js?v=v183",
   "./js/auth-page.js?v=2",
   "./js/supabase-client.js",
   "./js/community-credits-server.js?v=production1",
@@ -44,7 +44,7 @@ const CORE = [
   "./js/game/furnace-system.js?v=v170",
   "./js/game/noise.js",
   "./js/game/terrain-legacy.js?v=v180",
-  "./js/game/terrain.js?v=v182",
+  "./js/game/terrain.js?v=v183",
   "./js/game/mobile-test-textures.js?v=v180",
   "./js/game/graphics.js?v=v170",
   "./js/game/voxel-lighting.js?v=v170",
