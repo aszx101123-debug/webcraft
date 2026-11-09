@@ -1,7 +1,7 @@
 'use strict';
 
 const CONFIG = {
-  VERSION: '1.8.3',
+  VERSION: '1.8.4',
   MOB_HEALTH_BARS: false,
   CHUNK: 16,
   HEIGHT: 64,
@@ -260,6 +260,8 @@ const BIOMES = Object.freeze({
   crystal:Object.freeze({name:'수정 지대',chance:0.5,surface:BLOCK.CRYSTAL_BLOCK,subsurface:BLOCK.STONE,treeDensity:0,tint:0xb493db,resource:BLOCK.CRYSTAL_RESOURCE,loot:Object.freeze([Object.freeze({id:ITEM.CRYSTAL_SHARD,chance:60}),Object.freeze({id:ITEM.AMETHYST,chance:30}),Object.freeze({id:ITEM.RESONANT_CORE,chance:10})])}),
 });
 const BIOME_ITEMS = [];
+// Legacy IDs remain defined for old saves, but are hidden from normal gameplay.
+
 BLOCKS.push({name:'평원 자원석',tiles:{all:[0,16]},color:0x8ab75a,biomeResource:'plains',miningTime:.7,category:'자연'});
 BLOCKS.push({name:'숲 자원석',tiles:{all:[1,16]},color:0x579943,biomeResource:'forest',miningTime:.7,category:'자연'});
 BLOCKS.push({name:'정글 자원석',tiles:{all:[2,16]},color:0x438a3e,biomeResource:'jungle',miningTime:.7,category:'자연'});
@@ -390,6 +392,14 @@ const DEFAULT_HOTBAR = [
   BLOCK.PLANK, BLOCK.LEAVES, BLOCK.GLASS, BLOCK.CRAFTING_TABLE
 ];
 
+// Legacy WebCraft-only biome collectibles are retained solely for save compatibility.
+for(const id of Object.values(ITEM).filter(id=>Number.isInteger(id)&&id>=500&&id<=547)){
+  if(ITEMS[id])ITEMS[id].hidden=true;
+}
+for(const id of Object.values(BIOMES).map(b=>b.resource)){
+  if(BLOCKS[id])BLOCKS[id].hidden=true;
+}
+
 const PLACEABLE_IDS = [
   BLOCK.GRASS, BLOCK.DIRT, BLOCK.STONE, BLOCK.COBBLE, BLOCK.SAND, BLOCK.LOG,
   BLOCK.LEAVES, BLOCK.PLANK, BLOCK.GLASS, BLOCK.BRICK, BLOCK.GLOWSTONE,
@@ -402,7 +412,7 @@ const PLACEABLE_IDS = [
 ];
 
 PLACEABLE_IDS.push(...WOOL_TYPES.map(x=>x.block),...STORAGE_TYPES.map(x=>x.block),BLOCK.LANTERN,
-  ...Object.values(BIOMES).map(b=>b.resource),BLOCK.RED_SAND,BLOCK.TERRACOTTA,BLOCK.MYCELIUM,BLOCK.BASALT,BLOCK.ICE,BLOCK.CHERRY_LEAVES,BLOCK.BAMBOO,BLOCK.CRYSTAL_BLOCK);
+  BLOCK.RED_SAND,BLOCK.TERRACOTTA,BLOCK.MYCELIUM,BLOCK.BASALT,BLOCK.ICE,BLOCK.CHERRY_LEAVES,BLOCK.BAMBOO,BLOCK.CRYSTAL_BLOCK);
 
 const BLOCK_DROPS = {
   [BLOCK.FARMLAND]:BLOCK.DIRT,[BLOCK.WHEAT_CROP]:0,[BLOCK.CARROT_CROP]:0,[BLOCK.POTATO_CROP]:0,
@@ -425,13 +435,8 @@ function getBlockDrop(id, rnd, tool) {
   if (id === BLOCK.AIR || id === BLOCK.WATER || id === BLOCK.WATER_FLOW || id === BLOCK.BEDROCK) return 0;
   const def = BLOCKS[id];
   if (!def) return 0;
-  if (def.biomeResource) {
-    const loot=BIOMES[def.biomeResource].loot;
-    const roll=Math.max(0,Math.min(.999999,Number(rnd ? rnd() : Math.random())||0))*100;
-    let edge=0;
-    for(const drop of loot){edge+=drop.chance;if(roll<edge)return drop.id;}
-    return loot[loot.length-1].id;
-  }
+  // Deprecated biome resource blocks must not produce non-vanilla items.
+  if (def.biomeResource) return 0;
   // Hoes let survival players collect leaf blocks for mossy-stone crafting.
   if ([BLOCK.LEAVES,BLOCK.BIRCH_LEAVES,BLOCK.SPRUCE_LEAVES].includes(id) && tool?.toolType==='hoe') return id;
   if (id === BLOCK.LEAVES || id === BLOCK.BIRCH_LEAVES) {
