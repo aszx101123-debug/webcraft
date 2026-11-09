@@ -1,12 +1,12 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.8.0-biomes-20261108';
+const VERSION = 'webcraft-v1.8.1-weather-biomes-20261109';
 const CORE = [
   "./",
   "./index.html",
   "./play.html",
   "./auth.html",
-  "./js/auth-play.js?v=v180",
+  "./js/auth-play.js?v=v181",
   "./js/auth-page.js?v=2",
   "./js/supabase-client.js",
   "./js/community-credits-server.js?v=production1",
@@ -60,13 +60,13 @@ const CORE = [
   "./js/game/interaction.js?v=v170",
   "./js/game/items.js?v=v170",
   "./js/game/drops.js?v=v170",
-  "./js/game/mobs.js?v=v170",
+  "./js/game/mobs.js?v=v181",
   "./js/game/farming.js?v=v170",
   "./js/game/item-actions.js?v=v170",
   "./js/game/save.js?v=v180",
   "./js/game/mobile-test-crafting.js?v=v180",
   "./js/game/mobile-test-ui.js?v=v171",
-  "./js/game/mobile-test-main.js?v=v180",
+  "./js/game/mobile-test-main.js?v=v181",
   "./css/style.css",
   "./css/skin-studio.css?v=v131",
   "./css/v133-home.css?v=v133",
