@@ -27,7 +27,7 @@
 </head>
 <body>
 
-<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.8.2 · 선인장 접촉 피해 · 설산 나무 · 빙하 얼음</div>
+<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.8.3 · 비공식 바이옴 자원석 자동 생성 제거</div>
 <div id="boot-error" class="boot-error hidden" role="alert">
   <div class="boot-error-panel">
     <div class="boot-error-icon">!</div>
@@ -326,7 +326,7 @@
       <div><h2 id="biome-guide-heading">지형 도감</h2><p>16개 지형 · 전용 아이템 48종</p></div>
       <button id="biome-guide-close" type="button" class="btn">메뉴로 돌아가기 (Esc)</button>
     </div>
-    <p id="biome-guide-description">새 지역을 생성할 때 아래 가중치로 지형을 선택합니다. 실제 면적 비율은 시드와 지역 크기에 따라 달라져요. 지형마다 전용 자원을 채굴하면 아이템 1개가 나오며, 아이템 확률은 해당 자원 1개를 채굴할 때의 확률입니다.</p>
+    <p id="biome-guide-description">새 지역을 생성할 때 아래 가중치로 지형을 선택합니다. 실제 면적 비율은 시드와 지역 크기에 따라 달라져요. 전용 자원석은 원작과 다른 블록이므로 더 이상 자연 생성되지 않습니다. 아래 전용 아이템은 WebCraft의 기존 콘텐츠로, 일반 자연 채굴로는 얻을 수 없습니다.</p>
     <p class="biome-guide-note">등장 확률 합계 100% · 새 지형은 새로 만든 월드에서 탐험하세요. 기존 월드는 이전 지형을 유지합니다.</p>
     <div id="biome-guide-list" class="biome-guide-grid" aria-label="지형별 등장 확률과 전용 아이템"></div>
   </section>
@@ -420,7 +420,7 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
   addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(() => {}));
 }
 </script>
-<script type="module" src="js/auth-play.js?v=v182"></script>
+<script type="module" src="js/auth-play.js?v=v183"></script>
 <script src="js/i18n.js?v=20261106-languages5"></script>
 </body>
 </html>
