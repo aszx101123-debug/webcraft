@@ -16,6 +16,7 @@ const World = (() => {
   const daylight = { value: 1 };
   let torchLights = [], torchLightTick = 0;
   const blockChangeListeners = new Set();
+  let interestPoints=[];
 
   const key = (cx, cz) => cx + ',' + cz;
 
@@ -82,6 +83,7 @@ const World = (() => {
     dirtySet = new Set();
     pending = [];
     pendingSet = new Set();
+    interestPoints = [];
     fluidLevels = new Map();
     waterSources = new Set();
     if (editsEntries) {
@@ -162,7 +164,7 @@ const World = (() => {
       edits.get(k).set(li, id);
     }
     invalidateAt(x, y, z);
-    blockChangeListeners.forEach(listener => listener(x,y,z,id,previous));
+    blockChangeListeners.forEach(listener => listener(x,y,z,id,previous,record));
     return true;
   }
 
@@ -190,8 +192,9 @@ const World = (() => {
 
   function unloadFar(pcx, pcz, r) {
     const limit = r + 1;
+    const nearPeer=(cx,cz)=>interestPoints.some(p=>Math.abs(cx-p[0])<=3&&Math.abs(cz-p[1])<=3);
     for (const [k, ch] of chunks) {
-      if (Math.abs(ch.cx - pcx) > limit || Math.abs(ch.cz - pcz) > limit) {
+      if ((Math.abs(ch.cx - pcx) > limit || Math.abs(ch.cz - pcz) > limit)&&!nearPeer(ch.cx,ch.cz)) {
         disposeChunk(ch);
         chunks.delete(k);
         dirtySet.delete(k);
@@ -201,7 +204,7 @@ const World = (() => {
     }
     if (pending.length) {
       pending = pending.filter(p => {
-        const far = Math.abs(p.cx - pcx) > limit || Math.abs(p.cz - pcz) > limit;
+        const far = (Math.abs(p.cx - pcx) > limit || Math.abs(p.cz - pcz) > limit)&&!nearPeer(p.cx,p.cz);
         if (far) pendingSet.delete(key(p.cx, p.cz));
         return !far;
       });
@@ -449,6 +452,7 @@ const World = (() => {
   function update(px, pz, r, genBudget = 2, meshBudget = 4) {
     const pcx = Math.floor(px) >> 4, pcz = Math.floor(pz) >> 4;
     ensureArea(pcx, pcz, r);
+    for(const [cx,cz] of interestPoints)ensureArea(cx,cz,2);
     unloadFar(pcx, pcz, r);
     for (let i = 0; i < genBudget && pending.length; i++) generateOne();
     if (dirtySet.size) {
@@ -486,6 +490,20 @@ const World = (() => {
     return out;
   }
 
+  function ensureChunkAt(x,z){
+    const cx=x>>4,cz=z>>4,k=key(cx,cz);
+    if(chunks.has(k))return;
+    const data=gen.genChunk(cx,cz),changed=edits.get(k);
+    if(changed)for(const [index,id] of changed)data[index]=id;
+    chunks.set(k,{cx,cz,data,mesh:null,waterMesh:null});
+    for(let dx=-1;dx<=1;dx++)for(let dz=-1;dz<=1;dz++)markDirty(cx+dx,cz+dz);
+  }
+  function applyRemoteBlock(x,y,z,id){
+    if(![x,y,z,id].every(Number.isInteger)||Math.abs(x)>1000000||Math.abs(z)>1000000||y<1||y>=H||
+      (id!==0&&!BLOCKS[id]))return false;
+    ensureChunkAt(x,z);return setBlock(x,y,z,id);
+  }
+
   return {
     init, update, getBlock, setBlock, getChunk, getEdits, onBlockChanged, invalidateAt,
     heightAt: (x, z) => gen ? gen.heightAt(x, z) : 0,
@@ -497,7 +515,8 @@ const World = (() => {
     getSeed: () => seed,
     setDaylight: value => { daylight.value = .12 + .88 * Math.max(0,Math.min(1,value)); },
     getGroup: () => group,
-    getFluidLevel, setFluidLevel, getWaterSources
+    getFluidLevel, setFluidLevel, getWaterSources,ensureChunkAt,applyRemoteBlock,
+    setInterestPoints:points=>{interestPoints=Array.isArray(points)?points.slice(0,3).filter(p=>Number.isFinite(p?.x)&&Number.isFinite(p?.z)).map(p=>[Math.floor(p.x)>>4,Math.floor(p.z)>>4]):[];}
 
   };
 })();

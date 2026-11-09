@@ -25,7 +25,7 @@ const Farming = (() => {
       const k=key(x,y,z);
       if(CROP_TYPES[old]&&old!==id){
         const state=crops.get(k)||{id:old,progress:0};crops.delete(k);
-        if(!Inventory.isCreative())for(const stack of yields(state))Drops.spawn(stack.id,stack.count,x+.5,y+.3,z+.5);
+        if(!Inventory.isCreative())for(const stack of yields(state))Drops.spawn(stack.id,stack.count,x+.5,y+.3,z+.5,undefined,{world:true});
       }
       if(CROP_TYPES[id]&&!crops.has(k))crops.set(k,{id,progress:0});
       if(foraged.has(k)&&id!==BLOCK.GRASS)foraged.delete(k);
@@ -116,7 +116,14 @@ const Farming = (() => {
   function serialize() {
     return {version:1,crops:[...crops].map(([k,s])=>[k,{id:s.id,progress:Math.round(s.progress*100)/100}]),foraged:[...foraged]};
   }
-  return {init,plant,harvest,fertilize,mature,update,serialize,
+  function applyNetwork(saved){
+    const before=new Map([...crops].map(([k,s])=>[k,stage(s)])),oldForage=new Set(foraged.keys());
+    init(saved);
+    for(const [k,s] of crops)if(before.get(k)!==stage(s))World.invalidateAt(...k.split(',').map(Number));
+    for(const k of before.keys())if(!crops.has(k))World.invalidateAt(...k.split(',').map(Number));
+    for(const k of new Set([...oldForage,...foraged.keys()]))if(oldForage.has(k)!==foraged.has(k))World.invalidateAt(...k.split(',').map(Number));
+  }
+  return {init,plant,harvest,fertilize,mature,update,serialize,applyNetwork,
     stageAt:(x,y,z)=>stage(crops.get(key(x,y,z))),
     progressAt:(x,y,z)=>{const s=crops.get(key(x,y,z));return s?Math.floor(s.progress/CROP_TYPES[s.id].seconds*100):0;},
     isForaged:(x,y,z)=>foraged.has(key(x,y,z)),forage};

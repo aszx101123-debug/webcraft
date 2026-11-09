@@ -194,6 +194,16 @@ const SaveSystem = (() => {
     }
   }
 
+  // Room saves have their own namespace and never replace the active single-player world.
+  function loadRoom(room) {
+    if(!/^[A-HJ-NP-Z2-9]{12}$/.test(room))return null;
+    const value=readJSON(PREFIX+'room:'+room);
+    return validateWorldData(value)?value:null;
+  }
+  function saveRoom(room,data) {
+    return /^[A-HJ-NP-Z2-9]{12}$/.test(room)&&validateWorldData(data)&&writeJSON(PREFIX+'room:'+room,data);
+  }
+
   function clear(id) {
     if (id) {
       try { localStorage.removeItem(PREFIX + id); } catch (e) { }
@@ -305,6 +315,6 @@ const SaveSystem = (() => {
 
   return {
     list, get, getActiveId, setActiveId, create, remove, rename,
-    save, load, clear, ensureDefault, exportWorld, importWorld, generatorVersion
+    save, load, loadRoom, saveRoom, clear, ensureDefault, exportWorld, importWorld, generatorVersion
   };
 })();

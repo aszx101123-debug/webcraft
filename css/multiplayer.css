@@ -1,0 +1,12 @@
+:root{color-scheme:dark;--mp-bg:#131b18;--mp-line:#52624a;--mp-text:#f0f2e9;--mp-green:#84b449}
+*{box-sizing:border-box}
+.mp-lobby{margin:0;padding:36px 16px;background:radial-gradient(ellipse at top,#364b2c, var(--mp-bg) 70%);color:var(--mp-text);font:16px/1.6 system-ui,sans-serif;min-height:100vh}
+.mp-panel{max-width:900px;margin:auto;padding:28px;background:#1e2821;border:2px solid var(--mp-line);box-shadow:8px 8px 0 #0b100d}
+.mp-panel nav{display:flex;justify-content:space-between;gap:20px}.mp-panel a{color:#c0df98}.mp-kicker{margin:36px 0 8px;letter-spacing:.14em;font-size:12px;color:#c0df98}
+.mp-panel h1{font-size:clamp(28px,5vw,42px);line-height:1.2;margin:0 0 18px}.mp-intro{color:#c0caba;margin-bottom:26px}
+.mp-panel label{display:block;margin-top:14px;font-weight:600}.mp-panel input,.mp-panel select,.mp-panel button{font:inherit;min-height:46px;width:100%;border:2px solid #5f6d58;padding:8px 12px;border-radius:0;color:#f0f2e9;background:#111a14}
+.mp-panel input:focus-visible,.mp-panel select:focus-visible,.mp-panel button:focus-visible{outline:3px solid #bde592;outline-offset:3px}
+.mp-panel button{cursor:pointer;background:#4a5d3e;box-shadow:inset 0 2px #8d9e80,inset 0 -3px #25311d;margin-top:22px;font-weight:700}.mp-panel button:hover{background:#5e744e}.mp-panel .mp-primary{background:#628c34}.mp-panel button[hidden]{display:none}
+.mp-forms{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:28px}.mp-forms form{padding:20px;border:1px solid var(--mp-line)}.mp-forms h2{margin:0 0 18px;font-size:22px}.mp-form-note{color:#bdc8b8;font-size:14px}.mp-invited{outline:2px solid var(--mp-green)}#mp-code{font-family:ui-monospace,monospace;letter-spacing:.13em;text-transform:uppercase}#mp-error{color:#ffbda8;min-height:1em}
+.mp-notes{border-top:1px solid var(--mp-line);font-size:14px;color:#bdc8b8}.mp-notes p{margin:16px 0}.mp-hud{position:fixed;top:50px;left:10px;z-index:12;max-width:min(80vw,600px);padding:7px 10px;color:white;background:#101610c9;font:12px/1.5 system-ui,sans-serif;text-shadow:1px 1px #000;pointer-events:none}#mp-status{font-weight:700}#mp-members{color:#cde6b6}.mp-hud.hidden{display:none}.multiplayer-playing #overlay-start .tip,.multiplayer-playing #overlay-pause .tip{color:#d7e9bf}
+@media(max-width:600px){.mp-lobby{padding:16px 10px}.mp-panel{padding:20px 16px}.mp-forms{grid-template-columns:1fr;gap:16px}.mp-hud{top:52px;font-size:10px;max-width:74vw}}

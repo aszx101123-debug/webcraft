@@ -868,7 +868,10 @@ const UI = (() => {
   let furnacePosition = null, furnaceRenderSignature = '';
   function furnacePlayerClick(index, right, shift, event) {
     if (!furnacePosition) return;
+    if(typeof Multiplayer!=='undefined'&&Multiplayer.active&&Multiplayer.containerBusy)return;
+    if(typeof Multiplayer!=='undefined'&&Multiplayer.active&&!Multiplayer.canUseContainer('furnace',furnacePosition))return;
     if (shift && !inventoryCursor) {
+      if(typeof Multiplayer!=='undefined'&&Multiplayer.active&&!Multiplayer.isHost){Multiplayer.furnaceDeposit(furnacePosition,index);return;}
       FurnaceSystem.depositFromInventory(furnacePosition, index);
     } else if (right) {
       const stack = Inventory.getSlots()[index];
@@ -891,6 +894,16 @@ const UI = (() => {
   }
   function furnaceSlotClick(slot, right, shift, event) {
     if (!furnacePosition) return;
+    if(typeof Multiplayer!=='undefined'&&Multiplayer.active&&!Multiplayer.canUseContainer('furnace',furnacePosition))return;
+    if(typeof Multiplayer!=='undefined'&&Multiplayer.active&&!Multiplayer.isHost){
+      if(Multiplayer.containerBusy)return;
+      if(shift&&!inventoryCursor){Multiplayer.furnaceWithdraw(furnacePosition,slot);return;}
+      const sent=inventoryCursor;inventoryCursor=null;updateInventoryCursor();
+      void Multiplayer.furnaceInteract(furnacePosition,slot,sent,right).then(result=>{
+        inventoryCursor=result.ok?result.cursor:sent;
+        renderFurnace();renderHotbar();updateInventoryCursor(event.clientX,event.clientY);
+      });return;
+    }
     if (shift && !inventoryCursor) FurnaceSystem.withdrawToInventory(furnacePosition, slot);
     else {
       const result = FurnaceSystem.interact(furnacePosition, slot, inventoryCursor, right);
@@ -975,10 +988,13 @@ const UI = (() => {
     if (supply && supply.textContent !== status) supply.textContent = status;
   }
 
-  function openFurnace(target) {
+  function openFurnace(target,granted=false) {
     const overlay = $('overlay-furnace');
     if (!overlay || typeof FurnaceSystem === 'undefined') { showToast('화로 화면을 불러올 수 없습니다'); return false; }
     const position = target || (typeof Interact !== 'undefined' ? Interact.getTarget() : null);
+    if(position&&!granted&&typeof Multiplayer!=='undefined'&&Multiplayer.active){
+      void Multiplayer.lockContainer('furnace',position).then(ok=>{if(ok)openFurnace(position,true);});return true;
+    }
     if (!position || !FurnaceSystem.getState(position, true)) return false;
     furnacePosition = {x:position.x,y:position.y,z:position.z};
     furnaceRenderSignature = '';
@@ -993,7 +1009,9 @@ const UI = (() => {
   }
 
   function closeFurnace() {
+    if(typeof Multiplayer!=='undefined'&&Multiplayer.active&&Multiplayer.containerBusy)return false;
     if (!inventoryCursorReturn()) return false;
+    if(furnacePosition&&typeof Multiplayer!=='undefined'&&Multiplayer.active)Multiplayer.releaseContainer('furnace',furnacePosition);
     $('overlay-furnace')?.classList.add('hidden');
     furnacePosition = null; furnaceRenderSignature = '';
     return true;

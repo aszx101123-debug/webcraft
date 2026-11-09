@@ -33,6 +33,7 @@ function createGame(options = {}) {
   };
   const metrics = { weatherTime: 0, clockReads: 0 };
   const sandbox = {
+    ...(options.multiplayer?{Multiplayer:{active:true,ready:true,isHost:true,frame:record('networkFrame'),...options.multiplayer}}:{}),
     state, Player: player,
     keys: { KeyW: true, ControlLeft: true, ...(options.keys || {}) },
     isTouch: !!options.isTouch, touchActive: false,
@@ -77,7 +78,7 @@ function createGame(options = {}) {
       miningProgress: () => 0, startBreak: record('startBreak'),
       updateMining: (...args) => { record('mining')(...args); return false; }
     },
-    updateSky: dt => { state.time += dt; record('sky')(dt); },
+    updateSky: (dt,advance=true) => { if(advance)state.time += dt; record('sky')(dt,advance); },
     updateWeather: dt => { metrics.weatherTime += dt; record('weather')(dt); },
     Fluids: { update: record('fluids') },
     BlockPhysics: { update: record('physics') },
@@ -235,4 +236,26 @@ test('a long resumed frame is capped instead of advancing twelve seconds at once
   assert.equal(game.calls.fluids[0][3], .05);
   assert.equal(game.calls.player[0][0], .05);
   assert.equal(game.state.time, .27);
+});
+
+test('a multiplayer host keeps the shared world running while their menu is open',()=>{
+  const game=createGame({state:{paused:true,locked:false},multiplayer:{isHost:true}});game.frame();
+  for(const name of ['sky','furnace','farming','physics','mobs','drops'])assert.equal(game.count(name),1,name);
+  assert.equal(game.count('interaction'),0);assert.equal(Object.keys(game.calls.player[0][1]).length,0);
+  assert.equal(game.count('networkFrame'),1);
+});
+test('a dead host still runs shared simulation while their personal survival stays stopped',()=>{
+  const game=createGame({dead:true,multiplayer:{isHost:true}});game.frame();
+  for(const name of ['furnace','farming','physics','mobs','drops'])assert.equal(game.count(name),1,name);
+  for(const name of ['survival','player','items','interaction'])assert.equal(game.count(name),0,name);
+});
+test('a multiplayer guest runs local survival and replicas without owning shared simulation',()=>{
+  const game=createGame({multiplayer:{isHost:false}});game.frame();
+  for(const name of ['physics','farming','furnace'])assert.equal(game.count(name),0,name);
+  for(const name of ['survival','player','mobs','drops'])assert.equal(game.count(name),1,name);
+  assert.equal(game.calls.sky[0][1],false,'only the host advances world time');assert.equal(game.state.time,.22);
+});
+test('losing a multiplayer connection freezes actions until resynchronization',()=>{
+  const game=createGame({multiplayer:{ready:false}});game.frame();assertFrozen(game);
+  assert.equal(game.count('networkFrame'),1);
 });

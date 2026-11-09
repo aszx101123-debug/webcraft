@@ -39,6 +39,16 @@ const ItemActions = (() => {
   }
   function use(target,hand='main') {
     const stack=hand==='empty'?null:held(hand),id=stack?.id,d=getItemDef(id);
+    if(stack&&typeof Multiplayer!=='undefined'&&Multiplayer.active&&!Multiplayer.isHost){
+      let utility=null;
+      if(id===ITEM.BONE_MEAL&&target)utility='fertilize';
+      else if(id===ITEM.BUCKET&&Mobs.interactRay(camera.position,aim(),4,'milk',true))utility='milk';
+      else if(d?.toolType==='shears'){
+        if(Mobs.interactRay(camera.position,aim(),4,'shear',true))utility='shear';
+        else if(target?.id===BLOCK.GRASS)utility='forage';
+      }
+      if(utility){Multiplayer.useUtility(utility,target,hand,camera.position,aim());return result(false);}
+    }
     if(target&&CROP_TYPES[target.id]&&id!==ITEM.BONE_MEAL){
       if(Farming.harvest(target))return result(true,'작물을 수확했습니다');
       if(!stack)return result(false,'성장 '+Farming.progressAt(target.x,target.y,target.z)+'% · 물과 빛이 있으면 잘 자랍니다');
@@ -94,6 +104,9 @@ const ItemActions = (() => {
     if(d.toolType==='bow'){
       if(clock-lastShot<.6)return result(false);
       if(!Inventory.isCreative()&&Inventory.countItem(ITEM.ARROW)<1)return result(false,'화살이 필요합니다');
+      if(typeof Multiplayer!=='undefined'&&Multiplayer.active&&!Multiplayer.isHost){
+        lastShot=clock;void Multiplayer.fireArrow(hand,camera.position,aim());return result(false);
+      }
       if(!Mobs.firePlayerArrow(camera.position,aim(),6))return result(false,'지금은 더 발사할 수 없습니다');
       if(!Inventory.isCreative())Inventory.removeItem(ITEM.ARROW,1);
       Inventory.damageHeld(hand);Player.addExhaustion(SURVIVAL.ATTACK_COST);lastShot=clock;

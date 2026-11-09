@@ -11,6 +11,14 @@ const Mobs = (() => {
   let lastAttackResult = null;
   let onEvent = null;
   let simulationTime=0;
+  let network=null,nextNetworkId=1;
+  function networkPlayers(){
+    return [{id:null,pos:Player.pos,dead:Player.dead||network?.localActive?.()===false},...(network?.players?.()||[])].filter(p=>p?.pos&&['x','y','z'].every(k=>Number.isFinite(p.pos[k])));
+  }
+  function damagePlayer(target,amount,cause,source){
+    if(target.id)network?.damage?.(target.id,amount,cause,source);
+    else Player.damage(amount,cause,source);
+  }
 
   function init(scene_) {
     scene = scene_;
@@ -384,6 +392,7 @@ const Mobs = (() => {
     built.mesh.position.set(x, y, z);
     group.add(built.mesh);
     const m = {
+      networkId:nextNetworkId++,
       type, def, hp: def.hp,
       pos: new THREE.Vector3(x, y, z),
       vel: new THREE.Vector3(),
@@ -529,6 +538,11 @@ const Mobs = (() => {
       const tool=Inventory.selectedTool();
       const damage=tool&&Number.isFinite(tool.attackDamage)
         ? tool.attackDamage:SURVIVAL.FIST_DMG;
+      if(network?.replica){
+        network.attack?.(best.networkId,eye,dir,damage);
+        lastAttackResult={target:best,landed:false,reason:'pending',charge,damage:0};
+        return best;
+      }
       const landed=hurtMob(best,damage,Player.pos);
       if(landed&&tool){
         Inventory.damageSelectedTool(1);
@@ -555,20 +569,21 @@ const Mobs = (() => {
     return true;
   }
 
-  function shootArrow(m) {
+  function shootArrow(m,target={pos:Player.pos}) {
     const from = new THREE.Vector3(m.pos.x, m.pos.y + m.def.height * .78, m.pos.z);
-    const to = new THREE.Vector3(Player.pos.x, Player.pos.y + 1.1, Player.pos.z);
+    const to = new THREE.Vector3(target.pos.x, target.pos.y + 1.1, target.pos.z);
     const dir = to.sub(from).normalize();
     const vel = dir.multiplyScalar(19);
     vel.y += 1.4;
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(.07, .07, .55), mat(0x9a7a4a));
     mesh.position.copy(from);
     group.add(mesh);
-    arrows.push({ pos: from.clone(), vel, mesh, life: 5 });
+    arrows.push({ networkId:nextNetworkId++,pos: from.clone(), vel, mesh, life: 5 });
     if (onEvent) onEvent('shoot', m);
   }
 
   function firePlayerArrow(eye,direction,damage=6) {
+    if(network?.replica){network.arrow?.(eye,direction,damage);return true;}
     if(!group||arrows.length>=64||!direction||!['x','y','z'].every(k=>Number.isFinite(direction[k])&&Number.isFinite(eye[k])))return false;
     const dir=new THREE.Vector3(direction.x,direction.y,direction.z);
     if(dir.lengthSq()<.001)return false;
@@ -576,12 +591,12 @@ const Mobs = (() => {
     const from=new THREE.Vector3(eye.x,eye.y,eye.z).addScaledVector(dir,.4);
     const mesh=new THREE.Mesh(new THREE.BoxGeometry(.065,.065,.6),mat(0xb59c70));
     mesh.position.copy(from);group.add(mesh);
-    arrows.push({pos:from,vel:dir.multiplyScalar(26),mesh,life:5,player:true,damage});
+    arrows.push({networkId:nextNetworkId++,pos:from,vel:dir.multiplyScalar(26),mesh,life:5,player:true,damage});
     if(onEvent)onEvent('shoot',null);
     return true;
   }
 
-  function interactRay(eye,dir,reach,action) {
+  function interactRay(eye,dir,reach,action,preview=false) {
     const type=action==='milk'?'cow':action==='shear'?'sheep':null;
     if(!type)return null;
     let best=null,distance=reach;
@@ -592,6 +607,7 @@ const Mobs = (() => {
       if(hit!==null&&hit<distance&&hasLineOfSight(eye,{x:m.pos.x,y:m.pos.y+m.def.height*.6,z:m.pos.z})){best=m;distance=hit;}
     }
     if(!best)return null;
+    if(preview)return {id:best.networkId,type};
     const cooldown=action==='shear'?'shearedUntil':'milkUntil';
     if((best[cooldown]||0)>simulationTime)return {success:false,cooldown:true};
     best[cooldown]=simulationTime+(action==='shear'?90:5);
@@ -634,7 +650,8 @@ const Mobs = (() => {
     crystal: {passive:['sheep','chicken'],hostile:['skeleton','spider','zombie']}
   };
   function trySpawn(category) {
-    const pp=Player.pos;
+    const candidates=networkPlayers().filter(p=>!p.dead);
+    const pp=candidates.length?candidates[Math.floor(Math.random()*candidates.length)].pos:Player.pos;
     const ang=Math.random()*Math.PI*2;
     const dist=22+Math.random()*(category==='hostile'?16:26);
     const x=Math.floor(pp.x+Math.cos(ang)*dist);
@@ -666,6 +683,7 @@ const Mobs = (() => {
   }
 
   function update(dt, active) {
+    if(network?.replica){updateReplica(dt);return;}
     if(active)simulationTime+=dt;
     if (!group) return;
     const pp = Player.pos;
@@ -685,6 +703,9 @@ const Mobs = (() => {
         continue;
       }
       if (!active) continue;
+
+      const target=networkPlayers().filter(p=>!p.dead).sort((a,b)=>m.pos.distanceToSquared(a.pos)-m.pos.distanceToSquared(b.pos))[0]||{pos:Player.pos,dead:true,id:null};
+      const pp=target.pos;
 
       const dx = pp.x - m.pos.x, dz = pp.z - m.pos.z;
       const distXZ = Math.hypot(dx, dz);
@@ -734,7 +755,7 @@ const Mobs = (() => {
           m.moving=m.wanderMoving;
         }
       } else {
-        const aggro = survival && !Player.dead && m.def.aggro && dist < m.def.aggro &&
+        const aggro = survival && !target.dead && m.def.aggro && dist < m.def.aggro &&
           (m.type!=='spider'||env.night||m.provokedT>0);
         if (aggro) {
           m.dir.set(dx, 0, dz).normalize();
@@ -750,13 +771,13 @@ const Mobs = (() => {
             m.shootT -= dt;
             if (m.shootT <= 0 && dist < 22 && hasLineOfSight({ x: m.pos.x, y: m.pos.y + 1.2, z: m.pos.z }, { x: pp.x, y: pp.y + 1.1, z: pp.z })) {
               m.shootT = 2.2 + Math.random();
-              shootArrow(m);
+              shootArrow(m,target);
             }
           } else if (distXZ < (m.def.width / 2 + .55) && Math.abs(pp.y - m.pos.y) < 1.8 && m.attackT <= 0 &&
               hasLineOfSight({x:m.pos.x,y:m.pos.y+m.def.height*.75,z:m.pos.z},
                 {x:pp.x,y:pp.y+1.1,z:pp.z})) {
             m.attackT = 1.2;
-            Player.damage(m.def.dmg, m.def.name + '에게 당했다', m.pos);
+            damagePlayer(target,m.def.dmg, m.def.name + '에게 당했다', m.pos);
           }
         } else {
           m.wanderT -= dt;
@@ -854,8 +875,10 @@ const Mobs = (() => {
               hurtMob(mob,a.damage,Player.pos);hit=true;break;
             }
           }
-        }else if(mode===GAME_MODE.SURVIVAL&&!Player.dead&&Math.abs(a.pos.x-pp.x)<.45&&Math.abs(a.pos.z-pp.z)<.45&&a.pos.y>pp.y&&a.pos.y<pp.y+1.9){
-          Player.damage(3,'스켈레톤의 화살',a.pos);hit=true;
+        }else if(mode===GAME_MODE.SURVIVAL){
+          for(const target of networkPlayers())if(!target.dead&&Math.abs(a.pos.x-target.pos.x)<.45&&Math.abs(a.pos.z-target.pos.z)<.45&&a.pos.y>target.pos.y&&a.pos.y<target.pos.y+1.9){
+            damagePlayer(target,3,'스켈레톤의 화살',a.pos);hit=true;break;
+          }
         }
       }
       if(hit){removeArrow(i);continue;}
@@ -896,9 +919,55 @@ const Mobs = (() => {
     };
   }
 
+  function networkSnapshot(){
+    const q=n=>Math.round(n*1000)/1000;
+    return {mobs:mobs.slice(0,64).map(m=>[m.networkId,m.type,q(m.pos.x),q(m.pos.y),q(m.pos.z),q(m.yaw),m.hp,m.dead?1:0,m.moving?1:0]),
+      arrows:arrows.slice(0,64).map(a=>[a.networkId,q(a.pos.x),q(a.pos.y),q(a.pos.z),q(a.vel.x),q(a.vel.y),q(a.vel.z)])};
+  }
+  function applyNetwork(snapshot){
+    if(!network?.replica||!snapshot||!Array.isArray(snapshot.mobs)||snapshot.mobs.length>64)return;
+    const keep=new Set();
+    for(const row of snapshot.mobs){
+      if(!Array.isArray(row)||row.length!==9||!Number.isSafeInteger(row[0])||row[0]<1||!Object.prototype.hasOwnProperty.call(MOB_DEFS,row[1])||!row.slice(2,7).every(Number.isFinite)||row.slice(2,5).some(v=>Math.abs(v)>1000000)||row[7])continue;
+      let m=mobs.find(m=>m.networkId===row[0]);
+      if(m&&m.type!==row[1])continue;
+      if(!m){m=spawn(row[1],row[2],row[3],row[4]);m.networkId=row[0];}
+      if(row[6]<m.hp){m.hurtT=.18;flash(m,true);}
+      m.hp=Math.max(0,Math.min(m.def.hp,row[6]));m.pos.set(row[2],row[3],row[4]);m.yaw=row[5];m.moving=!!row[8];keep.add(m.networkId);
+    }
+    for(let i=mobs.length-1;i>=0;i--)if(!keep.has(mobs[i].networkId))removeMob(i);
+    const arrowRows=Array.isArray(snapshot.arrows)?snapshot.arrows.slice(0,64):[],arrowIds=new Set();
+    for(const row of arrowRows){
+      if(!Array.isArray(row)||row.length!==7||!row.every(Number.isFinite)||!Number.isSafeInteger(row[0])||row[0]<1||row.slice(1).some(v=>Math.abs(v)>1000000))continue;
+      let a=arrows.find(a=>a.networkId===row[0]);
+      if(!a){const mesh=new THREE.Mesh(new THREE.BoxGeometry(.07,.07,.55),mat(0x9a7a4a));mesh.position.set(row[1],row[2],row[3]);group.add(mesh);a={networkId:row[0],mesh,pos:new THREE.Vector3(),vel:new THREE.Vector3()};arrows.push(a);}
+      a.pos.set(row[1],row[2],row[3]);a.vel.set(row[4],row[5],row[6]);arrowIds.add(a.networkId);
+    }
+    for(let i=arrows.length-1;i>=0;i--)if(!arrowIds.has(arrows[i].networkId))removeArrow(i);
+  }
+  function updateReplica(dt){
+    if(!group)return;
+    for(const m of mobs){
+      m.mesh.position.lerp(m.pos,Math.min(1,dt*14));m.mesh.rotation.y=lerpAngle(m.mesh.rotation.y,m.yaw,Math.min(1,dt*12));
+      m.animT+=dt;const step=m.moving?Math.sin(m.animT*9)*.5:0;
+      m.parts.legs.forEach((leg,i)=>leg.rotation.x=step*(i%2?-1:1));
+      m.parts.arms.forEach((arm,i)=>arm.rotation.x=step*(i%2?1:-1));
+      m.hurtT=Math.max(0,m.hurtT-dt);if(!m.hurtT&&m.flashed)flash(m,false);
+    }
+    for(const a of arrows){a.mesh.position.lerp(a.pos,Math.min(1,dt*14));a.mesh.lookAt(a.pos.x+a.vel.x,a.pos.y+a.vel.y,a.pos.z+a.vel.z);}
+  }
+  function networkAttack(id,eye,direction,amount){
+    const m=mobs.find(m=>m.networkId===id&&!m.dead);
+    if(!m||!['x','y','z'].every(k=>Number.isFinite(eye?.[k])&&Number.isFinite(direction?.[k]))||
+      !Number.isFinite(amount)||amount<1||amount>20)return false;
+    const half=m.def.width/2,t=rayBox(eye,direction,{x:m.pos.x-half,y:m.pos.y,z:m.pos.z-half},{x:m.pos.x+half,y:m.pos.y+m.def.height,z:m.pos.z+half});
+    return t!==null&&t<4.5&&hasLineOfSight(eye,{x:m.pos.x,y:m.pos.y+m.def.height*.64,z:m.pos.z})&&hurtMob(m,amount,eye);
+  }
+
   return {
     init, reset, spawn, update, tryAttack, firePlayerArrow, interactRay, getAttackCharge, getLastAttackResult,
-    setEnv, setMode, counts,
+    setEnv, setMode, counts,networkSnapshot,applyNetwork,networkAttack,
+    setNetwork:value=>{network=value;},
     set onEvent(fn) { onEvent = fn; }
   };
 })();

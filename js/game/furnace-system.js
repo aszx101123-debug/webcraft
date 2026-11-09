@@ -75,11 +75,12 @@ const FurnaceSystem = (() => {
     const result = state.input && RECIPES.get(state.input.id);
     return !!result && (!state.output || (state.output.id === result && state.output.count < MAX_STACK));
   }
-  function update(dt) {
+  function update(dt,allow=null) {
     // Hidden tabs must not finish minutes of cooking in one resumed frame.
     if (!Number.isFinite(dt) || dt <= 0) return;
     const elapsed = Math.min(1, dt);
     for (const [key,state] of furnaces) {
+      if(allow&&!allow(key))continue;
       const [x,y,z] = key.split(',').map(Number);
       if (typeof World !== 'undefined') {
         if (World.getChunk && !World.getChunk(x >> 4, z >> 4)) continue;
@@ -184,6 +185,11 @@ const FurnaceSystem = (() => {
     furnaces.delete(key);
     return [state.input,state.fuel,state.output].filter(Boolean).map(copy);
   }
-  return {init, serialize, getState, update, accepts, interact, depositFromInventory,
+  function applyNetwork(saved,preserve=[]){
+    const keys=new Set(preserve),keep=serialize().entries.filter(([key])=>keys.has(key));
+    const rows=Array.isArray(saved?.entries)?saved.entries.filter(row=>!keys.has(row?.[0])):[];
+    init({version:1,entries:[...rows,...keep]});
+  }
+  return {init, serialize, getState, update, accepts, interact, depositFromInventory,applyNetwork,
     withdrawToInventory, remove, SMELT_SECONDS};
 })();
