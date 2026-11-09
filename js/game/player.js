@@ -295,7 +295,9 @@ const Player = (() => {
       const up = (keys['Space'] ? 1 : 0) - (crouch ? 1 : 0);
       vel.y += (up * CONFIG.FLY - vel.y) * k;
     } else {
-      const k = Math.min(1, dt * (onGround ? 12 : 3.5));
+      const underfoot=World.getBlock(Math.floor(pos.x),Math.floor(pos.y-.08),Math.floor(pos.z));
+      const slippery=onGround && underfoot===BLOCK.ICE && !inWater;
+      const k = Math.min(1, dt * (slippery ? 2.2 : onGround ? 12 : 3.5));
       vel.x += (wx - vel.x) * k;
       vel.z += (wz - vel.z) * k;
       if (inWater) {
