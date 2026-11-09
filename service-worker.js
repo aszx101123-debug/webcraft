@@ -1,15 +1,15 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.8.5-cactus-survival-hud-20261109';
+const VERSION = 'webcraft-v1.8.6-guest-play-account-credits-20261109';
 const CORE = [
   "./",
   "./index.html",
   "./play.html",
   "./auth.html",
-  "./js/auth-play.js?v=v185",
-  "./js/auth-page.js?v=2",
+  "./js/auth-play.js?v=v186",
+  "./js/auth-page.js?v=v186",
   "./js/supabase-client.js",
-  "./js/community-credits-server.js?v=production1",
+  "./js/community-credits-server.js?v=v186",
   "./mobile-test.html",
   "./manifest.webmanifest",
   "./img/icon-192.png",
@@ -39,7 +39,7 @@ const CORE = [
   "./css/classic-home.css?v=v140",
   "./css/community-credits.css?v=phase3",
   "./pogl-game/vendor/three.min.js",
-  "./js/game/config.js?v=v185",
+  "./js/game/config.js?v=v186",
   "./js/game/classic-settings.js?v=v140",
   "./js/game/furnace-system.js?v=v170",
   "./js/game/noise.js",

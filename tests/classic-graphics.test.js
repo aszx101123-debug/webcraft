@@ -201,7 +201,7 @@ test('three opaque cactus faces stay distinct after loading the classic texture 
     assert.equal(gpu.get((col*32+8+x)+','+(row*32+8+y)),Textures.getAtlas().pixels.get((col*16+x)+','+(row*16+y)));
 });
 
-test('texture startup promise is awaited by the signed-in game loader',()=>{
+test('texture startup promise is awaited by the guest game loader',()=>{
   assert.ok(source('js/game/mobile-test-main.js').includes('window.webcraftBoot = (async'));
   assert.ok(source('js/auth-play.js').indexOf('await window.webcraftBoot')<source('js/auth-play.js').indexOf('notice.remove()'));
 });

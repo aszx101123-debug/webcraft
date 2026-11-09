@@ -266,7 +266,7 @@ test('cloud movement freezes with world time and remains continuous at midnight'
   assert.ok(Math.abs(clouds.position.x - before) < .02);
 });
 
-test('PC auth loader, mobile entry and offline cache load graphics before the game', () => {
+test('PC guest loader, mobile entry and offline cache load graphics before the game', () => {
   const worker = source('service-worker.js');
   for (const page of ['play.html','mobile-test.html']) {
     const html = gamePage(page);

@@ -5,10 +5,23 @@ const status=$('credit-server-status');
 const tell=message=>{ if(status) status.textContent=message; };
 const name={feature:'게임 기능',bug:'버그 신고',ui:'UI / 편의성',other:'기타'};
 let user=null,admin=false;
+let authRevision=0;
 const formatDate=value=>new Date(value).toLocaleDateString('ko-KR');
 const errorMessage=e=>e?.message?.includes('Already claimed')?'오늘 출석은 이미 완료했습니다.':
  e?.message?.includes('Not enough')?'크레딧이 부족합니다.':
  e?.message?.includes('duplicate')?'중복 요청입니다.':(e?.message||'요청에 실패했습니다.');
+const guestMessage='로그인 없이 게임을 즐길 수 있습니다. 크레딧 적립·배지 교환은 로그인한 계정에서만 가능합니다.';
+function showGuest(message=guestMessage){
+ user=null;admin=false;
+ $('credit-server-login').hidden=false;
+ $('credit-server-app').hidden=true;
+ $('credit-server-admin-label').hidden=true;
+ $('credit-server-fc').textContent='0';
+ $('credit-server-badges').textContent='0';
+ $('credit-server-identity').textContent='';
+ for(const id of ['credit-server-checkin','credit-server-badge-buy'])$(id).disabled=true;
+ tell(message);
+}
 async function refresh(){
  if(!user)return;
  const [wallet,badges,ledger,suggestions,admins]=await Promise.all([
@@ -54,16 +67,23 @@ async function refresh(){
  $('credit-server-admin-label').hidden=!admin;
 }
 async function loadUser(){
+ const revision=++authRevision;
+ showGuest();
  const {data,error}=await db.auth.getUser();
- if(error)throw error;
+ if(revision!==authRevision)return;
+ if(error||!data?.user||data.user.is_anonymous){
+  if(error&&error.name!=='AuthSessionMissingError')tell('로그인 상태를 확인하지 못했습니다. 게임은 로그인 없이 플레이할 수 있습니다.');
+  return;
+ }
  user=data.user;
- $('credit-server-login').hidden=!!user;
- $('credit-server-app').hidden=!user;
- if(!user){tell('로그인하면 계정별 무료 크레딧과 제안 게시판을 이용할 수 있습니다.');return;}
+ $('credit-server-login').hidden=true;
+ $('credit-server-app').hidden=false;
+ for(const id of ['credit-server-checkin','credit-server-badge-buy'])$(id).disabled=false;
  $('credit-server-identity').textContent='로그인: '+(user.email||'플레이어');
  await refresh();tell('계정 크레딧이 안전하게 동기화되었습니다.');
 }
 async function action(button,operation,success){
+ if(!user||user.is_anonymous)return tell(guestMessage);
  button.disabled=true;
  try{const {error}=await operation();if(error)throw error;await refresh();tell(success);}
  catch(e){tell(errorMessage(e));}
@@ -89,5 +109,8 @@ $('credit-server-logout').addEventListener('click',async()=>{
  location.reload();
 });
 $('credit-server-login-link').addEventListener('click',()=>{location.href='auth.html?next=index.html';});
-db.auth.onAuthStateChange(()=>{setTimeout(()=>loadUser().catch(e=>tell(errorMessage(e))),0);});
-loadUser().catch(e=>tell(errorMessage(e)));
+db.auth.onAuthStateChange((_event,session)=>{
+ if(!session?.user||session.user.is_anonymous){++authRevision;showGuest();}
+ setTimeout(()=>loadUser().catch(e=>showGuest(errorMessage(e))),0);
+});
+loadUser().catch(()=>showGuest('계정 서버에 연결하지 못했습니다. 게임은 로그인 없이 플레이할 수 있습니다.'));

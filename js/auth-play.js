@@ -1,57 +1,57 @@
-import { supabase } from "./supabase-client.js";
+// Retain this loader URL for older entry pages; playing needs no auth SDK or session.
 const notice = document.createElement("div");
 notice.setAttribute("role", "status");
 notice.style.cssText = "position:fixed;inset:0;z-index:999999;background:#101a20;color:white;display:grid;place-items:center;font:20px sans-serif";
-notice.textContent = "로그인 확인 중...";
+notice.textContent = "게임을 준비하고 있습니다…";
 document.body.appendChild(notice);
 try {
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) {
-    location.replace("auth.html?next=play.html");
-  } else {
-    const sources = [
-      "pogl-game/vendor/three.min.js",
-      "js/game/config.js?v=v185",
-      "js/game/classic-settings.js?v=v140",
-      "js/game/noise.js",
-      "js/game/terrain-legacy.js?v=v180",
-      "js/game/terrain.js?v=v183",
-      "js/game/mobile-test-textures.js?v=v185",
-      "js/game/graphics.js?v=v170",
-      "js/game/voxel-lighting.js?v=v170",
-      "js/game/world.js?v=v185",
-      "js/game/world-journal.js?v=v180",
-      "js/game/world-milestones.js?v=v180",
-      "js/game/block-furniture.js?v=v170",
-      "js/game/block-physics.js?v=v132",
-      "js/game/player.js?v=v185",
-      "js/skin-studio.js?v=v131",
-      "js/game/mobile-test-player-model.js?v=v185",
-      "js/game/fluids.js?v=v129",
-      "js/game/interaction.js?v=v185",
-      "js/game/items.js?v=v170",
-      "js/game/furnace-system.js?v=v170",
-      "js/game/drops.js?v=v170",
-      "js/game/mobs.js?v=v181",
-      "js/game/farming.js?v=v170",
-      "js/game/item-actions.js?v=v170",
-      "js/game/save.js?v=v180",
-      "js/game/mobile-test-crafting.js?v=v184",
-      "js/game/mobile-test-ui.js?v=v185",
-      "js/game/mobile-test-main.js?v=v181"
-    ];
-    for (const src of sources) {
-      await new Promise((resolve, reject) => {
-        const script = document.createElement("script");
-        script.src = src;
-        script.onload = resolve;
-        script.onerror = () => reject(new Error("게임 파일 로딩 실패: " + src));
-        document.body.appendChild(script);
-      });
-    }
-    await window.webcraftBoot;
-    notice.remove();
+  const sources = [
+    "pogl-game/vendor/three.min.js",
+    "js/game/config.js?v=v186",
+    "js/game/classic-settings.js?v=v140",
+    "js/game/noise.js",
+    "js/game/terrain-legacy.js?v=v180",
+    "js/game/terrain.js?v=v183",
+    "js/game/mobile-test-textures.js?v=v185",
+    "js/game/graphics.js?v=v170",
+    "js/game/voxel-lighting.js?v=v170",
+    "js/game/world.js?v=v185",
+    "js/game/world-journal.js?v=v180",
+    "js/game/world-milestones.js?v=v180",
+    "js/game/block-furniture.js?v=v170",
+    "js/game/block-physics.js?v=v132",
+    "js/game/player.js?v=v185",
+    "js/skin-studio.js?v=v131",
+    "js/game/mobile-test-player-model.js?v=v185",
+    "js/game/fluids.js?v=v129",
+    "js/game/interaction.js?v=v185",
+    "js/game/items.js?v=v170",
+    "js/game/furnace-system.js?v=v170",
+    "js/game/drops.js?v=v170",
+    "js/game/mobs.js?v=v181",
+    "js/game/farming.js?v=v170",
+    "js/game/item-actions.js?v=v170",
+    "js/game/save.js?v=v180",
+    "js/game/mobile-test-crafting.js?v=v184",
+    "js/game/mobile-test-ui.js?v=v185",
+    "js/game/mobile-test-main.js?v=v181"
+  ];
+  for (const src of sources) {
+    await new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = src;
+      script.onload = resolve;
+      script.onerror = () => reject(new Error("게임 파일 로딩 실패: " + src));
+      document.body.appendChild(script);
+    });
   }
+  await window.webcraftBoot;
+  notice.remove();
 } catch (error) {
-  notice.textContent = "인증 또는 게임 실행 오류: " + error.message;
+  notice.textContent = "게임 파일을 불러오지 못했습니다. " + error.message;
+  const retry = document.createElement('button');
+  retry.type = 'button';
+  retry.textContent = '다시 불러오기';
+  retry.addEventListener('click', () => location.reload());
+  notice.appendChild(retry);
 }
