@@ -1,7 +1,7 @@
 'use strict';
 
 const CONFIG = {
-  VERSION: '1.8.4',
+  VERSION: '1.8.5',
   MOB_HEALTH_BARS: false,
   CHUNK: 16,
   HEIGHT: 64,
@@ -84,7 +84,8 @@ const BLOCKS = [
   { name: '가문비나무 원목', tiles: { top: [10,6], side: [11,5], bottom: [10,6] }, miningTime: .8, tool: 'cutter', category: '목재' },
   { name: '가문비나무 잎', tiles: { all: [11,6] }, cutout: true, miningTime: .16, tool: 'hoe', category: '자연' },
   { name: '가문비나무 판자', tiles: { all: [10,7] }, miningTime: .62, tool: 'cutter', category: '목재' },
-  { name: '선인장', tiles: { top: [10,8], bottom: [10,8], side: [11,7] }, miningTime: .38, category: '자연' },
+  // Keep cactus art outside the classic pack so loading it cannot replace the three faces.
+  { name: '선인장', tiles: { top: [16,0], bottom: [17,0], side: [18,0] }, miningTime: .38, category: '자연', shape: 'cactus' },
   { name: '책장', tiles: { top: [10,5], bottom: [10,5], side: [11,8] }, miningTime: .7, tool: 'cutter', category: '장식' },
   // Append-only ID policy: slab/stair/door/chest never renumber existing worlds.
   { name: '돌 반 블록', tiles: { all: [0,10] }, miningTime: .68, tool: 'pickaxe', minTier: 1, category: '석재', shape: 'slab' },
@@ -485,6 +486,7 @@ const MOB_DEFS = {
 // Each box is [minX,minY,minZ,maxX,maxY,maxZ] within its owning voxel.
 function getBlockBoxes(id, state = null) {
   const s=state||{};
+  if(id===BLOCK.CACTUS)return [[.0625,0,.0625,.9375,.9375,.9375]];
   if(id===BLOCK.FARMLAND)return [[0,0,0,1,.9375,1]];
   if(id===BLOCK.LANTERN)return [[.25,.08,.25,.75,.7,.75],[.2,.04,.2,.8,.12,.8],[.2,.7,.2,.8,.8,.8],[.43,.8,.43,.57,.98,.57]];
   if(id===BLOCK.STONE_SLAB)
@@ -510,6 +512,7 @@ function getBlockBoxes(id, state = null) {
 }
 
 function getBlockVisualBoxes(id,state=null) {
+  if(id===BLOCK.CACTUS)return [[.0625,0,.0625,.9375,1,.9375]];
   if((id===BLOCK.WOOD_DOOR||id===BLOCK.WOOD_DOOR_TOP)&&state?.open)
     return (state.facing==='east'||state.facing==='west')
       ? [[0,0,.405,1,1,.595]] : [[.405,0,0,.595,1,1]];

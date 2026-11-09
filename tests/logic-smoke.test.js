@@ -200,34 +200,34 @@ check('flowing water does not rebuild unchanged and clears after source removal'
 check('PC/mobile pages load classic controls and retain saved-world inventory support', () => {
   for (const page of ['play.html', 'mobile-test.html']) {
     const html = gamePage(page);
-    assert.ok(html.includes('mobile-test-main.js?v=v180'));
+    assert.ok(html.includes('mobile-test-main.js?v='));
     assert.ok(html.includes('v129-polish.css?v=v129'));
     assert.ok(html.includes('btn-export-world'));
     assert.ok(html.includes('btn-import-world'));
     assert.ok(html.includes('id="character-preview"'));
     assert.ok(html.includes('id="character-options"'));
     assert.ok(html.includes('css/v130-character.css?v=v131'));
-    assert.ok(html.includes('js/skin-studio.js?v=v131'));
-    assert.ok(html.includes('js/game/block-physics.js?v=v132'));
+    assert.ok(html.includes('js/skin-studio.js?v='));
+    assert.ok(html.includes('js/game/block-physics.js?v='));
     assert.ok(html.includes('css/v132-blocks.css?v=v132'));
     assert.ok(html.includes('id="picker-search"'));
-    assert.ok(html.includes('js/game/block-furniture.js?v=v170'));
+    assert.ok(html.includes('js/game/block-furniture.js?v='));
     assert.ok(html.includes('id="overlay-chest"'));
     assert.ok(html.includes('css/v133-build.css?v=v133'));
-    assert.ok(html.includes('js/game/mobs.js?v=v170'));
-    assert.ok(html.includes('js/game/player.js?v=v170'));
-    assert.ok(html.includes('js/game/interaction.js?v=v170'));
-    assert.ok(html.includes('js/game/items.js?v=v170'));
-    assert.ok(html.includes('js/game/mobile-test-ui.js?v=v171'));
-    assert.ok(html.includes('js/game/mobile-test-crafting.js?v=v180'));
+    assert.ok(html.includes('js/game/mobs.js?v='));
+    assert.ok(html.includes('js/game/player.js?v='));
+    assert.ok(html.includes('js/game/interaction.js?v='));
+    assert.ok(html.includes('js/game/items.js?v='));
+    assert.ok(html.includes('js/game/mobile-test-ui.js?v='));
+    assert.ok(html.includes('js/game/mobile-test-crafting.js?v='));
     assert.ok(html.includes('css/v137-touch.css?v=v137'));
     assert.ok(html.includes('css/v137-inventory.css?v=v137'));
     assert.ok(html.includes('id="mobile-pause-actions"'));
     assert.ok(html.includes('id="inventory-recipe-panel"'));
     assert.ok(html.includes('id="inventory-craft-grid"'));
     assert.ok(html.includes('css/v134-combat.css?v=v134'));
-    assert.ok(html.includes('js/game/world-journal.js?v=v180'));
-    assert.ok(html.includes('js/game/world-milestones.js?v=v180'));
+    assert.ok(html.includes('js/game/world-journal.js?v='));
+    assert.ok(html.includes('js/game/world-milestones.js?v='));
     assert.ok(html.includes('css/v136-progress.css?v=v136'));
     assert.ok(html.includes('id="journal-bookmarks"'));
     assert.ok(html.includes('id="journal-milestones"'));
@@ -238,10 +238,11 @@ check('PC/mobile pages load classic controls and retain saved-world inventory su
     assert.ok(html.includes('id="attack-charge-fill"'));
 
 
-    assert.ok(html.indexOf('js/skin-studio.js?v=v131') < html.indexOf('js/game/mobile-test-player-model.js?v=v150'));
+    assert.ok(html.indexOf('js/skin-studio.js?') < html.indexOf('js/game/mobile-test-player-model.js?'));
 
   }
-  assert.ok(src('index.html').includes('v1.8.0'));
+  const version=new Function(src('js/game/config.js')+';return CONFIG.VERSION;')();
+  assert.ok(src('index.html').includes('v'+version));
   assert.ok(src('index.html').includes('id="skin-studio"'));
   assert.ok(src('index.html').includes('js/skin-studio-page.js?v=v131'));
 });

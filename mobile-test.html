@@ -22,12 +22,12 @@
 <link rel="stylesheet" href="css/v137-inventory.css?v=v137">
 <link rel="stylesheet" href="css/v137-touch.css?v=v137">
 <link rel="stylesheet" href="css/classic-furnace.css?v=v140">
-<link rel="stylesheet" href="css/classic.css?v=v171">
+<link rel="stylesheet" href="css/classic.css?v=v185">
 <link rel="stylesheet" href="css/biome-guide.css?v=v180">
 </head>
 <body>
 
-<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.8.0 · 지형 16종 · 전용 아이템 48종 · 지형 도감</div>
+<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.8.5 · 선인장·생존 HUD 개선 및 오류 수정</div>
 <div id="boot-error" class="boot-error hidden" role="alert">
   <div class="boot-error-panel">
     <div class="boot-error-icon">!</div>
@@ -58,10 +58,10 @@
 <div id="toast"></div>
 
 <div id="survival-hud" class="hidden">
-  <div id="hearts"></div>
+  <div id="hearts" aria-label="체력"></div>
   <div class="hud-right">
     <div id="airs"></div>
-    <div id="foods"></div>
+    <div id="foods" aria-label="배고픔"></div>
   </div>
 </div>
 <div id="item-name"></div>
@@ -392,34 +392,34 @@
   });
 })();
 </script>
-<script src="js/game/config.js?v=v180"></script>
+<script src="js/game/config.js?v=v185"></script>
 <script src="js/game/classic-settings.js?v=v140"></script>
 <script src="js/game/noise.js"></script>
 <script src="js/game/terrain-legacy.js?v=v180"></script>
-<script src="js/game/terrain.js?v=v180"></script>
-<script src="js/game/mobile-test-textures.js?v=v180"></script>
+<script src="js/game/terrain.js?v=v183"></script>
+<script src="js/game/mobile-test-textures.js?v=v185"></script>
 <script src="js/game/graphics.js?v=v170"></script>
 <script src="js/game/voxel-lighting.js?v=v170"></script>
-<script src="js/game/world.js?v=v180"></script>
+<script src="js/game/world.js?v=v185"></script>
 <script src="js/game/world-journal.js?v=v180"></script>
 <script src="js/game/world-milestones.js?v=v180"></script>
 <script src="js/game/block-furniture.js?v=v170"></script>
 <script src="js/game/block-physics.js?v=v132"></script>
-<script src="js/game/player.js?v=v170"></script>
+<script src="js/game/player.js?v=v185"></script>
 <script src="js/skin-studio.js?v=v131"></script>
-<script src="js/game/mobile-test-player-model.js?v=v150"></script>
+<script src="js/game/mobile-test-player-model.js?v=v185"></script>
 <script src="js/game/fluids.js?v=v129"></script>
-<script src="js/game/interaction.js?v=v170"></script>
+<script src="js/game/interaction.js?v=v185"></script>
 <script src="js/game/items.js?v=v170"></script>
 <script src="js/game/furnace-system.js?v=v170"></script>
 <script src="js/game/drops.js?v=v170"></script>
-<script src="js/game/mobs.js?v=v170"></script>
+<script src="js/game/mobs.js?v=v181"></script>
 <script src="js/game/farming.js?v=v170"></script>
 <script src="js/game/item-actions.js?v=v170"></script>
 <script src="js/game/save.js?v=v180"></script>
-<script src="js/game/mobile-test-crafting.js?v=v180"></script>
-<script src="js/game/mobile-test-ui.js?v=v171"></script>
-<script src="js/game/mobile-test-main.js?v=v180"></script>
+<script src="js/game/mobile-test-crafting.js?v=v184"></script>
+<script src="js/game/mobile-test-ui.js?v=v185"></script>
+<script src="js/game/mobile-test-main.js?v=v181"></script>
 <script>
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(() => {}));

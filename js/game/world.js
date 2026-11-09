@@ -269,6 +269,8 @@ const World = (() => {
             (n[2]===-1&&box[2]===0);
           if(onBoundary){
             const nb=getNb(x+n[0],y+n[1],z+n[2]);
+            // Stacked cactus sections share a cap; keep their inset sides visible.
+            if(id===BLOCK.CACTUS && nb===id && n[1]!==0)continue;
             if(nb>=0 && BLOCKS[nb] && !BLOCKS[nb].shape && isSolidBlock(nb))
               continue;
           }

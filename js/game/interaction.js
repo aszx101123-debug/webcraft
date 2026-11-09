@@ -92,9 +92,12 @@ const Interact = (() => {
     target = next;
     if (target) {
       highlight.position.set(target.x + .5, target.y + .5, target.z + .5);
+      const width = target.id === BLOCK.CACTUS ? .875 : 1;
+      highlight.scale.set(width, 1, width);
       highlight.visible = true;
       const progress = miningProgress();
       cracks.position.copy(highlight.position);
+      cracks.scale.copy(highlight.scale);
       cracks.visible = progress > .03;
       if(cracks.visible)cracks.material.opacity=.35+Math.min(.55,progress*.65);
     } else {
