@@ -663,9 +663,14 @@ const Mobs = (() => {
         if(World.getBlock(x,y,z)!==BLOCK.AIR || World.getBlock(x,y+1,z)!==BLOCK.AIR)continue;
         const floor=World.getBlock(x,y-1,z);
         if(!isSolidBlock(floor)||floor===BLOCK.LEAVES||floor===BLOCK.CACTUS)continue;
+        // A cave must lie below the actual terrain surface; tree canopies
+        // and player-built shelters should not count as underground caves.
+        if(y+3>=World.heightAt(x,z))continue;
         let roof=false;
         for(let ry=y+2;ry<CONFIG.HEIGHT;ry++){
-          if(isSolidBlock(World.getBlock(x,ry,z))){roof=true;break;}
+          const roofBlock=World.getBlock(x,ry,z);
+          if([BLOCK.LEAVES,BLOCK.BIRCH_LEAVES,BLOCK.SPRUCE_LEAVES,BLOCK.CHERRY_LEAVES].includes(roofBlock))continue;
+          if(isSolidBlock(roofBlock)){roof=true;break;}
         }
         if(!roof)continue;
         // Avoid spawning within a torch-lit shelter.
