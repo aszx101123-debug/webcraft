@@ -70,6 +70,16 @@ const BlockPhysics = (() => {
       if(!isFallingBlock(id) || y<=1)continue;
       if(!World.getChunk(x>>4,z>>4))continue;
       const below=World.getBlock(x,y-1,z);
+      // In the original block behavior, sand/gravel landing on a torch drops
+      // as an item instead of hovering in place or deleting the torch.
+      if(below===BLOCK.TORCH){
+        if(World.setBlock(x,y,z,BLOCK.AIR)){
+          if(typeof Drops!=='undefined')
+            Drops.spawn(id,1,x+.5,y-.35,z+.5,undefined,{world:true});
+          schedule(x,y+1,z);
+        }
+        continue;
+      }
       if(below!==BLOCK.AIR && below!==BLOCK.WATER && below!==BLOCK.WATER_FLOW)continue;
       // Restoring the source if the destination becomes invalid is safer than losing a block.
       if(!World.setBlock(x,y-1,z,id))continue;
