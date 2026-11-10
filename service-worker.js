@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.9.1-cave-fluid-mobs-settings-20261110';
+const VERSION = 'webcraft-v1.9.2-vanilla-style-menus-20261110';
 const CORE = [
   "./",
   "./index.html",
@@ -15,7 +15,7 @@ const CORE = [
   "./js/game/remote-players.js?v=v190",
   "./js/game/multiplayer-engine.js?v=v190",
   "./auth.html",
-  "./js/auth-play.js?v=v191",
+  "./js/auth-play.js?v=v192",
   "./js/auth-page.js?v=v186",
   "./js/supabase-client.js",
   "./js/community-credits-server.js?v=v186",
@@ -46,6 +46,7 @@ const CORE = [
   "./css/classic-furnace.css?v=v140",
   "./css/classic.css?v=v185",
   "./css/v191-cave-ui.css?v=v191",
+  "./css/v192-menu.css?v=v192",
   "./css/classic-home.css?v=v140",
   "./css/community-credits.css?v=phase3",
   "./pogl-game/vendor/three.min.js",
@@ -75,8 +76,9 @@ const CORE = [
   "./js/game/item-actions.js?v=v190",
   "./js/game/save.js?v=v190",
   "./js/game/mobile-test-crafting.js?v=v184",
-  "./js/game/mobile-test-ui.js?v=v191",
-  "./js/game/mobile-test-main.js?v=v191",
+  "./js/game/mobile-test-ui.js?v=v192",
+  "./js/game/pause-menu.js?v=v192",
+  "./js/game/mobile-test-main.js?v=v192",
   "./css/style.css",
   "./css/skin-studio.css?v=v131",
   "./css/v133-home.css?v=v133",
