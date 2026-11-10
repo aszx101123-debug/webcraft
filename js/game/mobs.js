@@ -18,8 +18,10 @@ const Mobs = (() => {
     return [{id:null,pos:Player.pos,dead:Player.dead||network?.localActive?.()===false},...(network?.players?.()||[])].filter(p=>p?.pos&&['x','y','z'].every(k=>Number.isFinite(p.pos[k])));
   }
   function damagePlayer(target,amount,cause,source){
-    if(target.id)network?.damage?.(target.id,amount,cause,source);
-    else Player.damage(amount,cause,source);
+    const applied=Difficulty.mobDamage(amount);
+    if(applied<=0)return;
+    if(target.id)network?.damage?.(target.id,applied,cause,source);
+    else Player.damage(applied,cause,source);
   }
 
   function init(scene_) {
@@ -531,7 +533,8 @@ const Mobs = (() => {
   }
   function spawn(type, x, y, z) {
     if (!group) return null;
-    const def = MOB_DEFS[type];
+    const def=MOB_DEFS[type];
+    if(!def || (Difficulty.isPeaceful() && def.hostile))return null;
     const built = buildMob(type);
     // Keep vanilla mob shapes recognizable in every biome; variants have their own models.
     built.mesh.position.set(x, y, z);
@@ -925,6 +928,13 @@ const Mobs = (() => {
     if(active)simulationTime+=dt;
     if(active)updateExplosionEffects(dt);
     if (!group) return;
+    // Peaceful removes existing threats rather than just blocking new spawns.
+    if(Difficulty.isPeaceful()){
+      for(let i=mobs.length-1;i>=0;i--)
+        if(mobs[i].def.hostile)removeMob(i);
+      for(let i=arrows.length-1;i>=0;i--)
+        if(!arrows[i].player)removeArrow(i);
+    }
     const pp = Player.pos;
     const survival = mode === GAME_MODE.SURVIVAL;
 
@@ -1210,7 +1220,7 @@ const Mobs = (() => {
         spawnTimer = 2.15;
         const hostiles = mobs.filter(m => m.def.hostile && !m.dead).length;
         const passives = mobs.filter(m => !m.def.hostile && !m.dead).length;
-        if (hostiles < MOB_CAPS.hostile) {
+        if (!Difficulty.isPeaceful() && hostiles < MOB_CAPS.hostile) {
           if (!trySpawnCave() && env.night) trySpawn('hostile');
         }
         if (passives < MOB_CAPS.passive && Math.random() < .5) trySpawn('passive');
@@ -1253,7 +1263,7 @@ const Mobs = (() => {
       if(!Array.isArray(row)||(row.length!==10&&row.length!==9)||!Number.isSafeInteger(row[0])||row[0]<1||!Object.prototype.hasOwnProperty.call(MOB_DEFS,row[1])||!row.slice(2,7).every(Number.isFinite)||row.slice(2,5).some(v=>Math.abs(v)>1000000)||row[7])continue;
       let m=mobs.find(m=>m.networkId===row[0]);
       if(m&&m.type!==row[1])continue;
-      if(!m){m=spawn(row[1],row[2],row[3],row[4]);m.networkId=row[0];}
+      if(!m){m=spawn(row[1],row[2],row[3],row[4]);if(!m)continue;m.networkId=row[0];}
       if(row[6]<m.hp){m.hurtT=.18;flash(m,true);}
       m.hp=Math.max(0,Math.min(m.def.hp,row[6]));m.pos.set(row[2],row[3],row[4]);m.yaw=row[5];m.moving=!!row[8];m.fuseT=Number.isFinite(row[9])?Math.max(0,Math.min(1.5,row[9])):0;keep.add(m.networkId);
     }
