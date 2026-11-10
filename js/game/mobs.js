@@ -446,6 +446,7 @@ const Mobs = (() => {
       strafeT: 2, strafeDir: 1, hurtT: 0, flashed: false,
       hurtGrace: 0, healthVisibleT: 0, provokedT: 0,
       burnT: 0, fleeT: 0, animT: 0, jumpT: 0, pathT: 0,
+      fuseT:0,fuseStarted:false,alertT:0,seeT:0,
       dead: false, deadT: 0
     };
     mobs.push(m);
@@ -618,7 +619,7 @@ const Mobs = (() => {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(.07, .07, .55), mat(0x9a7a4a));
     mesh.position.copy(from);
     group.add(mesh);
-    arrows.push({ networkId:nextNetworkId++,pos: from.clone(), vel, mesh, life: 5 });
+    arrows.push({ networkId:nextNetworkId++,pos: from.clone(), vel, mesh, life: 5, slow:m.type==='stray' });
     if (onEvent) onEvent('shoot', m);
   }
 
@@ -784,6 +785,27 @@ const Mobs = (() => {
     spawn(kind,x+.5,y+1,z+.5);
   }
 
+  function creeperDetonate(m) {
+    // An entirely fictional, gameplay-only area event. Protect existing
+    // builds by default; this update does not modify world block data.
+    const center={x:m.pos.x,y:m.pos.y+1,z:m.pos.z};
+    if(mode===GAME_MODE.SURVIVAL){
+      for(const player of networkPlayers()){
+        if(player.dead)continue;
+        const d=Math.hypot(player.pos.x-center.x,player.pos.y+.9-center.y,player.pos.z-center.z);
+        if(d>4.25)continue;
+        if(!hasLineOfSight(center,{x:player.pos.x,y:player.pos.y+1,z:player.pos.z}))continue;
+        damagePlayer(player,Math.max(1,Math.ceil(12*(1-d/4.5))), '크리퍼',center);
+      }
+    }
+    for(const other of mobs){
+      if(other===m||other.dead)continue;
+      const d=other.pos.distanceTo(m.pos);
+      if(d<3.15)hurtMob(other,Math.max(1,Math.round(7*(1-d/3.25))),m.pos);
+    }
+    if(onEvent)onEvent('explode',m);
+  }
+
   function lerpAngle(a, b, t) {
     let d = (b - a) % (Math.PI * 2);
     if (d > Math.PI) d -= Math.PI * 2;
@@ -813,7 +835,12 @@ const Mobs = (() => {
       }
       if (!active) continue;
 
-      const target=networkPlayers().filter(p=>!p.dead).sort((a,b)=>m.pos.distanceToSquared(a.pos)-m.pos.distanceToSquared(b.pos))[0]||{pos:Player.pos,dead:true,id:null};
+      const candidates=networkPlayers().filter(p=>!p.dead);
+      let target={pos:Player.pos,dead:true,id:null},nearest=Infinity;
+      for(const p of candidates){
+        const d=m.pos.distanceToSquared(p.pos);
+        if(d<nearest){nearest=d;target=p;}
+      }
       const pp=target.pos;
 
       const dx = pp.x - m.pos.x, dz = pp.z - m.pos.z;
@@ -840,6 +867,16 @@ const Mobs = (() => {
       m.provokedT = Math.max(0,m.provokedT-dt);
       m.jumpT -= dt;
       m.pathT -= dt;
+      m.alertT=Math.max(0,m.alertT-dt);
+      m.seeT-=dt;
+      if(m.def.hostile && !target.dead && m.seeT<=0){
+        m.seeT=.4+Math.random()*.25;
+        if(dist<m.def.aggro &&
+           hasLineOfSight({x:m.pos.x,y:m.pos.y+m.def.height*.78,z:m.pos.z},
+                          {x:pp.x,y:pp.y+1.0,z:pp.z})){
+          m.alertT=3.6;
+        }
+      }
       if (m.hurtT <= 0 && m.flashed) flash(m, false);
 
       let speed = m.def.speed;
@@ -864,12 +901,31 @@ const Mobs = (() => {
           m.moving=m.wanderMoving;
         }
       } else {
-        const aggro = survival && !target.dead && m.def.aggro && dist < m.def.aggro &&
-          (m.type!=='spider'||env.night||m.provokedT>0);
+        const aggro=survival && !target.dead && m.def.aggro && dist<m.def.aggro+4 &&
+          m.alertT>0 && (m.type!=='spider'||env.night||!skyExposed(m)||m.provokedT>0);
         if (aggro) {
           m.dir.set(dx, 0, dz).normalize();
           m.moving = true;
-          if (m.def.ranged) {
+          if(m.type==='creeper'){
+            // Creepers approach silently; the warning can be escaped before
+            // the fuse finishes if the player creates enough distance.
+            if(dist<3 && Math.abs(pp.y-m.pos.y)<2.3 &&
+               hasLineOfSight({x:m.pos.x,y:m.pos.y+1,z:m.pos.z},
+                              {x:pp.x,y:pp.y+1,z:pp.z})){
+              if(!m.fuseStarted && onEvent)onEvent('fuse',m);
+              m.fuseStarted=true;
+              m.fuseT+=dt;
+              m.moving=false;
+            }else if(dist>5.3 || m.alertT<=0){
+              m.fuseT=Math.max(0,m.fuseT-dt*4);
+              if(m.fuseT===0)m.fuseStarted=false;
+            }
+            if(m.fuseT>=1.5){
+              creeperDetonate(m);
+              removeMob(i);
+              continue;
+            }
+          }else if (m.def.ranged) {
             if (dist > 11) { /* approach */ }
             else if (dist < 5) { m.dir.set(-dx, 0, -dz).normalize(); }
             else {
@@ -887,6 +943,7 @@ const Mobs = (() => {
                 {x:pp.x,y:pp.y+1.1,z:pp.z})) {
             m.attackT = 1.2;
             damagePlayer(target,m.def.dmg, m.def.name + '에게 당했다', m.pos);
+            if(m.type==='husk' && !target.id)Player.applyMobEffect?.('hunger',7);
           }
         } else {
           m.wanderT -= dt;
@@ -901,7 +958,7 @@ const Mobs = (() => {
           m.moving=m.wanderMoving;
         }
 
-        if (!env.night && (m.type==='zombie'||m.type==='skeleton') && skyExposed(m)) {
+        if (!env.night && (m.type==='zombie'||m.type==='skeleton'||m.type==='stray') && skyExposed(m)) {
           m.burnT += dt;
           if (m.burnT >= 1) {
             m.burnT = 0;
@@ -911,9 +968,27 @@ const Mobs = (() => {
         }
       }
 
-      m.vel.x = m.moving ? m.dir.x * speed : m.vel.x * .8;
-      m.vel.z = m.moving ? m.dir.z * speed : m.vel.z * .8;
-      m.vel.y = Math.max(m.vel.y - 26 * dt, -40);
+      if(m.type==='slime'){
+        // Slimes move in bouncy hops rather than sliding along the ground.
+        if(m.onGround && m.jumpT<=0){
+          m.vel.y=6.9;
+          m.jumpT=.8+Math.random()*.45;
+        }
+        if(m.onGround && m.jumpT>.2){
+          m.vel.x*=.82;m.vel.z*=.82;
+        }else{
+          m.vel.x=m.moving?m.dir.x*speed:m.vel.x*.90;
+          m.vel.z=m.moving?m.dir.z*speed:m.vel.z*.90;
+        }
+      }else{
+        const k=1-Math.exp(-dt*(m.onGround?9:3));
+        m.vel.x+=( (m.moving?m.dir.x*speed:0)-m.vel.x)*k;
+        m.vel.z+=( (m.moving?m.dir.z*speed:0)-m.vel.z)*k;
+      }
+      const inWater=World.getBlock(Math.floor(m.pos.x),Math.floor(m.pos.y+.3),Math.floor(m.pos.z));
+      if(inWater===BLOCK.WATER||inWater===BLOCK.WATER_FLOW)
+        m.vel.y=Math.min(2.2,m.vel.y+14*dt);
+      m.vel.y=Math.max(m.vel.y-26*dt,-40);
 
       m.onGround = false;
       const maxD = Math.max(Math.abs(m.vel.x), Math.abs(m.vel.y), Math.abs(m.vel.z)) * dt;
@@ -933,6 +1008,14 @@ const Mobs = (() => {
 
       if (m.moving) m.yaw = lerpAngle(m.yaw, Math.atan2(m.dir.x, m.dir.z), Math.min(1, dt * 8));
       m.mesh.rotation.y = m.yaw;
+      m.mesh.scale.set(1,1,1);
+      if(m.type==='creeper' && m.fuseT>0){
+        const flash=Math.sin(m.fuseT*30)>0?1.08:1.0;
+        m.mesh.scale.set(flash,1+m.fuseT*.11,flash);
+      }else if(m.type==='slime'){
+        const hop=Math.max(0,m.vel.y)/7;
+        m.mesh.scale.set(1-hop*.13,1+hop*.17,1-hop*.13);
+      }
       m.animT += dt * (m.moving ? speed * 3.2 : .25);
       m.mesh.position.copy(m.pos);
       m.mesh.position.y += m.moving
@@ -986,7 +1069,9 @@ const Mobs = (() => {
           }
         }else if(mode===GAME_MODE.SURVIVAL){
           for(const target of networkPlayers())if(!target.dead&&Math.abs(a.pos.x-target.pos.x)<.45&&Math.abs(a.pos.z-target.pos.z)<.45&&a.pos.y>target.pos.y&&a.pos.y<target.pos.y+1.9){
-            damagePlayer(target,3,'스켈레톤의 화살',a.pos);hit=true;break;
+            damagePlayer(target,3,a.slow?'스트레이의 화살':'스켈레톤의 화살',a.pos);
+            if(a.slow && !target.id)Player.applyMobEffect?.('slow',6);
+            hit=true;break;
           }
         }
       }
@@ -998,7 +1083,7 @@ const Mobs = (() => {
     if (active) {
       spawnTimer -= dt;
       if (spawnTimer <= 0) {
-        spawnTimer = 2.5;
+        spawnTimer = 2.15;
         const hostiles = mobs.filter(m => m.def.hostile && !m.dead).length;
         const passives = mobs.filter(m => !m.def.hostile && !m.dead).length;
         if (hostiles < MOB_CAPS.hostile) {
