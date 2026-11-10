@@ -24,11 +24,12 @@
 <link rel="stylesheet" href="css/classic-furnace.css?v=v140">
 <link rel="stylesheet" href="css/classic.css?v=v185">
 <link rel="stylesheet" href="css/biome-guide.css?v=v180">
+<link rel="stylesheet" href="css/v191-cave-ui.css?v=v191">
 <link rel="stylesheet" href="css/multiplayer.css?v=v190">
 </head>
 <body>
 
-<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.9.0 · 협동 멀티플레이 · 서바이벌 / 크리에이티브</div>
+<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.9.1 · 협동 멀티플레이 · 서바이벌 / 크리에이티브</div>
 <div id="boot-error" class="boot-error hidden" role="alert">
   <div class="boot-error-panel">
     <div class="boot-error-icon">!</div>
@@ -118,14 +119,32 @@
           <button type="button" data-mobile-act="drop" class="btn small">아이템 버리기</button>
         </div>
       </div>
-      <details id="classic-options">
-        <summary class="btn">설정...</summary>
-        <label class="classic-option" for="classic-fov">시야 <input id="classic-fov" type="range" min="30" max="110" value="70"><output id="classic-fov-value" for="classic-fov">보통 (70)</output></label>
-        <label class="classic-option" for="classic-sensitivity">마우스 감도 <input id="classic-sensitivity" type="range" min="10" max="200" value="100"><output id="classic-sensitivity-value" for="classic-sensitivity">100%</output></label>
-        <label class="classic-option" for="classic-invert">마우스 Y축 반전 <input id="classic-invert" type="checkbox"></label>
-        <label class="classic-option" for="sel-renderdist">렌더 거리 <select id="sel-renderdist"><option value="2">2청크 (빠름)</option><option value="3" selected>3청크</option><option value="4">4청크</option><option value="5">5청크 (넓게)</option></select></label>
-        <button id="btn-sound" class="btn">소리: 켜짐</button>
-        <button id="classic-options-reset" type="button" class="btn small">시야·감도 초기화</button>
+      <details id="classic-options" class="wc-settings">
+        <summary class="btn"><span>⚙ 게임 설정</span><small>화면 · 조작 · 소리</small></summary>
+        <div class="wc-settings-content">
+          <div class="wc-settings-title"><strong>빠른 설정</strong><p>기기에 맞는 설정을 한 번에 적용할 수 있어요.</p></div>
+          <div class="wc-settings-presets" role="group" aria-label="설정 프리셋">
+            <button type="button" class="btn small" data-settings-preset="fast">⚡ 성능 우선</button>
+            <button type="button" class="btn small" data-settings-preset="balanced">◆ 균형</button>
+            <button type="button" class="btn small" data-settings-preset="wide">◈ 넓은 시야</button>
+          </div>
+          <p id="settings-summary-live" class="wc-settings-summary" aria-live="polite">현재 설정을 불러오는 중…</p>
+          <fieldset class="wc-settings-group">
+            <legend>화면</legend>
+            <label class="classic-option" for="classic-fov"><span>시야각 (FOV)</span><input id="classic-fov" type="range" min="30" max="110" value="70"><output id="classic-fov-value" for="classic-fov">보통 (70)</output></label>
+            <label class="classic-option" for="sel-renderdist"><span>렌더 거리</span><select id="sel-renderdist"><option value="2">2청크 · 빠름</option><option value="3" selected>3청크 · 보통</option><option value="4">4청크 · 넓게</option><option value="5">5청크 · 고성능</option></select></label>
+            <p class="wc-settings-hint">렌더 거리를 높이면 멀리 보이지만 프레임이 낮아질 수 있어요.</p>
+          </fieldset>
+          <fieldset class="wc-settings-group">
+            <legend>조작</legend>
+            <label class="classic-option" for="classic-sensitivity"><span>마우스 감도</span><input id="classic-sensitivity" type="range" min="10" max="200" value="100"><output id="classic-sensitivity-value" for="classic-sensitivity">100%</output></label>
+            <label class="classic-option wc-settings-checkbox" for="classic-invert"><span>마우스 Y축 반전</span><input id="classic-invert" type="checkbox"></label>
+          </fieldset>
+          <fieldset class="wc-settings-group"><legend>오디오</legend>
+            <button id="btn-sound" type="button" class="btn wc-settings-sound">소리: 켜짐</button>
+          </fieldset>
+          <button id="classic-options-reset" type="button" class="btn small wc-settings-reset">시야·감도 초기화</button>
+        </div>
       </details>
       <details class="classic-help">
         <summary class="btn">조작법...</summary>
@@ -173,7 +192,7 @@
 
 <div id="picker" class="overlay hidden">
   <div class="panel picker-panel">
-    <h2>블록 상자</h2>
+    <h2>크리에이티브 블록 상자</h2>
     <p class="sub">카테고리나 블록 이름으로 검색하세요. 선택하면 핫바 슬롯에 장착됩니다.</p>
     <div class="picker-controls">
       <input id="picker-search" type="search" placeholder="블록 이름 검색..." aria-label="블록 이름 검색" autocomplete="off">
@@ -249,7 +268,20 @@
       <div id="inventory-recipe-detail" class="quick-recipe-detail" aria-label="선택한 제작법과 제작 버튼"></div>
     </section>
     <section id="inventory-creative-panel" class="java-creative-panel hidden" aria-label="크리에이티브 아이템 목록">
-      <input id="inventory-creative-search" type="search" placeholder="블록·아이템 검색" aria-label="블록과 아이템 검색" autocomplete="off">
+      <div class="wc-creative-heading"><strong>크리에이티브 아이템</strong><span id="inventory-creative-count" aria-live="polite"></span></div>
+      <div id="inventory-creative-categories" class="wc-creative-categories" role="group" aria-label="아이템 분류">
+        <button type="button" data-catalog-category="전체" aria-pressed="true">전체</button>
+        <button type="button" data-catalog-category="자연" aria-pressed="false">자연</button>
+        <button type="button" data-catalog-category="목재" aria-pressed="false">목재</button>
+        <button type="button" data-catalog-category="석재" aria-pressed="false">석재</button>
+        <button type="button" data-catalog-category="광석" aria-pressed="false">광석</button>
+        <button type="button" data-catalog-category="장식" aria-pressed="false">장식</button>
+        <button type="button" data-catalog-category="장비" aria-pressed="false">장비</button>
+        <button type="button" data-catalog-category="음식" aria-pressed="false">음식</button>
+        <button type="button" data-catalog-category="기타" aria-pressed="false">기타</button>
+      </div>
+      <div class="wc-creative-search">
+        <input id="inventory-creative-search" type="search" placeholder="블록·아이템 검색" aria-label="블록과 아이템 검색" autocomplete="off">
       <div id="inventory-creative-grid" class="java-creative-grid" role="group" aria-label="아이템을 선택하면 커서로 가져옵니다"></div>
     </section>
     <section class="inventory-main java-inventory-bottom" aria-label="내 소지품">
