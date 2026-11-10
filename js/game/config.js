@@ -1,7 +1,7 @@
 'use strict';
 
 const CONFIG = {
-  VERSION: '1.9.4',
+  VERSION: '2.0.0',
   MOB_HEALTH_BARS: false,
   CHUNK: 16,
   HEIGHT: 64,
@@ -111,7 +111,7 @@ const ITEM = Object.freeze({
   STRING:316,FEATHER:317,FLINT:318,PAPER:319,BOOK:320,IRON_NUGGET:321,
   GOLD_NUGGET:322,CHARCOAL:323,POPPY:324,DAISY:325,BUCKET:326,WATER_BUCKET:327,
   MILK_BUCKET:328,BOW:329,ARROW:330,SHEARS:331,COMPASS:332,CLOCK:333,
-  FISHING_ROD:334,SHIELD:335,GOLDEN_APPLE:336,
+  FISHING_ROD:334,SHIELD:335,GOLDEN_APPLE:336,GUNPOWDER:337,SLIME_BALL:338,
   DYE_WHITE:400,DYE_ORANGE:401,DYE_MAGENTA:402,DYE_LIGHT_BLUE:403,
   DYE_YELLOW:404,DYE_LIME:405,DYE_PINK:406,DYE_GRAY:407,
   DYE_LIGHT_GRAY:408,DYE_CYAN:409,DYE_PURPLE:410,DYE_BLUE:411,
@@ -238,6 +238,8 @@ newItem(ITEM.ARROW,'화살','재료',{useHint:'활로 발사하는 탄약'});
 newItem(ITEM.COMPASS,'나침반','도구',{maxStack:1,useHint:'우클릭: 리스폰 지점의 방향과 거리'});
 newItem(ITEM.CLOCK,'시계','도구',{maxStack:1,useHint:'우클릭: 현재 월드 시간'});
 newItem(ITEM.GOLDEN_APPLE,'황금 사과','음식',{food:4,heals:8,useHint:'우클릭: 체력 8과 배고픔 4 회복'});
+newItem(ITEM.GUNPOWDER,'화약','재료',{tiles:{all:[0,22]},useHint:'크리퍼 처치 시 획득하는 게임 속 재료'});
+newItem(ITEM.SLIME_BALL,'슬라임볼','재료',{tiles:{all:[1,22]},useHint:'슬라임 처치 시 획득하는 게임 속 재료'});
 for(const wool of WOOL_TYPES)ITEMS[wool.dye]={name:wool.name+' 염료',category:'염료',tiles:{all:[wool.dye-400,15]},color:wool.color,useHint:'양털 염색과 색 혼합 제작'};
 ITEMS[ITEM.PORK].food=3;ITEMS[ITEM.BEEF].food=3;ITEMS[ITEM.CHICKEN].food=2;ITEMS[ITEM.MUTTON].food=2;
 
@@ -470,7 +472,7 @@ const SURVIVAL = {
   FALL_SAFE: 3, FIST_DMG: 1
 };
 
-const MOB_CAPS = { hostile: 12, passive: 10 };
+const MOB_CAPS = { hostile: 14, passive: 12 };
 
 const MOB_DEFS = {
   pig:      { name: '돼지',    hostile: false, hp: 10, speed: 1.5, height: .9, width: .82,  drops: [{ id: ITEM.PORK, min: 1, max: 2 }] },
@@ -479,7 +481,11 @@ const MOB_DEFS = {
   chicken:  { name: '닭',      hostile: false, hp: 4,  speed: 1.3, height: .65, width: .45, drops: [{ id: ITEM.CHICKEN, min: 1, max: 1 }, {id:ITEM.FEATHER,min:1,max:2}] },
   zombie:   { name: '좀비',    hostile: true,  hp: 20, speed: 2.35, height: 1.9,  width: .62, dmg: 3, aggro: 24, drops: [{ id: ITEM.ROTTEN, min: 1, max: 1, chance: .45 }, {id:ITEM.CARROT,min:1,max:1,chance:.12}, {id:ITEM.POTATO,min:1,max:1,chance:.12}] },
   skeleton: { name: '스켈레톤', hostile: true, hp: 20, speed: 2.15, height: 1.9, width: .56, dmg: 3, aggro: 26, ranged: true, drops: [{id:ITEM.BONE,min:1,max:2}, {id:ITEM.ARROW,min:1,max:3}] },
-  spider:   { name: '거미',    hostile: true,  hp: 16, speed: 3.2, height: .75, width: 1.0,  dmg: 2.5, aggro: 18, drops: [{id:ITEM.STRING,min:1,max:2}] }
+  spider:   { name: '거미',    hostile: true, hp: 16, speed: 3.2, height: .75, width: 1.0, dmg: 2.5, aggro: 18, drops:[{id:ITEM.STRING,min:1,max:2}] },
+  creeper:  { name:'크리퍼', hostile:true,hp:20,speed:2.2,height:1.7,width:.62,aggro:16,explode:true,drops:[{id:ITEM.GUNPOWDER,min:0,max:2}] },
+  husk:     { name:'허스크', hostile:true,hp:20,speed:2.25,height:1.9,width:.62,dmg:3,aggro:24,drops:[{id:ITEM.ROTTEN,min:0,max:2}] },
+  stray:    { name:'스트레이', hostile:true,hp:20,speed:2.15,height:1.9,width:.56,dmg:3,aggro:26,ranged:true,slowArrow:true,drops:[{id:ITEM.BONE,min:0,max:2},{id:ITEM.ARROW,min:0,max:2}] },
+  slime:    { name:'슬라임',hostile:true,hp:12,speed:2.25,height:.83,width:.84,dmg:2,aggro:12,slime:true,drops:[{id:ITEM.SLIME_BALL,min:0,max:2}] }
 };
 
 // Local voxel AABBs, used consistently by world meshing, player movement and placement.
