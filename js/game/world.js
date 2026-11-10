@@ -11,6 +11,7 @@ const World = (() => {
   let pendingSet = new Set();
   let fluidLevels = new Map();
   let waterSources = new Set();
+  let naturalSprings = new Map(); // Loaded chunk cave springs; never persisted as player edits.
   let matSolid = null, matWater = null, matTorch = null, matPlants = null;
   const lightMap = VoxelLighting.create();
   const daylight = { value: 1 };
@@ -86,6 +87,7 @@ const World = (() => {
     interestPoints = [];
     fluidLevels = new Map();
     waterSources = new Set();
+    naturalSprings = new Map();
     if (editsEntries) {
       for (const [k, list] of editsEntries) {
         const map = new Map(list);
@@ -197,6 +199,7 @@ const World = (() => {
       if ((Math.abs(ch.cx - pcx) > limit || Math.abs(ch.cz - pcz) > limit)&&!nearPeer(ch.cx,ch.cz)) {
         disposeChunk(ch);
         chunks.delete(k);
+        naturalSprings.delete(k);
         dirtySet.delete(k);
         for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++)
           markDirty(ch.cx + dx, ch.cz + dz);
@@ -211,6 +214,25 @@ const World = (() => {
     }
   }
 
+  function indexNaturalSprings(cx, cz, data) {
+    // Scan on chunk generation, not every frame. Only buried water next to
+    // open cave air is eligible; ocean/river water must not flood the world.
+    const springs=[];
+    const maxY=Math.min(CONFIG.SEA-3,H-3);
+    for(let y=5;y<=maxY && springs.length<14;y++)
+      for(let x=1;x<C-1 && springs.length<14;x++)
+        for(let z=1;z<C-1 && springs.length<14;z++){
+          if(data[Terrain.idx(x,y,z)]!==BLOCK.WATER)continue;
+          if(data[Terrain.idx(x,y+1,z)]===BLOCK.AIR)continue;
+          const exposed=[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dz])=>
+            data[Terrain.idx(x+dx,y,z+dz)]===BLOCK.AIR ||
+            data[Terrain.idx(x+dx,y-1,z+dz)]===BLOCK.AIR);
+          if(!exposed)continue;
+          springs.push((cx*C+x)+','+y+','+(cz*C+z));
+        }
+    naturalSprings.set(key(cx,cz),springs);
+  }
+
   function generateOne() {
     if (!pending.length) return false;
     const p = pending.shift();
@@ -221,6 +243,7 @@ const World = (() => {
     const e = edits.get(k);
     if (e) for (const [li, id] of e) data[li] = id;
     chunks.set(k, { cx: p.cx, cz: p.cz, data, mesh: null, waterMesh: null });
+    indexNaturalSprings(p.cx,p.cz,data);
     for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++)
       markDirty(p.cx + dx, p.cz + dz);
     return true;
@@ -477,7 +500,12 @@ const World = (() => {
     markDirty(x >> 4, z >> 4);
   }
 
-  function getWaterSources() { return [...waterSources]; }
+  function getWaterSources() {
+    const all=new Set(waterSources);
+    for(const list of naturalSprings.values())
+      for(const source of list)all.add(source);
+    return [...all];
+  }
 
   function getFluidLevel(x, y, z) {
     if (World.getBlock(x, y, z) === BLOCK.WATER) return 8;
@@ -496,6 +524,7 @@ const World = (() => {
     const data=gen.genChunk(cx,cz),changed=edits.get(k);
     if(changed)for(const [index,id] of changed)data[index]=id;
     chunks.set(k,{cx,cz,data,mesh:null,waterMesh:null});
+    indexNaturalSprings(cx,cz,data);
     for(let dx=-1;dx<=1;dx++)for(let dz=-1;dz<=1;dz++)markDirty(cx+dx,cz+dz);
   }
   function applyRemoteBlock(x,y,z,id){
