@@ -654,6 +654,9 @@ const Mobs = (() => {
     // two empty blocks, a solid floor and a real roof (not open night terrain).
     const peers=networkPlayers().filter(p=>!p.dead);
     const pp=peers.length?peers[Math.floor(Math.random()*peers.length)].pos:Player.pos;
+    // Surface players should not fill the hostile-mob cap with invisible
+    // underground creatures. The caves come alive when players enter them.
+    if(pp.y+2>=World.heightAt(Math.floor(pp.x),Math.floor(pp.z)))return false;
     for(let attempt=0;attempt<9;attempt++){
       const a=Math.random()*Math.PI*2, d=14+Math.random()*20;
       const x=Math.floor(pp.x+Math.cos(a)*d),z=Math.floor(pp.z+Math.sin(a)*d);
