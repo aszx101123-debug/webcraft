@@ -649,6 +649,45 @@ const Mobs = (() => {
     volcanic: {passive:[],hostile:['skeleton','zombie','spider']},
     crystal: {passive:['sheep','chicken'],hostile:['skeleton','spider','zombie']}
   };
+  function trySpawnCave() {
+    // Hostile spawns are allowed underground even in daylight, but require
+    // two empty blocks, a solid floor and a real roof (not open night terrain).
+    const peers=networkPlayers().filter(p=>!p.dead);
+    const pp=peers.length?peers[Math.floor(Math.random()*peers.length)].pos:Player.pos;
+    for(let attempt=0;attempt<9;attempt++){
+      const a=Math.random()*Math.PI*2, d=14+Math.random()*20;
+      const x=Math.floor(pp.x+Math.cos(a)*d),z=Math.floor(pp.z+Math.sin(a)*d);
+      if(!World.getChunk(x>>4,z>>4))continue;
+      const startY=Math.min(CONFIG.HEIGHT-5,Math.max(6,Math.floor(pp.y+6+Math.random()*6)));
+      for(let y=startY;y>=Math.max(3,Math.floor(pp.y)-13);y--){
+        if(World.getBlock(x,y,z)!==BLOCK.AIR || World.getBlock(x,y+1,z)!==BLOCK.AIR)continue;
+        const floor=World.getBlock(x,y-1,z);
+        if(!isSolidBlock(floor)||floor===BLOCK.LEAVES||floor===BLOCK.CACTUS)continue;
+        let roof=false;
+        for(let ry=y+2;ry<CONFIG.HEIGHT;ry++){
+          if(isSolidBlock(World.getBlock(x,ry,z))){roof=true;break;}
+        }
+        if(!roof)continue;
+        // Avoid spawning within a torch-lit shelter.
+        let lit=false;
+        for(let dx=-4;dx<=4&&!lit;dx+=2)
+          for(let dz=-4;dz<=4&&!lit;dz+=2)
+            for(let dy=-2;dy<=3;dy++){
+              const id=World.getBlock(x+dx,y+dy,z+dz);
+              if(id===BLOCK.TORCH||id===BLOCK.LANTERN||id===BLOCK.GLOWSTONE){lit=true;break;}
+            }
+        if(lit)continue;
+        const biome=World.biomeAt(x,z);
+        const pool=(spawnPools[biome]||spawnPools.plains).hostile;
+        if(!pool?.length)continue;
+        const type=pool[Math.floor(Math.random()*pool.length)];
+        spawn(type,x+.5,y,z+.5);
+        return true;
+      }
+    }
+    return false;
+  }
+
   function trySpawn(category) {
     const candidates=networkPlayers().filter(p=>!p.dead);
     const pp=candidates.length?candidates[Math.floor(Math.random()*candidates.length)].pos:Player.pos;
@@ -892,7 +931,9 @@ const Mobs = (() => {
         spawnTimer = 2.5;
         const hostiles = mobs.filter(m => m.def.hostile && !m.dead).length;
         const passives = mobs.filter(m => !m.def.hostile && !m.dead).length;
-        if (env.night && hostiles < MOB_CAPS.hostile) trySpawn('hostile');
+        if (hostiles < MOB_CAPS.hostile) {
+          if (!trySpawnCave() && env.night) trySpawn('hostile');
+        }
         if (passives < MOB_CAPS.passive && Math.random() < .5) trySpawn('passive');
       }
     }
