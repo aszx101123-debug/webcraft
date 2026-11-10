@@ -304,7 +304,12 @@ const MultiplayerEngine = (()=>{
       applyState,
       event:data=>{
         if(data?.kind==='entities')entities(data.value);
-        else if(data?.kind==='damage'&&Number.isFinite(data.amount)&&data.amount>0&&data.amount<=40&&data.source&&['x','y','z'].every(k=>Number.isFinite(data.source[k])))Player.damage(data.amount,String(data.cause||'몹의 공격').slice(0,80),data.source);
+        else if(data?.kind==='damage'&&Number.isFinite(data.amount)&&data.amount>0&&data.amount<=40&&data.source&&['x','y','z'].every(k=>Number.isFinite(data.source[k]))){
+          const cause=String(data.cause||'몹의 공격').slice(0,80);
+          Player.damage(data.amount,cause,data.source);
+          if(cause==='스트레이의 화살')Player.applyMobEffect?.('slow',6);
+          if(cause.includes('허스크'))Player.applyMobEffect?.('hunger',7);
+        }
       },
       members:members=>{avatars.members(members);const label=document.getElementById('mp-members');if(label)label.textContent=members.map(p=>p.name).join(' · ');},
       pose:(id,pose)=>avatars.pose(id,pose),
