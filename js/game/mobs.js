@@ -79,7 +79,7 @@ const Mobs = (() => {
   function buildMob(type) {
     const kind=type==='husk'?'zombie':type==='stray'?'skeleton':type==='mooshroom'?'cow':type;
     const g = new THREE.Group();
-    const parts = { legs: [], arms: [], extraLegs: [], eyes: [], head: null, healthBar: null, detailGroup: null };
+    const parts = { legs: [], arms: [], extraLegs: [], spiderLegs: [], eyes: [], head: null, healthBar: null, detailGroup: null, fuseGroup: null };
     const limb = (w, h, d, color, x, y, z) => {
       const l = box(w, h, d, color, x, y, z);
       parts.legs.push(l);
@@ -216,25 +216,27 @@ const Mobs = (() => {
       eye(.17,.53,.424,0x1b3920,.12,.16);
       g.add(box(.26,.06,.026,0x245127,0,.26,.43));
     } else if (kind==='spider') {
-      g.add(box(.96, .5, 1.08, 0x25242b, 0, .5, -.08));
-      g.add(box(.5, .4, .54, 0x36343d, 0, .46, .6));
-      g.add(box(.64, .18, .62, 0x16151a, 0, .58, -.1));
-      eye(.14, .52, .89, 0xe04a43, .08, .08); eye(-.14, .52, .89, 0xe04a43, .08, .08);
-      eye(.05, .42, .91, 0x9b302f, .055, .06); eye(-.05, .42, .91, 0x9b302f, .055, .06);
-      for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-        const x = sx * .66, z = sz * .28;
-        const a = box(.72, .08, .08, 0x17161b, x, .42, z);
-        a.rotation.y = sz * .18;
-        parts.legs.push(a);
-        g.add(a);
-        const tip = box(.42, .07, .07, 0x17161b, sx * .9, .29, sz * .5);
-        tip.rotation.z = sx * .42;
-        tip.rotation.y = sz * .22;
-        parts.legs.push(tip);
-        g.add(tip);
+      // Eight articulated leg pivots, four on each side.
+      g.add(box(.91,.45,1.04,0x26232b,0,.48,-.18));
+      g.add(box(.52,.35,.49,0x36313b,0,.48,.49));
+      for (const sx of [-1,1]) for(let i=0;i<4;i++){
+        const anchor=new THREE.Group();
+        anchor.position.set(sx*.36,.47,(i-1.5)*.26);
+        const thigh=box(.46,.09,.11,0x241e2a,sx*.25,.075,0);
+        thigh.rotation.z=-sx*.28;
+        const knee=box(.13,.13,.13,0x3a2b3d,sx*.50,.08,0);
+        const shin=box(.13,.41,.12,0x201923,sx*.58,-.15,0);
+        shin.rotation.z=sx*.21;
+        anchor.add(thigh,knee,shin);
+        anchor.userData.spiderSide=sx;
+        anchor.userData.spiderIndex=i;
+        g.add(anchor);
+        parts.spiderLegs.push(anchor);
       }
-      g.add(box(.14, .1, .08, 0xb72e31, .08, .25, .94));
-      g.add(box(.14, .1, .08, 0xb72e31, -.08, .25, .94));
+      for(const x of [-.16,.16]){
+        eye(x,.55,.76,0xe25b4a,.085,.09);
+        eye(x*.45,.43,.77,0xad3e3d,.05,.055);
+      }
     }
     // Pixel-overlaid details and animated shoulder/hip joints for each species.
     const detailGroup=new THREE.Group();
@@ -397,49 +399,11 @@ const Mobs = (() => {
     parts.healthBar={group:health,fill};
     return { mesh: g, parts };
   }
-  // Regional mob details: existing species, biome-specific textures and behavior pools.
-  function dressForBiome(mesh,type,biome) {
-    const cold=['snowy','glacier'].includes(biome);
-    const wet=['swamp','jungle','bamboo','mushroom'].includes(biome);
-    const arid=['desert','badlands','savanna','volcanic'].includes(biome);
-    if(!(cold||wet||arid))return;
-    const accents=new THREE.Group();
-    accents.name='regional-mob-details';
-    const mark=(w,h,d,color,x,y,z)=>accents.add(box(w,h,d,color,x,y,z));
-    if(cold){
-      // Frost along backs and shoulders, blue-white fur for cold-weather sheep.
-      if(type==='sheep'||type==='cow'||type==='pig'){
-        mark(.42,.055,.42,0xe5f2f5,0,1.25,-.08);
-        mark(.16,.05,.20,0xc7e6f3,.32,1.1,-.12);
-        mark(.16,.05,.20,0xc7e6f3,-.32,1.1,-.12);
-      }else{
-        mark(.38,.12,.17,0xbfe4ee,0,1.66,-.12);
-        mark(.16,.14,.07,0xe0f5fa,.22,1.46,.05);
-      }
-    }else if(wet){
-      if(type==='spider'||type==='zombie'){
-        mark(.36,.08,.22,0x4c8b60,0,1.12,-.12);
-        mark(.12,.11,.13,0x89ad57,-.23,1.04,-.04);
-      }else{
-        mark(.3,.05,.27,0x779b56,0,.95,-.08);
-      }
-    }else if(arid){
-      if(type==='skeleton'||type==='zombie'){
-        mark(.32,.085,.28,0xc19b68,0,1.68,-.12);
-        mark(.18,.08,.13,0x897153,.17,1.32,.08);
-      }else{
-        mark(.28,.05,.25,0xbba070,0,.96,-.04);
-      }
-    }
-    mesh.add(accents);
-  }
-
   function spawn(type, x, y, z) {
     if (!group) return null;
     const def = MOB_DEFS[type];
     const built = buildMob(type);
-    const biome = World.biomeAt(x,z);
-    dressForBiome(built.mesh,type,biome);
+    // Keep vanilla mob shapes recognizable in every biome; variants have their own models.
     built.mesh.position.set(x, y, z);
     group.add(built.mesh);
     const m = {
@@ -1029,13 +993,23 @@ const Mobs = (() => {
       }
       m.animT += dt * (m.moving ? speed * 3.2 : .25);
       m.mesh.position.copy(m.pos);
-      m.mesh.position.y += m.moving
-        ? Math.sin(m.animT*2)*.025 : Math.sin(m.animT*.8)*.008;
+      // Body stays grounded; only a slight step-bob on moving mobs.
+      m.mesh.position.y+=m.moving && m.type!=='slime' ? Math.sin(m.animT*2)*.007 : 0;
       m.mesh.rotation.z = m.moving
         ? Math.sin(m.animT)*.014 : Math.sin(m.animT*.45)*.006;
       m.parts.legs.forEach((l, li) => {
-        l.rotation.x = m.moving ? Math.sin(m.animT + (li % 2) * Math.PI) * .50
-          : l.rotation.x * Math.max(0,1-dt*5);
+        // Quadrupeds move opposing diagonal pairs, rather than both legs on a side.
+        const phase=m.parts.legs.length===4
+          ? ((li===0||li===3)?0:Math.PI) : (li%2)*Math.PI;
+        l.rotation.x=m.moving?Math.sin(m.animT+phase)*.48
+          :l.rotation.x*Math.exp(-dt*9);
+      });
+      m.parts.spiderLegs.forEach((leg,i)=>{
+        const side=leg.userData.spiderSide;
+        const phase=i%4===0||i%4===3?0:Math.PI;
+        const step=m.moving?Math.sin(m.animT*1.25+phase)*.20:0;
+        leg.rotation.y=side*step;
+        leg.rotation.z=side*(.04+Math.abs(step)*.12);
       });
       m.parts.arms.forEach((arm,i)=>{
         const base=arm.userData.baseX||0;
@@ -1165,7 +1139,14 @@ const Mobs = (() => {
         m.mesh.scale.set(1+Math.sin(m.animT*10)*.035,1-Math.sin(m.animT*10)*.065,1+Math.sin(m.animT*10)*.035);
       }
       m.animT+=dt;const step=m.moving?Math.sin(m.animT*9)*.5:0;
-      m.parts.legs.forEach((leg,i)=>leg.rotation.x=step*(i%2?-1:1));
+      m.parts.legs.forEach((leg,i)=>{
+        const phase=m.parts.legs.length===4?(i===0||i===3?1:-1):(i%2?-1:1);
+        leg.rotation.x=step*phase;
+      });
+      m.parts.spiderLegs.forEach((leg,i)=>{
+        const phase=i%4===0||i%4===3?1:-1;
+        leg.rotation.y=leg.userData.spiderSide*step*.35*phase;
+      });
       m.parts.arms.forEach((arm,i)=>arm.rotation.x=step*(i%2?1:-1));
       m.hurtT=Math.max(0,m.hurtT-dt);if(!m.hurtT&&m.flashed)flash(m,false);
     }
