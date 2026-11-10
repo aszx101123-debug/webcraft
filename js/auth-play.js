@@ -7,7 +7,7 @@ document.body.appendChild(notice);
 try {
   const sources = [
     "pogl-game/vendor/three.min.js",
-    "js/game/config.js?v=v200",
+    "js/game/config.js?v=v201",
     "js/game/classic-settings.js?v=v193",
     "js/game/noise.js",
     "js/game/terrain-legacy.js?v=v180",
@@ -28,7 +28,7 @@ try {
     "js/game/items.js?v=v170",
     "js/game/furnace-system.js?v=v190",
     "js/game/drops.js?v=v190",
-    "js/game/mobs.js?v=v200",
+    "js/game/mobs.js?v=v201",
     "js/game/farming.js?v=v190",
     "js/game/item-actions.js?v=v190",
     "js/game/save.js?v=v190",
