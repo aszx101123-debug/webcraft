@@ -101,9 +101,13 @@ window.webcraftBoot = (async () => {
     sound: saved ? saved.sound !== false : true,
     suppressPause: false,
     paused: false,
-    mode: room ? room.mode : saved && saved.version >= 2 && saved.mode ? saved.mode : GAME_MODE.SURVIVAL
+    mode: room ? room.mode : saved && saved.version >= 2 && saved.mode ? saved.mode : GAME_MODE.SURVIVAL,
+    difficulty: Difficulty.normalize(room
+      ? (Multiplayer.initial?.meta?.difficulty ?? saved?.difficulty)
+      : saved?.difficulty)
   };
 
+  Difficulty.set(state.difficulty);
   Player.setMode(state.mode);
   Mobs.setMode(state.mode);
   let savedHotbar = null;
@@ -160,6 +164,8 @@ window.webcraftBoot = (async () => {
     WorldJournal.close(false);
     document.exitPointerLock?.();
     UI.showDeath(cause);
+    const worldLabel=document.getElementById('death-world');
+    if(worldLabel)worldLabel.textContent=worldMeta.name+' · 난이도: '+Difficulty.info().name;
     doSave(true);
   };
   Player.onEat = () => { };
@@ -318,6 +324,7 @@ window.webcraftBoot = (async () => {
       renderDist: state.renderDist,
       sound: state.sound,
       mode: state.mode,
+      difficulty: state.difficulty,
       hp: Player.hp,
       food: Player.food,
       spawn: { x: Player.spawnPoint.x, y: Player.spawnPoint.y, z: Player.spawnPoint.z },
@@ -1124,6 +1131,13 @@ window.webcraftBoot = (async () => {
     UI.hideDeath();
     resumeInput();
   });
+  document.getElementById('btn-death-title')?.addEventListener('click',()=>{
+    // Return to the saved spawn point before saving so reopening the world
+    // never loads a healthy player at the previous death coordinates.
+    Player.respawn();
+    if(doSave(true))location.href='index.html';
+    else UI.showToast('저장하지 못했습니다. 다시 시도해 주세요.');
+  });
   document.getElementById('picker-close').addEventListener('click', () => { UI.closePicker(); resumeInput(); });
   document.getElementById('btn-newworld').addEventListener('click', () => {
     if (!confirm('현재 월드는 저장된 상태로 남기고 새 월드를 만들까요?')) return;
@@ -1141,6 +1155,29 @@ window.webcraftBoot = (async () => {
   syncModeBtn();
   modeBtn.addEventListener('click', () => {
     setMode(state.mode === GAME_MODE.SURVIVAL ? GAME_MODE.CREATIVE : GAME_MODE.SURVIVAL);
+  });
+  const difficultyBtn=document.getElementById('btn-difficulty');
+  const difficultyDescription=document.getElementById('wc-difficulty-description');
+  function syncDifficultyBtn(){
+    const value=Difficulty.INFO[state.difficulty]||Difficulty.INFO.normal;
+    if(difficultyBtn){
+      difficultyBtn.textContent='난이도: '+value.name;
+      difficultyBtn.disabled=!!room && !Multiplayer.isHost;
+      difficultyBtn.setAttribute('aria-label','난이도: '+value.name+' · 클릭하여 변경');
+    }
+    if(difficultyDescription)
+      difficultyDescription.textContent=value.description+
+        (room&&!Multiplayer.isHost?' (방장만 난이도를 변경할 수 있습니다.)':'');
+  }
+  syncDifficultyBtn();
+  difficultyBtn?.addEventListener('click',()=>{
+    if(room&&!Multiplayer.isHost)return;
+    state.difficulty=Difficulty.next();
+    syncDifficultyBtn();
+    // The change is permanent for this world, including restored saves.
+    doSave(true);
+    Mobs.update(0,false);
+    UI.showToast('난이도: '+Difficulty.info().name);
   });
   const rdSel = document.getElementById('sel-renderdist');
   rdSel.value = String(state.renderDist);
