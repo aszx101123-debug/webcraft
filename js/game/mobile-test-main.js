@@ -1221,7 +1221,11 @@ window.webcraftBoot = (async () => {
       },onContainerDenied:()=>{state.paused=true;UI.showOverlay('pause');}});
   }
 
-  let frames = 0, fpsTime = 0, fps = 0;
+  // Vanilla-style first-person walk rhythm and a subtle landing dip.
+  // All offsets are cosmetic and never alter collision/aim physics.
+  let viewStep=0, viewBobWeight=0, viewLanding=0;
+  let wasViewGrounded=false;
+    let frames = 0, fpsTime = 0, fps = 0;
   const clock = new THREE.Clock();
   let hudTick = 0;
   let milestoneTick = 0;
@@ -1294,8 +1298,7 @@ window.webcraftBoot = (async () => {
         if(authority){BlockPhysics.update(dt);FurnaceSystem.update(dt);Farming.update(dt,state.time);}
         if(state.started&&!Player.dead)ItemActions.update(dt);
         if(UI.isFurnaceOpen() && ++furnaceUITick%6===0)UI.renderFurnace();
-        const sprinting = active && (keys['ControlLeft'] || keys['ControlRight']) &&
-          !(keys['ShiftLeft'] || keys['ShiftRight']) && keys['KeyW'] && !Player.flying;
+        const sprinting = active && Player.sprinting;
         if(state.started&&!Player.dead)Player.survivalTick(dt, sprinting);
         Mobs.update(dt, true);
         Drops.update(dt, Player.pos, state.started && state.mode === GAME_MODE.SURVIVAL && !Player.dead);
@@ -1304,9 +1307,8 @@ window.webcraftBoot = (async () => {
     }
 
     if(multiplayer)Multiplayer.frame(dt);
-    const sprinting = worldRunning && !state.paused && !Player.dead && (state.locked || (isTouch&&touchActive)) &&
-      (keys['ControlLeft'] || keys['ControlRight']) && !(keys['ShiftLeft'] || keys['ShiftRight']) &&
-      keys['KeyW'] && !Player.flying;
+    const sprinting = worldRunning && !state.paused && !Player.dead &&
+      (state.locked || (isTouch&&touchActive)) && Player.sprinting;
     const targetFov = Math.min(120,classicOptions.fov + (sprinting ? 8 : 0));
     if (Math.abs(camera.fov - targetFov) > .1) {
       camera.fov += (targetFov - camera.fov) * Math.min(1, dt * 8);
@@ -1317,6 +1319,8 @@ window.webcraftBoot = (async () => {
     const waterFx = document.getElementById('underwater-overlay');
     if (waterFx) waterFx.classList.toggle('show', Player.headSubmerged);
     if (state.thirdPersonView > 0) {
+      viewBobWeight*=Math.exp(-10*Math.min(.05,dt));
+      wasViewGrounded=Player.onGround;
       const cp = new THREE.Vector3();
       const target = new THREE.Vector3(Player.pos.x, Player.pos.y + 1.15, Player.pos.z);
       const cy = Math.cos(Player.pitch), sy = Math.sin(Player.pitch);
@@ -1344,8 +1348,27 @@ window.webcraftBoot = (async () => {
       }
       camera.lookAt(target);
     } else {
-      camera.position.set(Player.pos.x, Player.pos.y + Player.eyeY, Player.pos.z);
-      camera.rotation.set(Player.pitch, Player.yaw, 0);
+      const isActive=worldRunning && !state.paused && !Player.dead;
+      const onGround=Player.onGround && !Player.flying && !Player.inWater;
+      const hSpeed=Math.hypot(Player.vel.x,Player.vel.z);
+      const bobTarget=isActive && onGround && classicOptions.viewBobbing
+        ? Math.min(1.18,hSpeed / Math.max(.1,CONFIG.SPEED)):0;
+      const rate=Math.min(.05,dt);
+      viewBobWeight+=(bobTarget-viewBobWeight)*(1-Math.exp(-10*rate));
+      if(bobTarget>.02)viewStep+=hSpeed*rate*2.25;
+      if(isActive && onGround && !wasViewGrounded && classicOptions.viewBobbing)
+        viewLanding=-.05;
+      viewLanding*=Math.exp(-12*rate);
+      if(!classicOptions.viewBobbing)viewLanding=0;
+      wasViewGrounded=onGround;
+      const sideways=Math.sin(viewStep)*.022*viewBobWeight;
+      const vertical=-Math.abs(Math.cos(viewStep))*.027*viewBobWeight + viewLanding;
+      camera.position.set(
+        Player.pos.x+Math.cos(Player.yaw)*sideways,
+        Player.pos.y+Player.eyeY+vertical,
+        Player.pos.z-Math.sin(Player.yaw)*sideways
+      );
+      camera.rotation.set(Player.pitch,Player.yaw,Math.sin(viewStep)*.006*viewBobWeight);
     }
 
     frames++;
