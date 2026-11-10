@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-v2.0.0-mob-overhaul-20261110';
+const VERSION = 'webcraft-v2.0.1-creeper-vfx-mob-fix-20261110';
 const CORE = [
   "./",
   "./index.html",
@@ -15,7 +15,7 @@ const CORE = [
   "./js/game/remote-players.js?v=v190",
   "./js/game/multiplayer-engine.js?v=v200",
   "./auth.html",
-  "./js/auth-play.js?v=v200",
+  "./js/auth-play.js?v=v201",
   "./js/auth-page.js?v=v186",
   "./js/supabase-client.js",
   "./js/community-credits-server.js?v=v186",
@@ -50,7 +50,7 @@ const CORE = [
   "./css/classic-home.css?v=v140",
   "./css/community-credits.css?v=phase3",
   "./pogl-game/vendor/three.min.js",
-  "./js/game/config.js?v=v200",
+  "./js/game/config.js?v=v201",
   "./js/game/classic-settings.js?v=v193",
   "./js/game/furnace-system.js?v=v190",
   "./js/game/noise.js",
@@ -71,7 +71,7 @@ const CORE = [
   "./js/game/interaction.js?v=v190",
   "./js/game/items.js?v=v170",
   "./js/game/drops.js?v=v190",
-  "./js/game/mobs.js?v=v200",
+  "./js/game/mobs.js?v=v201",
   "./js/game/farming.js?v=v190",
   "./js/game/item-actions.js?v=v190",
   "./js/game/save.js?v=v190",
