@@ -1,7 +1,7 @@
 'use strict';
 
 const CONFIG = {
-  VERSION: '2.0.1',
+  VERSION: '2.0.2',
   MOB_HEALTH_BARS: false,
   CHUNK: 16,
   HEIGHT: 64,
