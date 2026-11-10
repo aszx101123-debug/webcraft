@@ -485,7 +485,8 @@ const MOB_DEFS = {
   creeper:  { name:'크리퍼', hostile:true,hp:20,speed:2.2,height:1.7,width:.62,aggro:16,explode:true,drops:[{id:ITEM.GUNPOWDER,min:0,max:2}] },
   husk:     { name:'허스크', hostile:true,hp:20,speed:2.25,height:1.9,width:.62,dmg:3,aggro:24,drops:[{id:ITEM.ROTTEN,min:0,max:2}] },
   stray:    { name:'스트레이', hostile:true,hp:20,speed:2.15,height:1.9,width:.56,dmg:3,aggro:26,ranged:true,slowArrow:true,drops:[{id:ITEM.BONE,min:0,max:2},{id:ITEM.ARROW,min:0,max:2}] },
-  slime:    { name:'슬라임',hostile:true,hp:12,speed:2.25,height:.83,width:.84,dmg:2,aggro:12,slime:true,drops:[{id:ITEM.SLIME_BALL,min:0,max:2}] }
+  slime:    { name:'슬라임',hostile:true,hp:12,speed:2.25,height:.83,width:.84,dmg:2,aggro:12,slime:true,drops:[{id:ITEM.SLIME_BALL,min:0,max:2}] },
+  mooshroom: { name:'무시룸',hostile:false,hp:10,speed:1.4,height:1.28,width:.9,drops:[{id:ITEM.BEEF,min:1,max:3},{id:ITEM.LEATHER,min:0,max:2,chance:.75}] }
 };
 
 // Local voxel AABBs, used consistently by world meshing, player movement and placement.
