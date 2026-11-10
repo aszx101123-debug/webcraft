@@ -922,8 +922,8 @@ const Mobs = (() => {
 
   function update(dt, active) {
     if(network?.replica){updateReplica(dt);if(active)updateExplosionEffects(dt);return;}
-    if(active)updateExplosionEffects(dt);
     if(active)simulationTime+=dt;
+    if(active)updateExplosionEffects(dt);
     if (!group) return;
     const pp = Player.pos;
     const survival = mode === GAME_MODE.SURVIVAL;
@@ -1024,8 +1024,9 @@ const Mobs = (() => {
               m.fuseStarted=true;
               m.fuseT+=dt;
               m.moving=false;
-            }else if(dist>5.3 || m.alertT<=0){
-              m.fuseT=Math.max(0,m.fuseT-dt*4);
+            }else{
+              // Backing away or breaking line of sight cancels the warning.
+              m.fuseT=Math.max(0,m.fuseT-dt*3.5);
               if(m.fuseT===0)m.fuseStarted=false;
             }
             if(m.fuseT>=1.5){
@@ -1054,6 +1055,10 @@ const Mobs = (() => {
             if(m.type==='husk' && !target.id)Player.applyMobEffect?.('hunger',7);
           }
         } else {
+          if(m.type==='creeper' && m.fuseT>0){
+            m.fuseT=Math.max(0,m.fuseT-dt*3.5);
+            if(m.fuseT===0)m.fuseStarted=false;
+          }
           m.wanderT -= dt;
           if (m.wanderT <= 0) {
             m.wanderT = 2 + Math.random() * 3;
@@ -1237,7 +1242,9 @@ const Mobs = (() => {
   function networkSnapshot(){
     const q=n=>Math.round(n*1000)/1000;
     return {mobs:mobs.slice(0,64).map(m=>[m.networkId,m.type,q(m.pos.x),q(m.pos.y),q(m.pos.z),q(m.yaw),m.hp,m.dead?1:0,m.moving?1:0,q(m.fuseT||0)]),
-      arrows:arrows.slice(0,64).map(a=>[a.networkId,q(a.pos.x),q(a.pos.y),q(a.pos.z),q(a.vel.x),q(a.vel.y),q(a.vel.z)])};
+      arrows:arrows.slice(0,64).map(a=>[a.networkId,q(a.pos.x),q(a.pos.y),q(a.pos.z),q(a.vel.x),q(a.vel.y),q(a.vel.z)]),
+      explosions:recentExplosions.filter(e=>e.until>simulationTime)
+        .map(e=>[e.id,q(e.x),q(e.y),q(e.z)])};
   }
   function applyNetwork(snapshot){
     if(!network?.replica||!snapshot||!Array.isArray(snapshot.mobs)||snapshot.mobs.length>64)return;
@@ -1259,6 +1266,24 @@ const Mobs = (() => {
       a.pos.set(row[1],row[2],row[3]);a.vel.set(row[4],row[5],row[6]);arrowIds.add(a.networkId);
     }
     for(let i=arrows.length-1;i>=0;i--)if(!arrowIds.has(arrows[i].networkId))removeArrow(i);
+    // One lightweight event for each explosion, not one network object per particle.
+    const rows=Array.isArray(snapshot.explosions)?snapshot.explosions.slice(0,12):[];
+    for(const row of rows){
+      if(!Array.isArray(row)||row.length!==4||!Number.isSafeInteger(row[0])||row[0]<1||
+         !row.slice(1).every(Number.isFinite)||row.slice(1).some(v=>Math.abs(v)>1000000)||
+         seenRemoteExplosions.has(row[0]))continue;
+      seenRemoteExplosions.add(row[0]);
+      const pos=new THREE.Vector3(row[1],row[2],row[3]);
+      spawnExplosionEffect(pos,true);
+      if(pos.distanceTo(Player.pos)<35)onEvent?.('explode',{pos,type:'creeper'});
+    }
+    if(seenRemoteExplosions.size>240){
+      // Insertion-order Set keeps a rolling cap for long multiplayer sessions.
+      for(const id of seenRemoteExplosions){
+        if(seenRemoteExplosions.size<=120)break;
+        seenRemoteExplosions.delete(id);
+      }
+    }
   }
   function updateReplica(dt){
     if(!group)return;
