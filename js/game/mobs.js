@@ -77,6 +77,7 @@ const Mobs = (() => {
   }
 
   function buildMob(type) {
+    const kind=type==='husk'?'zombie':type==='stray'?'skeleton':type;
     const g = new THREE.Group();
     const parts = { legs: [], arms: [], extraLegs: [], eyes: [], head: null, healthBar: null, detailGroup: null };
     const limb = (w, h, d, color, x, y, z) => {
@@ -102,7 +103,7 @@ const Mobs = (() => {
       parts.eyes.push(pupil);
     };
 
-    if (type === 'pig') {
+    if (kind==='pig') {
       g.add(box(1.0, .58, .72, 0xe69aa8, 0, .62, 0));
       g.add(box(.66, .46, .5, 0xeea9b4, 0, .68, .46));
       g.add(box(.3, .16, .09, 0xc97988, 0, .59, .71));
@@ -119,7 +120,7 @@ const Mobs = (() => {
       tail.position.set(-.56, .65, -.24);
       tail.rotation.y = Math.PI / 2;
       g.add(tail);
-    } else if (type === 'cow') {
+    } else if (kind==='cow') {
       g.add(box(1.08, .74, .82, 0x5b3d2b, 0, .92, 0));
       g.add(box(.52, .58, .46, 0x6f4a34, 0, 1.08, .56));
       g.add(box(.31, .18, .1, 0xd2c8b8, 0, .94, .8));
@@ -137,7 +138,7 @@ const Mobs = (() => {
       limb(.2, .62, .2, 0x463021, -.35, .31, -.28);
       g.add(box(.16, .11, .2, 0xc98e92, .2, .33, .25));
       g.add(box(.16, .11, .2, 0xc98e92, -.2, .33, .25));
-    } else if (type === 'sheep') {
+    } else if (kind==='sheep') {
       g.add(box(.98, .76, .78, 0xe9e8df, 0, .94, 0));
       g.add(box(.42, .44, .44, 0x8f7867, 0, 1.08, .55));
       g.add(box(.34, .25, .25, 0xd9d2c7, 0, 1.16, .8));
@@ -150,7 +151,7 @@ const Mobs = (() => {
       limb(.16, .56, .16, 0x7a6658, -.3, .28, .25);
       limb(.16, .56, .16, 0x7a6658, .3, .28, -.25);
       limb(.16, .56, .16, 0x7a6658, -.3, .28, -.25);
-    } else if (type === 'chicken') {
+    } else if (kind==='chicken') {
       g.add(box(.46, .46, .58, 0xe7e1d6, 0, .5, 0));
       g.add(box(.31, .38, .3, 0xf0e9dd, 0, .78, .29));
       g.add(box(.13, .1, .14, 0xe3a038, 0, .7, .48));
@@ -163,7 +164,7 @@ const Mobs = (() => {
       limb(.065, .24, .065, 0xd8a03a, .11, .12, .02);
       limb(.065, .24, .065, 0xd8a03a, -.11, .12, .02);
       cone(.08, .18, 0xe7e1d6, 0, .56, -.32, Math.PI / 2, 0);
-    } else if (type === 'zombie') {
+    } else if (kind==='zombie') {
       limb(.23, .72, .23, 0x263e5d, .14, .36, 0);
       limb(.23, .72, .23, 0x263e5d, -.14, .36, 0);
       g.add(box(.58, .76, .34, 0x3d7a6c, 0, 1.08, 0));
@@ -175,7 +176,7 @@ const Mobs = (() => {
       g.add(box(.22, .06, .06, 0x2b4435, 0, 1.55, .25));
       g.add(box(.18, .2, .2, 0x5d9b4e, .34, 1.06, .12));
       g.add(box(.18, .2, .2, 0x5d9b4e, -.34, 1.06, .12));
-    } else if (type === 'skeleton') {
+    } else if (kind==='skeleton') {
       limb(.14, .72, .14, 0xd8d6cc, .12, .36, 0);
       limb(.14, .72, .14, 0xd8d6cc, -.12, .36, 0);
       g.add(box(.42, .7, .24, 0xdcdad0, 0, 1.08, 0));
@@ -192,7 +193,29 @@ const Mobs = (() => {
       g.add(box(.02, .04, .54, 0xd7d2c7, .38, 1.28, .44));
       g.add(box(.12, .12, .48, 0xd7d2c7, .29, 1.25, .2));
       g.add(box(.12, .12, .48, 0xd7d2c7, -.29, 1.25, .2));
-    } else if (type === 'spider') {
+    } else if (kind==='creeper') {
+      // Classic long-neck silhouette and pixel face, original voxel geometry.
+      for(const sx of [-1,1])for(const sz of [-1,1])
+        limb(.23,.64,.24,0x2c9835,sx*.21,.32,sz*.23);
+      g.add(box(.52,.91,.49,0x44b349,0,.91,0));
+      g.add(box(.72,.69,.70,0x55c855,0,1.47,.025));
+      g.add(box(.18,.17,.025,0x183b1e,-.18,1.57,.382));
+      g.add(box(.18,.17,.025,0x183b1e,.18,1.57,.382));
+      g.add(box(.14,.19,.027,0x163b1b,0,1.36,.388));
+      g.add(box(.30,.14,.027,0x163b1b,0,1.22,.387));
+      g.add(box(.095,.10,.029,0x163b1b,-.13,1.17,.389));
+      g.add(box(.095,.10,.029,0x163b1b,.13,1.17,.389));
+      for(const [x,y,z] of [[-.27,1.63,.19],[.24,1.39,-.2],[.15,.94,.26],[-.17,.67,.23],[.3,1.67,-.14]])
+        g.add(box(.11,.12,.025,0x318a3b,x,y,z));
+    } else if(kind==='slime') {
+      const shell=box(.83,.78,.83,0x5dc858,0,.41,0);
+      shell.material.transparent=true;shell.material.opacity=.79;
+      g.add(shell);
+      g.add(box(.56,.48,.58,0x52a952,0,.35,0));
+      eye(-.17,.53,.424,0x1b3920,.12,.16);
+      eye(.17,.53,.424,0x1b3920,.12,.16);
+      g.add(box(.26,.06,.026,0x245127,0,.26,.43));
+    } else if (kind==='spider') {
       g.add(box(.96, .5, 1.08, 0x25242b, 0, .5, -.08));
       g.add(box(.5, .4, .54, 0x36343d, 0, .46, .6));
       g.add(box(.64, .18, .62, 0x16151a, 0, .58, -.1));
@@ -234,7 +257,7 @@ const Mobs = (() => {
       g.add(pivot);
       return pivot;
     };
-    if(type!=='spider')parts.legs=parts.legs.map(legJoint);
+    if(kind!=='spider')parts.legs=parts.legs.map(legJoint);
     const makeArm=(x,y,z,color,sleeveColor,raised=0)=>{
       const pivot=new THREE.Group();
       pivot.position.set(x,y,z);
@@ -248,7 +271,7 @@ const Mobs = (() => {
       parts.arms.push(pivot);
       return pivot;
     };
-    if(type==='pig'){
+    if(kind==='pig'){
       patch(.0,.87,.725,.10,.06,0xffddce);
       patch(-.21,.71,.707,.035,.035,0xfdf0e3);
       patch(.21,.71,.707,.035,.035,0xfdf0e3);
@@ -260,7 +283,7 @@ const Mobs = (() => {
         detail(.19,.075,.20,0x7d5360,sx*.29,.07,.25);
         detail(.19,.075,.20,0x7d5360,sx*.29,.07,-.25);
       }
-    }else if(type==='cow'){
+    }else if(kind==='cow'){
       for(const [px,py,pz,w,h] of [
         [-.27,.97,.42,.24,.25],[.34,1.0,.42,.21,.19],
         [-.18,.87,-.421,.25,.30],[.30,1.08,-.421,.27,.25]
@@ -270,7 +293,7 @@ const Mobs = (() => {
         detail(.1,.1,.12,0x372a22,sx*.17,.37,.40);
         patch(sx*.14,1.23,.795,.035,.045,0xe8ebed);
       }
-    }else if(type==='sheep'){
+    }else if(kind==='sheep'){
       for(const x of [-.31,0,.31])for(const z of [-.25,.12,.39]){
         if(z===.39&&x===0)continue;
         detail(.27,.23,.26,((x+z)>0)?0xf4f1e7:0xd3d8d2,x,1.33,z);
@@ -280,7 +303,7 @@ const Mobs = (() => {
         detail(.18,.12,.18,0x524840,sx*.30,.065,z);
       }
       patch(0,1.03,.942,.065,.045,0x302b27);
-    }else if(type==='chicken'){
+    }else if(kind==='chicken'){
       detail(.34,.17,.28,0xf4f1e9,0,.46,-.43);
       for(const sx of [-1,1]){
         detail(.15,.29,.09,0xd4d8d2,sx*.28,.58,-.04);
@@ -289,7 +312,7 @@ const Mobs = (() => {
       detail(.10,.1,.12,0xecaf4c,0,.73,.55);
       detail(.06,.06,.07,0xffede0,-.10,.88,.443);
       detail(.06,.06,.07,0xffede0,.10,.88,.443);
-    }else if(type==='zombie'){
+    }else if(kind==='zombie'){
       makeArm(-.40,1.43,.10,0x669c63,0x3e7e79,-.85);
       makeArm(.40,1.43,.10,0x669c63,0x3e7e79,-.85);
       patch(0,1.25,.184,.42,.065,0x4e938a);
@@ -302,7 +325,7 @@ const Mobs = (() => {
         patch(sx*.14,.62,.126,.1,.14,0x1d3049);
         patch(sx*.14,.14,.126,.12,.1,0x253447);
       }
-    }else if(type==='skeleton'){
+    }else if(kind==='skeleton'){
       makeArm(-.33,1.45,.04,0xdcd8c8,0xd8d4c8,-.52);
       makeArm(.33,1.45,.04,0xdcd8c8,0xd8d4c8,-.52);
       // Exposed vertebrae, rib lines, jaw and facial shading.
@@ -317,7 +340,7 @@ const Mobs = (() => {
       patch(.11,1.69,.252,.10,.11,0x201f23);
       detail(.025,.48,.025,0xd5d0b6,.40,1.30,.61);
       for(const sx of [-1,1])patch(sx*.12,.30,.079,.045,.17,0xb8b7af);
-    }else if(type==='spider'){
+    }else if(kind==='spider'){
       // Four additional articulated legs complete the eight-legged silhouette.
       for(const sx of [-1,1])for(const z of [-.47,.44]){
         const hip=new THREE.Group();
@@ -335,6 +358,23 @@ const Mobs = (() => {
       }
       patch(-.14,.54,.929,.09,.1,0xff7563);
       patch(.14,.54,.929,.09,.1,0xff7563);
+    }
+    if(type==='husk'){
+      // Desert zombie variant: sand-tan layers and a dry scarf.
+      g.add(box(.59,.68,.35,0xb6a071,0,1.08,.005));
+      g.add(box(.50,.44,.485,0xaa9364,0,1.69,.004));
+      g.add(box(.54,.13,.505,0x65543e,0,1.9,.004));
+      for(const sx of [-1,1]){
+        g.add(box(.105,.095,.028,0x463a25,sx*.13,1.72,.256));
+      }
+    }else if(type==='stray'){
+      // Frozen skeleton variant: layered hood and tattered pale blue cloth.
+      g.add(box(.51,.22,.49,0x879fae,0,1.91,0));
+      g.add(box(.45,.16,.24,0x647f96,0,1.31,.08));
+      g.add(box(.43,.24,.30,0x90a9b5,0,.94,-.08));
+      for(const sx of [-1,1]){
+        g.add(box(.09,.12,.027,0x70dbec,sx*.11,1.72,.25));
+      }
     }
     const health=new THREE.Group();
     health.position.set(0,(MOB_DEFS[type]?.height||1.2)+.27,0);
