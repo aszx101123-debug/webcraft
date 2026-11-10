@@ -9,6 +9,7 @@ const UI = (() => {
   let inventoryOpen = false;
   let inventoryCursor = null;
   let selectedInventoryMaterial = null;
+  let creativeCatalogCategory = '전체';
   const stackLimit=id=>{const d=getItemDef(id);return d?.toolType||d?.armorType?1:(d?.maxStack||Inventory.MAX_STACK||64);};
   let selectedCraftingMaterial = null;
   let previewFromBack = false;
@@ -382,33 +383,66 @@ const UI = (() => {
     updateCharacterPreview();
   }
 
+  function creativeGroup(id,def){
+    if(id<100)return getBlockCategory(id);
+    if(def.toolType||def.armorType)return '장비';
+    if(def.food || def.foodValue || def.edible)return '음식';
+    return '기타';
+  }
   function renderCreativeCatalog(){
     const panel=$('inventory-creative-panel'),list=$('inventory-creative-grid');
-    if(!panel||!list || panel.classList.contains('hidden') || !Inventory.isCreative())return;
+    if(!panel||!list||panel.classList.contains('hidden')||!Inventory.isCreative())return;
     const needle=($('inventory-creative-search')?.value||'').trim().toLocaleLowerCase('ko-KR');
-    list.replaceChildren();
+    const previousScroll=list.scrollTop;
     const ids=[...new Set([...PLACEABLE_IDS,...Object.keys(ITEMS).map(Number)])]
-      .filter(id=>getItemDef(id)&&(!needle||getItemName(id).toLocaleLowerCase('ko-KR').includes(needle)));
+      .filter(id=>{
+        const def=getItemDef(id);
+        return def&&!def.hidden &&
+          (creativeCatalogCategory==='전체'||creativeGroup(id,def)===creativeCatalogCategory)&&
+          (!needle||getItemName(id).toLocaleLowerCase('ko-KR').includes(needle));
+      });
+    const total=$('inventory-creative-count');
+    if(total)total.textContent=ids.length+'개';
+    const tabs=$('inventory-creative-categories');
+    tabs?.querySelectorAll('[data-catalog-category]').forEach(button=>
+      button.setAttribute('aria-pressed',String(button.dataset.catalogCategory===creativeCatalogCategory)));
+    const frag=document.createDocumentFragment();
     for(const id of ids){
       const def=getItemDef(id);
       const btn=document.createElement('button');
-      btn.type='button';btn.className='java-creative-item';
-      btn.title=getItemName(id)+(def.useHint?' · '+def.useHint:'');
+      btn.type='button';btn.className='java-creative-item wc-creative-catalog-item';
+      btn.title=getItemName(id)+' · 클릭하여 핫바에 장착 / Shift+클릭: 커서로 받기';
+      if(Inventory.selectedId()===id)btn.classList.add('wc-creative-selected');
       const img=document.createElement('img');img.src=Textures.blockIcon(id);img.alt='';
       const name=document.createElement('small');name.textContent=getItemName(id);
       btn.append(img,name);
-      btn.addEventListener('click',()=>{
+      btn.addEventListener('click',e=>{
         if(inventoryCursor){
-          showToast('손에 든 아이템을 먼저 빈 슬롯에 내려놓으세요');
+          showToast('먼저 커서에 든 아이템을 빈 슬롯에 놓으세요');
           return;
         }
-        const gear=!!(def.toolType||def.armorType);
-        inventoryCursor={id,count:stackLimit(id)};
-        if(gear)inventoryCursor.durability=def.maxDurability||1;
+        if(e.shiftKey){
+          inventoryCursor={id,count:stackLimit(id)};
+          if(def.toolType||def.armorType)inventoryCursor.durability=def.maxDurability||1;
+          updateInventoryCursor(innerWidth/2,innerHeight/2);
+        }else{
+          // One click equips to the currently selected hotbar slot.
+          Inventory.setSlot(Inventory.getSelected(),id);
+          renderHotbar();
+          showItemName(getItemName(id));
+          showToast(getItemName(id)+' → 핫바 '+(Inventory.getSelected()+1)+'번');
+        }
         renderInventory();
-        updateInventoryCursor(innerWidth/2,innerHeight/2);
       });
-      list.appendChild(btn);
+      frag.appendChild(btn);
+    }
+    list.replaceChildren(frag);
+    list.scrollTop=previousScroll;
+    if(!ids.length){
+      const empty=document.createElement('p');
+      empty.className='picker-empty';
+      empty.textContent='검색 결과가 없습니다. 검색어 또는 분류를 변경해 보세요.';
+      list.append(empty);
     }
   }
 
@@ -692,6 +726,26 @@ const UI = (() => {
         openCreative.setAttribute('aria-expanded',String(!expanded));
         panel.classList.toggle('hidden',expanded);
         if(!expanded)renderCreativeCatalog();
+      });
+    }
+    const creativeTabs=$('inventory-creative-categories');
+    if(creativeTabs&&!creativeTabs.dataset.bound){
+      creativeTabs.dataset.bound='1';
+      creativeTabs.addEventListener('click',event=>{
+        const tab=event.target.closest('[data-catalog-category]');
+        if(!tab||!creativeTabs.contains(tab))return;
+        creativeCatalogCategory=tab.dataset.catalogCategory;
+        const list=$('inventory-creative-grid');if(list)list.scrollTop=0;
+        renderCreativeCatalog();
+      });
+    }
+    const clearSearch=$('inventory-creative-clear');
+    if(clearSearch&&!clearSearch.dataset.bound){
+      clearSearch.dataset.bound='1';
+      clearSearch.addEventListener('click',()=>{
+        const search=$('inventory-creative-search');
+        if(search){search.value='';search.focus();}
+        renderCreativeCatalog();
       });
     }
     const creativeSearch=$('inventory-creative-search');
