@@ -13,6 +13,7 @@ const Player = (() => {
   let onBeforeDamage=null;
   let cactusDamageCooldown=0;
   let movingSprint=false;
+  let slowT=0,hungerT=0;
 
 
   function isWater(id) { return id === BLOCK.WATER || id === BLOCK.WATER_FLOW; }
@@ -51,6 +52,7 @@ const Player = (() => {
     sneaking = false;
     cactusDamageCooldown=0;
     movingSprint=false;
+    slowT=hungerT=0;
     setSpawn(x, y, z);
   }
 
@@ -217,6 +219,7 @@ const Player = (() => {
 
   function survivalTick(dt, sprinting) {
     if (mode !== GAME_MODE.SURVIVAL || dead) return;
+    if(hungerT>0){hungerT=Math.max(0,hungerT-dt);addExhaustion(dt*.42);}
     const moving = Math.abs(vel.x) > .5 || Math.abs(vel.z) > .5;
     addExhaustion(SURVIVAL.BASE_EXHAUST * dt * (sprinting && moving ? SURVIVAL.SPRINT_MULT : 1));
 
@@ -275,9 +278,11 @@ const Player = (() => {
     sneaking = false;
     cactusDamageCooldown=0;
     movingSprint=false;
+    slowT=hungerT=0;
   }
 
   function update(dt, keys) {
+    slowT=Math.max(0,slowT-dt);
     const f = (keys['KeyW'] || keys['ArrowUp'] ? 1 : 0) - (keys['KeyS'] || keys['ArrowDown'] ? 1 : 0);
     const s = (keys['KeyD'] || keys['ArrowRight'] ? 1 : 0) - (keys['KeyA'] || keys['ArrowLeft'] ? 1 : 0);
     const crouch = !!(keys['ShiftLeft'] || keys['ShiftRight']);
@@ -292,7 +297,7 @@ const Player = (() => {
     sneaking = crouch && !canFly && !inWater;
     movingSprint=sprint && !canFly && !inWater;
     const speed=canFly?CONFIG.FLY:(movingSprint?CONFIG.SPRINT:CONFIG.SPEED)
-      *(inWater?.55:1)*(crouch?.3:1);
+      *(inWater?.55:1)*(crouch?.3:1)*(slowT>0?.67:1);
     const len = Math.hypot(f, s) || 1;
     const sy = Math.sin(yaw), cy = Math.cos(yaw);
     const wx = (-sy * f + cy * s) / len * speed;
@@ -368,8 +373,15 @@ const Player = (() => {
     }
   }
 
+  function applyMobEffect(effect,duration){
+    if(mode!==GAME_MODE.SURVIVAL||dead)return;
+    const seconds=Math.max(0,Math.min(15,Number(duration)||0));
+    if(effect==='slow')slowT=Math.max(slowT,seconds);
+    if(effect==='hunger')hungerT=Math.max(hungerT,seconds);
+  }
+
   return {
-    pos, vel, reset, update, damage, heal, eat, addExhaustion, survivalTick, respawn,
+    pos, vel, reset, update, damage, heal, eat, addExhaustion, survivalTick, respawn, applyMobEffect,
     setMode, setSpawn,
     get eyeY() { return sneaking ? EYE - .12 : EYE; },
     get yaw() { return yaw; }, set yaw(v) { yaw = v; },
@@ -383,7 +395,8 @@ const Player = (() => {
     get waterCoverage() { return waterCoverage; },
     get mode() { return mode; },
     get hp() { return hp; }, set hp(v) { hp = Math.max(0, Math.min(SURVIVAL.MAX_HP, v)); },
-    get food() { return food; }, set food(v) { food = Math.max(0, Math.min(SURVIVAL.MAX_FOOD, v)); },
+    get food() { return food; },
+    get mobEffects(){return {slowness:slowT,hunger:hungerT};}, set food(v) { food = Math.max(0, Math.min(SURVIVAL.MAX_FOOD, v)); },
     get air() { return air; },
     get dead() { return dead; },
     get spawnPoint() { return spawnPoint; },
