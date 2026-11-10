@@ -70,7 +70,10 @@ const UI = (() => {
     if (name !== 'furnace' && isFurnaceOpen() && !closeFurnace()) return false;
     ['overlay-start', 'overlay-pause', 'overlay-death', 'overlay-inventory', 'overlay-crafting', 'overlay-furnace'].forEach(id => $(id)?.classList.add('hidden'));
     if (name === 'start') $('overlay-start').classList.remove('hidden');
-    else if (name === 'pause') $('overlay-pause').classList.remove('hidden');
+    else if (name === 'pause') {
+      window.WebCraftPauseMenu?.show('main',false);
+      $('overlay-pause').classList.remove('hidden');
+    }
     else if (name === 'death') $('overlay-death').classList.remove('hidden');
     return true;
   }
