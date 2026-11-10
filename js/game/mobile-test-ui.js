@@ -1147,7 +1147,7 @@ const UI = (() => {
 
   function showDeath(cause) {
     const el = $('death-cause');
-    if (el) el.textContent = cause ? cause + '…' : '';
+    if(el)el.textContent=cause ? cause : '리스폰하여 다시 시작할 수 있습니다.';
     // Death must never be vetoed by a full bag. Keep held items and crafting
     // escrow in their saved state instead of attempting transactional closes.
     inventoryOpen = false;
@@ -1163,6 +1163,7 @@ const UI = (() => {
       $(id)?.classList.add('hidden');
     }
     $('overlay-death')?.classList.remove('hidden');
+    $('btn-respawn')?.focus?.();
   }
 
   function hideDeath() {
