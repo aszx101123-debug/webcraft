@@ -597,12 +597,45 @@ const Textures = (() => {
     }
 
     paintCactus();
+    paintFallingTiles();
     texture = new THREE.CanvasTexture(canvas);
     texture.encoding = THREE.sRGBEncoding;
     texture.magFilter = THREE.NearestFilter;
     texture.minFilter = THREE.NearestFilter;
     texture.generateMipmaps = false;
     texture.anisotropy = 1;
+  }
+
+  function paintFallingTiles() {
+    // Original pixel artwork inspired by natural granular sand and gravel.
+    // Repaint the same atlas coordinates for both generated and classic packs.
+    const hash=(x,y,salt)=>{
+      let h=Math.imul(x+salt*17,374761393)^Math.imul(y+salt*31,668265263);
+      h=Math.imul(h^(h>>>13),1274126177);
+      return ((h^(h>>>16))>>>0)/4294967295;
+    };
+    const sand=BLOCKS[BLOCK.SAND].tiles.all;
+    const gravel=BLOCKS[BLOCK.GRAVEL].tiles.all;
+    for(let y=0;y<TS;y++)for(let x=0;x<TS;x++){
+      const grain=hash(x,y,3),patch=hash(x>>2,y>>2,5),fleck=hash(x,y,7);
+      const shade=(patch-.5)*15+(grain-.5)*16;
+      const sg=grain<.07?-.28:grain>.93?.22:0;
+      const sRGB=[217+shade+sg*35,204+shade+sg*32,158+shade+sg*20];
+      if(fleck<.025){sRGB[0]-=28;sRGB[1]-=25;sRGB[2]-=17;}
+      ctx.fillStyle=css(...sRGB);
+      ctx.fillRect(sand[0]*TS+x,sand[1]*TS+y,1,1);
+      // Distinct pebbles of irregular sizes, never a repeating stone grid.
+      const pebble=hash((x+((y>>1)&1))>>1,y>>1,13);
+      const rough=hash(x,y,17),stonePatch=hash(x>>2,y>>2,19);
+      let base=110+stonePatch*31+(rough-.5)*23;
+      let rgb=[base,base+1,base+1];
+      if(pebble<.20)rgb=[78+rough*17,79+rough*17,81+rough*16];
+      else if(pebble>.81)rgb=[148+rough*27,147+rough*27,143+rough*25];
+      else if(rough<.085)rgb=[71,72,73];
+      else if(rough>.91)rgb=[185,184,179];
+      ctx.fillStyle=css(...rgb);
+      ctx.fillRect(gravel[0]*TS+x,gravel[1]*TS+y,1,1);
+    }
   }
 
   function paintCactus() {
@@ -680,6 +713,8 @@ const Textures = (() => {
       }
       for(const tile of pack.tiles)ctx.clearRect(tile.at[0]*TS,tile.at[1]*TS,TS,TS);
       ctx.drawImage(atlas,0,0);
+      // Keep revised sand/gravel even when the classic image pack loads.
+      paintFallingTiles();
       waterStrip = water;
       // Eight-pixel gutters keep all four mip levels inside their own tile.
       gpuCanvas = document.createElement('canvas');
