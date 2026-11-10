@@ -7,15 +7,15 @@ document.body.appendChild(notice);
 try {
   const sources = [
     "pogl-game/vendor/three.min.js",
-    "js/game/config.js?v=v190",
+    "js/game/config.js?v=v191",
     "js/game/classic-settings.js?v=v140",
     "js/game/noise.js",
     "js/game/terrain-legacy.js?v=v180",
-    "js/game/terrain.js?v=v183",
+    "js/game/terrain.js?v=v191",
     "js/game/mobile-test-textures.js?v=v185",
     "js/game/graphics.js?v=v170",
     "js/game/voxel-lighting.js?v=v170",
-    "js/game/world.js?v=v190",
+    "js/game/world.js?v=v191",
     "js/game/world-journal.js?v=v180",
     "js/game/world-milestones.js?v=v180",
     "js/game/block-furniture.js?v=v190",
@@ -28,17 +28,17 @@ try {
     "js/game/items.js?v=v170",
     "js/game/furnace-system.js?v=v190",
     "js/game/drops.js?v=v190",
-    "js/game/mobs.js?v=v190",
+    "js/game/mobs.js?v=v191",
     "js/game/farming.js?v=v190",
     "js/game/item-actions.js?v=v190",
     "js/game/save.js?v=v190",
     "js/game/mobile-test-crafting.js?v=v184",
-    "js/game/mobile-test-ui.js?v=v190",
+    "js/game/mobile-test-ui.js?v=v191",
     "js/game/multiplayer-core.js?v=v190",
     "js/game/multiplayer.js?v=v190",
     "js/game/remote-players.js?v=v190",
     "js/game/multiplayer-engine.js?v=v190",
-    "js/game/mobile-test-main.js?v=v190"
+    "js/game/mobile-test-main.js?v=v191"
   ];
   for (const src of sources) {
     await new Promise((resolve, reject) => {
