@@ -3,7 +3,7 @@
 // Client preferences belong to the browser, independent of any saved world.
 const ClassicSettings = (() => {
   const KEY = 'webcraft_classic_options_v1';
-  const DEFAULTS = Object.freeze({ fov: 70, sensitivity: 100, invertY: false });
+  const DEFAULTS = Object.freeze({ fov: 70, sensitivity: 100, invertY: false, viewBobbing: true });
   function normalize(input) {
     const data = input && typeof input === 'object' ? input : {};
     const number = (key, min, max) => Number.isFinite(data[key])
@@ -11,7 +11,8 @@ const ClassicSettings = (() => {
     return {
       fov: number('fov', 30, 110),
       sensitivity: number('sensitivity', 10, 200),
-      invertY: data.invertY === true
+      invertY: data.invertY === true,
+      viewBobbing: data.viewBobbing !== false
     };
   }
   let values = { ...DEFAULTS };
@@ -27,10 +28,12 @@ const ClassicSettings = (() => {
     const fov = document.getElementById('classic-fov');
     const sensitivity = document.getElementById('classic-sensitivity');
     const invert = document.getElementById('classic-invert');
+    const bobbing = document.getElementById('classic-view-bobbing');
     const render = () => {
       if (fov) fov.value = String(values.fov);
       if (sensitivity) sensitivity.value = String(values.sensitivity);
       if (invert) invert.checked = values.invertY;
+      if (bobbing) bobbing.checked = values.viewBobbing;
       const fovValue = document.getElementById('classic-fov-value');
       const sensitivityValue = document.getElementById('classic-sensitivity-value');
       if (fovValue) fovValue.textContent = values.fov === 70 ? '보통 (70)' : String(values.fov);
@@ -44,6 +47,7 @@ const ClassicSettings = (() => {
     fov?.addEventListener('input', () => update({ fov: Number(fov.value) }));
     sensitivity?.addEventListener('input', () => update({ sensitivity: Number(sensitivity.value) }));
     invert?.addEventListener('change', () => update({ invertY: invert.checked }));
+    bobbing?.addEventListener('change', () => update({ viewBobbing: bobbing.checked }));
     document.getElementById('classic-options-reset')?.addEventListener('click', () => update(DEFAULTS));
     render();
   }
