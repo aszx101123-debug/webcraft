@@ -17,6 +17,7 @@ const World = (() => {
   const daylight = { value: 1 };
   let torchLights = [], torchLightTick = 0;
   const blockChangeListeners = new Set();
+  const chunkLoadListeners = new Set();
   let interestPoints=[];
 
   const key = (cx, cz) => cx + ',' + cz;
@@ -182,6 +183,17 @@ const World = (() => {
     return () => blockChangeListeners.delete(listener);
   }
 
+  // Allow bounded environment simulations to seed their work queues when
+  // generated or saved chunks load, not only after players edit blocks.
+  function onChunkLoaded(listener) {
+    if (typeof listener !== 'function') return () => {};
+    chunkLoadListeners.add(listener);
+    return () => chunkLoadListeners.delete(listener);
+  }
+  function notifyChunkLoaded(cx,cz,data) {
+    chunkLoadListeners.forEach(listener=>listener(cx,cz,data));
+  }
+
   function ensureArea(pcx, pcz, r) {
     for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) {
       const cx = pcx + dx, cz = pcz + dz, k = key(cx, cz);
@@ -244,6 +256,7 @@ const World = (() => {
     if (e) for (const [li, id] of e) data[li] = id;
     chunks.set(k, { cx: p.cx, cz: p.cz, data, mesh: null, waterMesh: null });
     indexNaturalSprings(p.cx,p.cz,data);
+    notifyChunkLoaded(p.cx,p.cz,data);
     for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++)
       markDirty(p.cx + dx, p.cz + dz);
     return true;
@@ -525,6 +538,7 @@ const World = (() => {
     if(changed)for(const [index,id] of changed)data[index]=id;
     chunks.set(k,{cx,cz,data,mesh:null,waterMesh:null});
     indexNaturalSprings(cx,cz,data);
+    notifyChunkLoaded(cx,cz,data);
     for(let dx=-1;dx<=1;dx++)for(let dz=-1;dz<=1;dz++)markDirty(cx+dx,cz+dz);
   }
   function applyRemoteBlock(x,y,z,id){
@@ -534,7 +548,7 @@ const World = (() => {
   }
 
   return {
-    init, update, getBlock, setBlock, getChunk, getEdits, onBlockChanged, invalidateAt,
+    init, update, getBlock, setBlock, getChunk, getEdits, onBlockChanged, onChunkLoaded, invalidateAt,
     heightAt: (x, z) => gen ? gen.heightAt(x, z) : 0,
     biomeAt: (x, z) => gen ? gen.biomeAt(x, z) : 'plains',
     pendingCount: () => pending.length,
