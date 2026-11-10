@@ -129,6 +129,27 @@ const Terrain = (() => {
           if (id) data[idx(x, y, z)] = id;
         }
       }
+      // Rare underground springs emerge from existing cave walls.
+      // These are generated WATER sources (not edits) and can feed flowing water.
+      if(Noise.hash2(cx,cz,seed+6631)<.38){
+        const candidates=[];
+        for(let x=2;x<C-2;x++)for(let z=2;z<C-2;z++)
+          for(let y=7;y<=Math.min(SEA-4,H-5);y++){
+            if(data[idx(x,y,z)]!==BLOCK.STONE || data[idx(x,y+1,z)]!==BLOCK.STONE)continue;
+            const opening=[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dz])=>
+              data[idx(x+dx,y,z+dz)]===BLOCK.AIR &&
+              data[idx(x+dx,y+1,z+dz)]===BLOCK.AIR);
+            if(!opening)continue;
+            const score=Noise.hash2(cx*C+x+y*17,cz*C+z-y*13,seed+6632);
+            if(score<.013)candidates.push({x,y,z,score});
+          }
+        if(candidates.length){
+          candidates.sort((a,b)=>a.score-b.score);
+          const at=candidates[0];
+          data[idx(at.x,at.y,at.z)]=BLOCK.WATER;
+        }
+      }
+
       // v1.2.5 ore pass: sparse, vertically targeted bands adapted to WebCraft's 0-63 height.
       const oreDefs = [
         { id: BLOCK.COAL_ORE, minY: 27, maxY: 56, veins: 3, size: 4 },
