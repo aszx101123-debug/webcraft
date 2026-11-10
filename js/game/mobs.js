@@ -12,6 +12,8 @@ const Mobs = (() => {
   let onEvent = null;
   let simulationTime=0;
   let network=null,nextNetworkId=1;
+  let explosionEffects=[],recentExplosions=[],nextExplosionId=1;
+  const seenRemoteExplosions=new Set();
   function networkPlayers(){
     return [{id:null,pos:Player.pos,dead:Player.dead||network?.localActive?.()===false},...(network?.players?.()||[])].filter(p=>p?.pos&&['x','y','z'].every(k=>Number.isFinite(p.pos[k])));
   }
@@ -34,6 +36,11 @@ const Mobs = (() => {
     lastPlayerAttackAt = -Infinity;
     lastAttackResult = null;
     simulationTime=0;
+    for(const effect of explosionEffects)disposeEffect(effect.root);
+    explosionEffects=[];
+    recentExplosions=[];
+    seenRemoteExplosions.clear();
+    nextExplosionId=1;
   }
 
   function setEnv(night, brightness) { env.night = night; env.brightness = brightness; }
@@ -74,6 +81,129 @@ const Mobs = (() => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(color));
     m.position.set(x, y, z);
     return m;
+  }
+
+  // Self-contained visual effects; no modifications to world blocks.
+  function disposeEffect(root){
+    group?.remove(root);
+    root?.traverse(node=>{
+      node.geometry?.dispose?.();
+      if(node.material)for(const mat of (Array.isArray(node.material)?node.material:[node.material]))
+        mat?.dispose?.();
+    });
+  }
+
+  function attachFuseWarning(m){
+    const marker=new THREE.Group();
+    const basic=(color,opacity)=>new THREE.MeshBasicMaterial({
+      color,opacity,transparent:true,depthWrite:false,side:THREE.DoubleSide
+    });
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(.54,.045,4,28),basic(0xf9f9f4,.8));
+    ring.rotation.x=Math.PI/2;
+    ring.position.y=.12;
+    marker.add(ring);
+    const sparks=[];
+    for(let i=0;i<6;i++){
+      const cube=new THREE.Mesh(new THREE.BoxGeometry(.115,.115,.115),
+        basic(i%2?0xffe8ad:0xffffff,.95));
+      marker.add(cube);sparks.push(cube);
+    }
+    marker.visible=false;
+    m.mesh.add(marker);
+    const materials=[];
+    m.mesh.traverse(obj=>{
+      if(!obj.material || obj===ring || sparks.includes(obj))return;
+      const mat=obj.material;
+      if(mat.color)materials.push({mat,normal:mat.color.getHex()});
+    });
+    m.fuseVisual={marker,ring,sparks,materials};
+  }
+
+  function updateFuseWarning(m){
+    const fx=m.fuseVisual;
+    if(!fx)return;
+    const p=Math.min(1,Math.max(0,m.fuseT/1.5));
+    fx.marker.visible=p>.005;
+    if(p>.005){
+      // Accelerating bright-white flashes, readable at all light levels.
+      const pulse=Math.sin(m.fuseT*(15+24*p))>0;
+      if(m.hurtT<=0)for(const entry of fx.materials){
+        entry.mat.color.setHex(pulse?0xf9f9f9:entry.normal);
+        entry.mat.emissive?.setHex(pulse?0x676767:0x000000);
+      }
+      fx.ring.scale.setScalar(1+p*.85);
+      fx.ring.material.opacity=.42+p*.45;
+      fx.sparks.forEach((cube,i)=>{
+        const a=(i/6)*Math.PI*2+simulationTime*2.2;
+        cube.position.set(Math.sin(a)*(.46+p*.27),.55+i%3*.38+Math.sin(simulationTime*7+i)*.10,
+          Math.cos(a)*(.46+p*.27));
+        cube.material.opacity=.45+.5*Math.abs(Math.sin(simulationTime*15+i));
+      });
+    }else{
+      for(const entry of fx.materials){
+        if(m.hurtT<=0)entry.mat.color.setHex(entry.normal);
+        entry.mat.emissive?.setHex(0x000000);
+      }
+    }
+  }
+
+  function spawnExplosionEffect(position,remote=false){
+    if(!group)return;
+    const root=new THREE.Group();
+    root.position.set(position.x,position.y+.8,position.z);
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(.56,.09,6,32),
+      new THREE.MeshBasicMaterial({color:0xf8f9fa,transparent:true,opacity:.95,
+        depthWrite:false,side:THREE.DoubleSide}));
+    ring.rotation.x=Math.PI/2;
+    root.add(ring);
+    const particles=[];
+    for(let i=0;i<26;i++){
+      const angle=(i/26)*Math.PI*2;
+      const rise=(Math.random()-.35)*1.5;
+      const spread=1.5+Math.random()*2.2;
+      const material=new THREE.MeshBasicMaterial({
+        color:[0xfdfdfd,0xd8d9d9,0xaaaaac,0xe9e7dc][i%4],
+        transparent:true,opacity:.88,depthWrite:false
+      });
+      const size=.16+Math.random()*.25;
+      const mesh=new THREE.Mesh(new THREE.BoxGeometry(size,size,size),material);
+      mesh.position.set(Math.sin(angle)*.16,rise*.13,Math.cos(angle)*.16);
+      root.add(mesh);
+      particles.push({mesh,vx:Math.sin(angle)*spread,vy:rise+1.2,
+        vz:Math.cos(angle)*spread,spin:Math.random()*2-1});
+    }
+    group.add(root);
+    explosionEffects.push({root,ring,particles,life:.85,maxLife:.85});
+    if(!remote){
+      const id=nextExplosionId++;
+      recentExplosions.push({id,x:position.x,y:position.y,z:position.z,until:simulationTime+1.5});
+      recentExplosions=recentExplosions.slice(-12);
+    }
+  }
+  function updateExplosionEffects(dt){
+    if(dt<=0)return;
+    recentExplosions=recentExplosions.filter(e=>e.until>simulationTime);
+    for(let i=explosionEffects.length-1;i>=0;i--){
+      const e=explosionEffects[i];
+      e.life-=dt;
+      if(e.life<=0){
+        disposeEffect(e.root);
+        explosionEffects.splice(i,1);
+        continue;
+      }
+      const t=1-e.life/e.maxLife;
+      e.ring.scale.setScalar(1+t*5.5);
+      e.ring.material.opacity=Math.max(0,1-t*1.2);
+      for(const p of e.particles){
+        p.mesh.position.x+=p.vx*dt;
+        p.mesh.position.y+=p.vy*dt;
+        p.mesh.position.z+=p.vz*dt;
+        p.mesh.rotation.x+=p.spin*dt*3;
+        p.mesh.rotation.z+=p.spin*dt*2;
+        p.mesh.scale.setScalar(Math.max(.04,1-t*.78));
+        p.mesh.material.opacity=Math.max(0,.95-t*1.1);
+      }
+    }
   }
 
   function buildMob(type) {
@@ -424,6 +554,7 @@ const Mobs = (() => {
       fuseT:0,fuseStarted:false,alertT:0,seeT:0,
       dead: false, deadT: 0
     };
+    if(type==='creeper')attachFuseWarning(m);
     mobs.push(m);
     return m;
   }
@@ -778,6 +909,7 @@ const Mobs = (() => {
       const d=other.pos.distanceTo(m.pos);
       if(d<3.15)hurtMob(other,Math.max(1,Math.round(7*(1-d/3.25))),m.pos);
     }
+    spawnExplosionEffect(m.pos);
     if(onEvent)onEvent('explode',m);
   }
 
@@ -789,7 +921,8 @@ const Mobs = (() => {
   }
 
   function update(dt, active) {
-    if(network?.replica){updateReplica(dt);return;}
+    if(network?.replica){updateReplica(dt);if(active)updateExplosionEffects(dt);return;}
+    if(active)updateExplosionEffects(dt);
     if(active)simulationTime+=dt;
     if (!group) return;
     const pp = Player.pos;
@@ -984,9 +1117,10 @@ const Mobs = (() => {
       if (m.moving) m.yaw = lerpAngle(m.yaw, Math.atan2(m.dir.x, m.dir.z), Math.min(1, dt * 8));
       m.mesh.rotation.y = m.yaw;
       m.mesh.scale.set(1,1,1);
-      if(m.type==='creeper' && m.fuseT>0){
-        const flash=Math.sin(m.fuseT*30)>0?1.08:1.0;
-        m.mesh.scale.set(flash,1+m.fuseT*.11,flash);
+      if(m.type==='creeper'){
+        const p=Math.min(1,m.fuseT/1.5);
+        m.mesh.scale.set(1+p*.21,1+p*.30,1+p*.21);
+        updateFuseWarning(m);
       }else if(m.type==='slime'){
         const hop=Math.max(0,m.vel.y)/7;
         m.mesh.scale.set(1-hop*.13,1+hop*.17,1-hop*.13);
@@ -1133,8 +1267,9 @@ const Mobs = (() => {
       if(m.type==='creeper'){
         if(m.fuseT>0&&!m.fuseStarted&&onEvent)onEvent('fuse',m);
         m.fuseStarted=m.fuseT>0;
-        const fl=Math.sin(m.fuseT*30)>0?1.08:1;
-        m.mesh.scale.set(fl,1+m.fuseT*.11,fl);
+        const p=Math.min(1,m.fuseT/1.5);
+        m.mesh.scale.set(1+p*.21,1+p*.30,1+p*.21);
+        updateFuseWarning(m);
       }else if(m.type==='slime'){
         m.mesh.scale.set(1+Math.sin(m.animT*10)*.035,1-Math.sin(m.animT*10)*.065,1+Math.sin(m.animT*10)*.035);
       }
