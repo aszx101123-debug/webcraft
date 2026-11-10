@@ -313,13 +313,14 @@ const PlayerModel = (() => {
     firstPerson.visible = visible && !thirdPerson;
     worldModel.visible = visible && !!thirdPerson;
 
-    const horizontalSpeed = Math.hypot(player.vel.x, player.vel.z);
-    const walking = visible && player.onGround && horizontalSpeed > .22;
-    const targetWeight = walking ? Math.min(1, horizontalSpeed / Math.max(.1, CONFIG.SPEED)) : 0;
-    walkWeight += (targetWeight - walkWeight) * Math.min(1, delta * 9);
-    if (walking) walkPhase += Math.min(horizontalSpeed, 8.5) * delta * 2.35;
-    const step = Math.sin(walkPhase) * walkWeight;
-    const bounce = (1 - Math.cos(walkPhase * 2)) * .011 * walkWeight;
+    const horizontalSpeed = Math.hypot(player.vel.x,player.vel.z);
+    const walking = visible && player.onGround && horizontalSpeed > .22 && !player.flying;
+    const running = walking && player.sprinting;
+    const targetWeight = walking ? Math.min(1.15,horizontalSpeed / Math.max(.1, CONFIG.SPEED)):0;
+    walkWeight += (targetWeight-walkWeight)*(1-Math.exp(-delta*11));
+    if(walking)walkPhase+=Math.min(horizontalSpeed,7.5)*delta*2.3;
+    const step=Math.sin(walkPhase)*walkWeight;
+    const bounce=(1-Math.cos(walkPhase*2))*(running?.017:.013)*walkWeight;
 
     attackTime = Math.min(ATTACK_DURATION, attackTime + delta);
     const progress = attackTime / ATTACK_DURATION;
@@ -330,24 +331,27 @@ const PlayerModel = (() => {
     updateHeldItems();
     const hasOffhand = !!Inventory.getEquipment().offhand;
     viewLeft.visible = hasOffhand;
-    viewRight.position.set(.66, -.84 + bounce - attack * .045, -1.03 - attack * .105);
-    viewRight.rotation.set(.10 + step * .045 - attack * .38, -.10,
-      .34 + step * .028 + attack * .36);
+    viewRight.position.set(.66+step*.010,-.84+bounce-attack*.045,-1.03-attack*.105);
+    viewRight.rotation.set(.10+step*.085-attack*.38,-.10,
+      .34+step*.042+attack*.36);
 
-    if (hasOffhand) {
-      viewLeft.position.set(-.66, -.84 + bounce, -1.03);
-      viewLeft.rotation.set(.10 - step * .045, .10, -.34 - step * .028);
+    if(hasOffhand){
+      viewLeft.position.set(-.66-step*.010,-.84+bounce,-1.03);
+      viewLeft.rotation.set(.10-step*.085,.10,-.34-step*.042);
     }
 
     if (!thirdPerson || !visible) return;
-    worldModel.position.set(player.pos.x, player.pos.y, player.pos.z);
-    worldModel.rotation.y = player.yaw + Math.PI;
+    worldModel.position.set(player.pos.x,player.pos.y-(player.sneaking?.14:0),player.pos.z);
+    worldModel.rotation.y=player.yaw+Math.PI;
+    worldModel.rotation.x=running?.055:0;
 
-    // Opposite arm/leg swings are driven by hip and shoulder pivots.
-    limbs.armR.rotation.x = step * .52 - attack * 1.05;
-    limbs.armL.rotation.x = -step * .52;
-    limbs.legR.rotation.x = -step * .55;
-    limbs.legL.rotation.x = step * .55;
+    // A visible run cycle, reduced air animation and distinct crouch pose.
+    const airborne=!player.onGround&&!player.flying;
+    const stride=running?.76:.57;
+    limbs.armR.rotation.x=(airborne?-.18:step*stride)-attack*1.05;
+    limbs.armL.rotation.x=airborne?-.18:-step*stride;
+    limbs.legR.rotation.x=airborne?.16:-step*(running?.83:.60);
+    limbs.legL.rotation.x=airborne?-.12:step*(running?.83:.60);
     limbs.armR.rotation.z = -.055 - attack * .12;
     limbs.armL.rotation.z = .055;
     limbs.head.rotation.x = Math.max(-.24, Math.min(.24, player.pitch * .20));
