@@ -227,8 +227,7 @@ const Player = (() => {
         regenT+=dt;
         if(regenT>=1){regenT-=1;heal(1);}
       }else regenT=0;
-      return;
-    }
+    }else{
     if(hungerT>0){hungerT=Math.max(0,hungerT-dt);addExhaustion(dt*.42);}
     const moving = Math.abs(vel.x) > .5 || Math.abs(vel.z) > .5;
     addExhaustion(SURVIVAL.BASE_EXHAUST * dt * (sprinting && moving ? SURVIVAL.SPRINT_MULT : 1));
@@ -253,7 +252,9 @@ const Player = (() => {
         }
       }
     } else starveT = 0;
+    }
 
+    // Environmental hazards such as drowning remain active in Peaceful.
     const ws = sampleWaterState();
     headSubmerged = ws.headSubmerged;
     waterCoverage = ws.coverage;
