@@ -166,6 +166,15 @@ const MultiplayerEngine = (()=>{
     function applyState(frame){
       if(!frame||typeof frame!=='object')return;
       if(Number.isFinite(frame.time)&&frame.time>=0&&frame.time<=1)state.time=frame.time;
+      const nextDifficulty=frame.meta?.difficulty ?? frame.difficulty;
+      if(Difficulty.INFO[nextDifficulty] && state.difficulty!==nextDifficulty){
+        state.difficulty=Difficulty.set(nextDifficulty);
+        const btn=document.getElementById('btn-difficulty');
+        const help=document.getElementById('wc-difficulty-description');
+        if(btn)btn.textContent='난이도: '+Difficulty.info().name;
+        if(help)help.textContent=Difficulty.info().description+
+          ' (방장만 난이도를 변경할 수 있습니다.)';
+      }
       if(frame.metadata){BlockFurniture.applyNetwork(frame.metadata.objects);FurnaceSystem.applyNetwork(frame.metadata.furnaces);Farming.applyNetwork(frame.metadata.farming);}
       if(frame.entities)entities(frame.entities);
     }
@@ -293,9 +302,9 @@ const MultiplayerEngine = (()=>{
     const adapter={selfPose,request,commit,containerState,readContainer,utility,fireArrow,chestTransfer,furnaceDeposit,furnaceWithdraw,furnaceInteract,
       toggleDoor:pos=>{void Multiplayer.request('door',pos);},
       containerBusy:()=>busy,
-      snapshot:()=>({meta:{seed,mode:state.mode,generatorVersion:2,gameVersion:CONFIG.VERSION},edits:World.getEdits(),
+      snapshot:()=>({meta:{seed,mode:state.mode,difficulty:state.difficulty,generatorVersion:2,gameVersion:CONFIG.VERSION},edits:World.getEdits(),
         spawn:{x:Player.spawnPoint.x,y:Player.spawnPoint.y,z:Player.spawnPoint.z},time:state.time,metadata:metadata(),entities:{mobs:Mobs.networkSnapshot(),drops:Drops.networkSnapshot()}}),
-      sharedState:()=>({time:state.time,metadata:metadata()}),
+      sharedState:()=>({time:state.time,difficulty:state.difficulty,metadata:metadata()}),
       entities:()=>({mobs:Mobs.networkSnapshot(),drops:Drops.networkSnapshot(),time:state.time}),
       initial:snapshot=>{applyState(snapshot);entities(snapshot.entities);},
       snapshotReceived:snapshot=>{
