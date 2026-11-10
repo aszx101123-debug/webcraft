@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.9.2-vanilla-style-menus-20261110';
+const VERSION = 'webcraft-v1.9.3-character-movement-20261110';
 const CORE = [
   "./",
   "./index.html",
@@ -15,7 +15,7 @@ const CORE = [
   "./js/game/remote-players.js?v=v190",
   "./js/game/multiplayer-engine.js?v=v190",
   "./auth.html",
-  "./js/auth-play.js?v=v192",
+  "./js/auth-play.js?v=v193",
   "./js/auth-page.js?v=v186",
   "./js/supabase-client.js",
   "./js/community-credits-server.js?v=v186",
@@ -50,8 +50,8 @@ const CORE = [
   "./css/classic-home.css?v=v140",
   "./css/community-credits.css?v=phase3",
   "./pogl-game/vendor/three.min.js",
-  "./js/game/config.js?v=v191",
-  "./js/game/classic-settings.js?v=v140",
+  "./js/game/config.js?v=v193",
+  "./js/game/classic-settings.js?v=v193",
   "./js/game/furnace-system.js?v=v190",
   "./js/game/noise.js",
   "./js/game/terrain-legacy.js?v=v180",
@@ -64,9 +64,9 @@ const CORE = [
   "./js/game/world-milestones.js?v=v180",
   "./js/game/block-furniture.js?v=v190",
   "./js/game/block-physics.js?v=v132",
-  "./js/game/player.js?v=v187",
+  "./js/game/player.js?v=v193",
   "./js/skin-studio.js?v=v131",
-  "./js/game/mobile-test-player-model.js?v=v185",
+  "./js/game/mobile-test-player-model.js?v=v193",
   "./js/game/fluids.js?v=v129",
   "./js/game/interaction.js?v=v190",
   "./js/game/items.js?v=v170",
@@ -78,7 +78,7 @@ const CORE = [
   "./js/game/mobile-test-crafting.js?v=v184",
   "./js/game/mobile-test-ui.js?v=v192",
   "./js/game/pause-menu.js?v=v192",
-  "./js/game/mobile-test-main.js?v=v192",
+  "./js/game/mobile-test-main.js?v=v193",
   "./css/style.css",
   "./css/skin-studio.css?v=v131",
   "./css/v133-home.css?v=v133",
