@@ -388,6 +388,7 @@ window.webcraftBoot = (async () => {
   }
 
   const keys = {};
+  let lastForwardPress=-Infinity;
   let touchActive = false;
   let resetTouchPad = () => {};
   let resetTouchTaps = () => {};
@@ -397,6 +398,8 @@ window.webcraftBoot = (async () => {
     resetTouchPad();
     resetTouchTaps();
     lastSpaceTap=-Infinity;
+    lastForwardPress=-Infinity;
+    keys.DoubleTapSprint=false;
     cancelTouchGesture();
     document.body.classList.remove('touch-playing');
     for (const k of ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space', 'ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight']) keys[k] = false;
@@ -729,6 +732,14 @@ window.webcraftBoot = (async () => {
       if(!e.repeat)document.body.classList.toggle('classic-hud-hidden');
       return;
     }
+    // Double-tap W to sprint, or hold Control. Releasing W ends the burst.
+    if(e.code==='KeyW' && !e.repeat && !keys.KeyW && state.started &&
+       (state.locked || (isTouch&&touchActive))){
+      const now=performance.now();
+      if(now-lastForwardPress>65 && now-lastForwardPress<340)
+        keys.DoubleTapSprint=true;
+      lastForwardPress=now;
+    }
     keys[e.code] = true;
     if (e.code === 'Space') e.preventDefault();
     if(e.code==='Space' && !e.repeat && state.mode===GAME_MODE.CREATIVE &&
@@ -804,7 +815,10 @@ window.webcraftBoot = (async () => {
       return;
     }
   });
-  document.addEventListener('keyup', e => keys[e.code] = false);
+  document.addEventListener('keyup',e=>{
+    keys[e.code]=false;
+    if(e.code==='KeyW')keys.DoubleTapSprint=false;
+  });
 
   document.addEventListener('mousemove', e => {
     if (!state.locked) return;
