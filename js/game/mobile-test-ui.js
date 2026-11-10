@@ -694,9 +694,10 @@ const UI = (() => {
     const creativePanel=$('inventory-creative-panel');
     if(creativeButton){
       creativeButton.hidden=!Inventory.isCreative();
-      creativeButton.setAttribute('aria-expanded','false');
+      creativeButton.setAttribute('aria-expanded',String(Inventory.isCreative()));
+      creativeButton.textContent=Inventory.isCreative()?'▦ 아이템 목록 접기':'▦ 전체 아이템';
     }
-    creativePanel?.classList.add('hidden');
+    creativePanel?.classList.toggle('hidden',!Inventory.isCreative());
     hoveredInventorySlot=null;
     mobileSplitMode=false;
     selectedInventoryMaterial=null;
@@ -724,6 +725,7 @@ const UI = (() => {
         if(!Inventory.isCreative()||!panel)return;
         const expanded=openCreative.getAttribute('aria-expanded')==='true';
         openCreative.setAttribute('aria-expanded',String(!expanded));
+        openCreative.textContent=expanded?'▦ 전체 아이템':'▦ 아이템 목록 접기';
         panel.classList.toggle('hidden',expanded);
         if(!expanded)renderCreativeCatalog();
       });
