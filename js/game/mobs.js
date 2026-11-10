@@ -77,7 +77,7 @@ const Mobs = (() => {
   }
 
   function buildMob(type) {
-    const kind=type==='husk'?'zombie':type==='stray'?'skeleton':type;
+    const kind=type==='husk'?'zombie':type==='stray'?'skeleton':type==='mooshroom'?'cow':type;
     const g = new THREE.Group();
     const parts = { legs: [], arms: [], extraLegs: [], eyes: [], head: null, healthBar: null, detailGroup: null };
     const limb = (w, h, d, color, x, y, z) => {
@@ -358,6 +358,17 @@ const Mobs = (() => {
       }
       patch(-.14,.54,.929,.09,.1,0xff7563);
       patch(.14,.54,.929,.09,.1,0xff7563);
+    }
+    if(type==='mooshroom'){
+      g.add(box(1.10,.74,.84,0xb92c30,0,.92,0));
+      for(const [x,y,z] of [[-.22,1.296,-.18],[.25,1.296,.20],[.02,1.73,.42]]){
+        g.add(box(.10,.16,.10,0xf2e9d6,x,y+.07,z));
+        g.add(box(.32,.12,.31,0xc72a34,x,y+.19,z));
+        g.add(box(.09,.022,.10,0xf5e6cd,x-.08,y+.26,z));
+      }
+      for(const [x,y,z] of [[-.32,.99,.42],[.32,1.15,-.40],[.22,.78,.43]]){
+        g.add(box(.16,.18,.03,0xf7dfd2,x,y,z));
+      }
     }
     if(type==='husk'){
       // Desert zombie variant: sand-tan layers and a dry scarf.
@@ -642,7 +653,7 @@ const Mobs = (() => {
     if(!type)return null;
     let best=null,distance=reach;
     for(const m of mobs){
-      if(m.dead||m.type!==type)continue;
+      if(m.dead||(m.type!==type && !(type==='cow'&&m.type==='mooshroom')))continue;
       const half=m.def.width/2;
       const hit=rayBox(eye,dir,{x:m.pos.x-half,y:m.pos.y,z:m.pos.z-half},{x:m.pos.x+half,y:m.pos.y+m.def.height,z:m.pos.z+half});
       if(hit!==null&&hit<distance&&hasLineOfSight(eye,{x:m.pos.x,y:m.pos.y+m.def.height*.6,z:m.pos.z})){best=m;distance=hit;}
@@ -688,7 +699,7 @@ const Mobs = (() => {
     highland:{passive:['sheep','sheep','cow'],hostile:['skeleton','spider','zombie','creeper']},
     cherry:{passive:['sheep','pig','chicken'],hostile:['zombie','spider','skeleton','creeper']},
     bamboo:{passive:['chicken','pig'],hostile:['spider','spider','zombie','creeper']},
-    mushroom:{passive:['cow','cow'],hostile:[]},
+    mushroom:{passive:['mooshroom','mooshroom'],hostile:[]},
     volcanic:{passive:[],hostile:['skeleton','zombie','creeper','spider']},
     crystal:{passive:['sheep','chicken'],hostile:['skeleton','spider','zombie','creeper']}
   };
