@@ -596,6 +596,7 @@ const Textures = (() => {
       });
     }
 
+    paintMobLoot();
     paintCactus();
     paintFallingTiles();
     texture = new THREE.CanvasTexture(canvas);
@@ -604,6 +605,29 @@ const Textures = (() => {
     texture.minFilter = THREE.NearestFilter;
     texture.generateMipmaps = false;
     texture.anisotropy = 1;
+  }
+
+  function paintMobLoot(){
+    const paint=(col,x,y,color)=>{ctx.fillStyle=color;ctx.fillRect(col*TS+x,22*TS+y,1,1);};
+    const rnd=(x,y,seed)=>{
+      let n=Math.imul(x+seed*13,374761393)^Math.imul(y+seed*19,668265263);
+      n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967295;
+    };
+    for(const col of [0,1]){
+      ctx.clearRect(col*TS,22*TS,TS,TS);
+      for(let y=0;y<TS;y++)for(let x=0;x<TS;x++){
+        const radius=Math.hypot(x-7.5,y-7.5),noise=rnd(x,y,30+col);
+        if(radius>(col?6.4:5.8)||(!col&&radius>4.7&&noise>.78))continue;
+        const shade=rnd(x>>2,y>>2,35+col);
+        if(col===0){
+          const n=Math.round(63+shade*65+(noise-.5)*18);
+          paint(col,x,y,css(n,n,n+1));
+        }else{
+          const k=noise>.82?[149,239,134]:noise<.18?[40,121,43]:[79,180,65];
+          paint(col,x,y,css(k[0]+shade*12,k[1]+shade*12,k[2]+shade*12));
+        }
+      }
+    }
   }
 
   function paintFallingTiles() {
@@ -713,7 +737,8 @@ const Textures = (() => {
       }
       for(const tile of pack.tiles)ctx.clearRect(tile.at[0]*TS,tile.at[1]*TS,TS,TS);
       ctx.drawImage(atlas,0,0);
-      // Keep revised sand/gravel even when the classic image pack loads.
+      // Redraw mob loot after the optional classic texture pack is applied.
+      paintMobLoot();
       paintFallingTiles();
       waterStrip = water;
       // Eight-pixel gutters keep all four mip levels inside their own tile.
