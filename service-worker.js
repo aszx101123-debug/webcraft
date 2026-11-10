@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-v1.9.3-character-movement-20261110';
+const VERSION = 'webcraft-v1.9.4-sand-gravel-gravity-20261110';
 const CORE = [
   "./",
   "./index.html",
@@ -15,7 +15,7 @@ const CORE = [
   "./js/game/remote-players.js?v=v190",
   "./js/game/multiplayer-engine.js?v=v190",
   "./auth.html",
-  "./js/auth-play.js?v=v193",
+  "./js/auth-play.js?v=v194",
   "./js/auth-page.js?v=v186",
   "./js/supabase-client.js",
   "./js/community-credits-server.js?v=v186",
@@ -50,20 +50,20 @@ const CORE = [
   "./css/classic-home.css?v=v140",
   "./css/community-credits.css?v=phase3",
   "./pogl-game/vendor/three.min.js",
-  "./js/game/config.js?v=v193",
+  "./js/game/config.js?v=v194",
   "./js/game/classic-settings.js?v=v193",
   "./js/game/furnace-system.js?v=v190",
   "./js/game/noise.js",
   "./js/game/terrain-legacy.js?v=v180",
   "./js/game/terrain.js?v=v191",
-  "./js/game/mobile-test-textures.js?v=v185",
+  "./js/game/mobile-test-textures.js?v=v194",
   "./js/game/graphics.js?v=v170",
   "./js/game/voxel-lighting.js?v=v170",
-  "./js/game/world.js?v=v191",
+  "./js/game/world.js?v=v194",
   "./js/game/world-journal.js?v=v180",
   "./js/game/world-milestones.js?v=v180",
   "./js/game/block-furniture.js?v=v190",
-  "./js/game/block-physics.js?v=v132",
+  "./js/game/block-physics.js?v=v194",
   "./js/game/player.js?v=v193",
   "./js/skin-studio.js?v=v131",
   "./js/game/mobile-test-player-model.js?v=v193",
