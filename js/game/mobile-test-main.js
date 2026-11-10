@@ -645,19 +645,6 @@ window.webcraftBoot = (async () => {
     resumeInput();
   });
   document.getElementById('journal-close')?.addEventListener('click',()=>WorldJournal.close());
-  document.getElementById('btn-biome-guide')?.addEventListener('click',()=>{
-    state.paused=true;
-    disableTouchInput();
-    UI.showOverlay(null);
-    WorldJournal.showGuide();
-  });
-  WorldJournal.setOnGuideClose(()=>{
-    state.paused=true;
-    pauseBeganAt=performance.now();
-    UI.showOverlay('pause');
-    document.getElementById('btn-biome-guide')?.focus?.();
-  });
-  document.getElementById('biome-guide-close')?.addEventListener('click',()=>WorldJournal.close());
   WorldJournal.setOnChange(()=>doSave(true));
   document.getElementById('journal-bookmark-add')?.addEventListener('click',()=>{
     const input=document.getElementById('journal-bookmark-name');
@@ -769,6 +756,7 @@ window.webcraftBoot = (async () => {
       e.preventDefault();
       if(e.repeat)return;
       if(state.paused){
+        if(window.WebCraftPauseMenu?.back())return;
         if(performance.now()-pauseBeganAt<180)return;
         state.paused=false;
         state.suppressPause=true;
