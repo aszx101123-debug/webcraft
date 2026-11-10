@@ -1,17 +1,17 @@
 'use strict';
 
 const CONFIG = {
-  VERSION: '1.9.2',
+  VERSION: '1.9.3',
   MOB_HEALTH_BARS: false,
   CHUNK: 16,
   HEIGHT: 64,
   SEA: 23,
   RENDER_DIST: 3,
-  GRAVITY: 24,
-  JUMP: 8.4,
-  SPEED: 4.4,
-  SPRINT: 7.4,
-  FLY: 10,
+  GRAVITY: 31.5,
+  JUMP: 8.6,
+  SPEED: 4.3,
+  SPRINT: 5.6,
+  FLY: 10.9,
   REACH: 6,
   DAY_LENGTH: 600,
   AUTOSAVE_SEC: 20,
