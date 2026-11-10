@@ -219,6 +219,16 @@ const Player = (() => {
 
   function survivalTick(dt, sprinting) {
     if (mode !== GAME_MODE.SURVIVAL || dead) return;
+    if(Difficulty.isPeaceful()){
+      // Peaceful automatically replenishes food and heals without spending it.
+      food=SURVIVAL.MAX_FOOD;
+      exhaustion=0;starveT=0;hungerT=0;slowT=0;
+      if(hp<SURVIVAL.MAX_HP){
+        regenT+=dt;
+        if(regenT>=1){regenT-=1;heal(1);}
+      }else regenT=0;
+      return;
+    }
     if(hungerT>0){hungerT=Math.max(0,hungerT-dt);addExhaustion(dt*.42);}
     const moving = Math.abs(vel.x) > .5 || Math.abs(vel.z) > .5;
     addExhaustion(SURVIVAL.BASE_EXHAUST * dt * (sprinting && moving ? SURVIVAL.SPRINT_MULT : 1));
@@ -236,9 +246,10 @@ const Player = (() => {
       starveT += dt;
       if (starveT >= SURVIVAL.STARVE_SEC) {
         starveT = 0;
-        if (hp > SURVIVAL.STARVE_MIN_HP) {
-          hp--;
-          if (onHurt) onHurt('굶주림에 허기져');
+        if(hp>Difficulty.starveFloor()){
+          // Use the normal damage pathway so hard-mode starvation can trigger
+          // the existing death screen, while easy mode stops at half health.
+          damage(1,'굶주림',null);
         }
       }
     } else starveT = 0;
