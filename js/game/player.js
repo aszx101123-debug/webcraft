@@ -281,7 +281,7 @@ const Player = (() => {
     const f = (keys['KeyW'] || keys['ArrowUp'] ? 1 : 0) - (keys['KeyS'] || keys['ArrowDown'] ? 1 : 0);
     const s = (keys['KeyD'] || keys['ArrowRight'] ? 1 : 0) - (keys['KeyA'] || keys['ArrowLeft'] ? 1 : 0);
     const crouch = !!(keys['ShiftLeft'] || keys['ShiftRight']);
-    const sprint = (keys['ControlLeft'] || keys['ControlRight']) && f > 0 && !crouch &&
+    const sprint = (keys['ControlLeft'] || keys['ControlRight'] || keys.DoubleTapSprint) && f > 0 && !crouch &&
       (mode !== GAME_MODE.SURVIVAL || food > 6);
     const ws = sampleWaterState();
     const inWater = ws.inWater;
