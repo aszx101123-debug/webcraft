@@ -25,12 +25,13 @@
 <link rel="stylesheet" href="css/classic.css?v=v185">
 <link rel="stylesheet" href="css/biome-guide.css?v=v180">
 <link rel="stylesheet" href="css/v192-menu.css?v=v192">
+<link rel="stylesheet" href="css/v202-difficulty-death.css?v=v202">
 <link rel="stylesheet" href="css/v191-cave-ui.css?v=v191">
 <link rel="stylesheet" href="css/multiplayer.css?v=v190">
 </head>
 <body>
 
-<div id="update-badge" class="update-badge" role="status">업데이트됨 · v2.0.1 · 크리퍼 점멸·폭발 이펙트 · 몹 움직임 수정</div>
+<div id="update-badge" class="update-badge" role="status">업데이트됨 · v2.0.2 · 난이도 4종 · 새로운 사망 화면</div>
 <div id="boot-error" class="boot-error hidden" role="alert">
   <div class="boot-error-panel">
     <div class="boot-error-icon">!</div>
@@ -132,6 +133,8 @@
           <button type="button" class="btn" data-wc-open="audio">음악 및 소리...</button>
           <button type="button" class="btn" data-wc-open="accessibility">접근성...</button>
         </div>
+        <button id="btn-difficulty" type="button" class="btn wc-difficulty-btn" aria-describedby="wc-difficulty-description">난이도: 보통</button>
+        <p id="wc-difficulty-description" class="wc-difficulty-description" aria-live="polite">표준 몹 공격력과 배고픔 규칙을 사용합니다.</p>
         <button type="button" class="btn wc-done" data-wc-back="main">완료</button>
       </div>
     </section>
@@ -214,12 +217,16 @@
   </div>
 </div>
 
-<div id="overlay-death" class="overlay hidden">
-  <div class="panel death-panel">
-    <h2 class="death-title">죽었습니다!</h2>
-    <p id="death-cause" class="sub"></p>
-    <p class="sub">아이템은 지키셨습니다. 다시 일어나세요.</p>
-    <button id="btn-respawn" class="btn-primary">리스폰</button>
+<div id="overlay-death" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="wc-death-title">
+  <div class="panel death-panel wc-death-panel">
+    <h2 id="wc-death-title" class="death-title">죽었습니다!</h2>
+    <p id="death-cause" class="wc-death-cause" role="status"></p>
+    <p id="death-world" class="wc-death-world"></p>
+    <div class="wc-death-actions">
+      <button id="btn-respawn" type="button" class="btn-primary">리스폰</button>
+      <button id="btn-death-title" type="button" class="btn">타이틀 화면으로</button>
+    </div>
+    <p class="wc-death-hint">리스폰하면 저장된 스폰 지점으로 돌아갑니다.</p>
   </div>
 </div>
 
