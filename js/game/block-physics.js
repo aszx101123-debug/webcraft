@@ -6,10 +6,11 @@ const BlockPhysics = (() => {
   const queue = [];
   const queued = new Set();
   let unsubscribe = null;
+  let unsubscribeChunks = null;
   let elapsed = 0;
-  const LIMIT = 768;
-  const STEP = .08;
-  const MAX_MOVES = 24;
+  const LIMIT = 4096;
+  const STEP = .065;
+  const MAX_MOVES = 52;
   const key = (x,y,z) => x + ',' + y + ',' + z;
 
   function schedule(x,y,z) {
@@ -28,12 +29,32 @@ const BlockPhysics = (() => {
       schedule(x,y+1,z);
   }
 
+  function onChunkLoaded(cx,cz,data){
+    // Unedited/generated sand and gravel must obey gravity too. Previously
+    // only edits triggered movement, leaving floating natural cave ceilings.
+    // Schedule unsupported cells only; each falling column pulls the rest down.
+    const C=CONFIG.CHUNK,H=CONFIG.HEIGHT;
+    for(let x=0;x<C;x++)for(let z=0;z<C;z++){
+      for(let y=2;y<H;y++){
+        const idx=Terrain.idx(x,y,z);
+        const id=data[idx];
+        if(!isFallingBlock(id))continue;
+        const underneath=data[Terrain.idx(x,y-1,z)];
+        if(underneath===BLOCK.AIR || underneath===BLOCK.WATER ||
+           underneath===BLOCK.WATER_FLOW)
+          schedule(cx*C+x,y,cz*C+z);
+      }
+    }
+  }
+
   function init() {
     if (unsubscribe) unsubscribe();
-    unsubscribe=World.onBlockChanged(onChange);
+    if (unsubscribeChunks) unsubscribeChunks();
     queue.length=0;
     queued.clear();
     elapsed=0;
+    unsubscribe=World.onBlockChanged(onChange);
+    unsubscribeChunks=World.onChunkLoaded(onChunkLoaded);
   }
 
   function update(dt) {
