@@ -1,7 +1,7 @@
 'use strict';
 
 const CONFIG = {
-  VERSION: '1.9.3',
+  VERSION: '1.9.4',
   MOB_HEALTH_BARS: false,
   CHUNK: 16,
   HEIGHT: 64,
@@ -49,7 +49,7 @@ const BLOCKS = [
   { name: '흙',        tiles: { all: [2, 0] }, miningTime: .38, tool: 'shovel' },
   { name: '돌',        tiles: { all: [3, 0] }, miningTime: 1.05, tool: 'pickaxe', minTier: 1 },
   { name: '조약돌',    tiles: { all: [4, 0] }, miningTime: 1.15, tool: 'pickaxe', minTier: 1 },
-  { name: '모래',      tiles: { all: [5, 0] }, miningTime: .32, tool: 'shovel' },
+  { name: '모래',      tiles: { all: [5, 0] }, miningTime: .32, tool: 'shovel', gravity: true, category: '자연' },
   { name: '통나무',    tiles: { top: [7, 0], side: [6, 0], bottom: [7, 0] }, miningTime: .78, tool: 'cutter' },
   { name: '잎',        tiles: { all: [0, 1] }, cutout: true, miningTime: .16, tool: 'hoe' },
   { name: '판자',      tiles: { all: [1, 1] }, miningTime: .62, tool: 'cutter' },
