@@ -7,12 +7,12 @@ document.body.appendChild(notice);
 try {
   const sources = [
     "pogl-game/vendor/three.min.js",
-    "js/game/config.js?v=v194",
+    "js/game/config.js?v=v200",
     "js/game/classic-settings.js?v=v193",
     "js/game/noise.js",
     "js/game/terrain-legacy.js?v=v180",
     "js/game/terrain.js?v=v191",
-    "js/game/mobile-test-textures.js?v=v194",
+    "js/game/mobile-test-textures.js?v=v200",
     "js/game/graphics.js?v=v170",
     "js/game/voxel-lighting.js?v=v170",
     "js/game/world.js?v=v194",
@@ -20,7 +20,7 @@ try {
     "js/game/world-milestones.js?v=v180",
     "js/game/block-furniture.js?v=v190",
     "js/game/block-physics.js?v=v194",
-    "js/game/player.js?v=v193",
+    "js/game/player.js?v=v200",
     "js/skin-studio.js?v=v131",
     "js/game/mobile-test-player-model.js?v=v193",
     "js/game/fluids.js?v=v129",
@@ -28,7 +28,7 @@ try {
     "js/game/items.js?v=v170",
     "js/game/furnace-system.js?v=v190",
     "js/game/drops.js?v=v190",
-    "js/game/mobs.js?v=v191",
+    "js/game/mobs.js?v=v200",
     "js/game/farming.js?v=v190",
     "js/game/item-actions.js?v=v190",
     "js/game/save.js?v=v190",
@@ -38,8 +38,8 @@ try {
     "js/game/multiplayer-core.js?v=v190",
     "js/game/multiplayer.js?v=v190",
     "js/game/remote-players.js?v=v190",
-    "js/game/multiplayer-engine.js?v=v190",
-    "js/game/mobile-test-main.js?v=v193"
+    "js/game/multiplayer-engine.js?v=v200",
+    "js/game/mobile-test-main.js?v=v200"
   ];
   for (const src of sources) {
     await new Promise((resolve, reject) => {
