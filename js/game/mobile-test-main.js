@@ -325,8 +325,8 @@ window.webcraftBoot = (async () => {
       sound: state.sound,
       mode: state.mode,
       difficulty: state.difficulty,
-      hp: Player.hp,
-      food: Player.food,
+      hp: Player.dead ? SURVIVAL.MAX_HP : Player.hp,
+      food: Player.dead ? SURVIVAL.MAX_FOOD : Player.food,
       spawn: { x: Player.spawnPoint.x, y: Player.spawnPoint.y, z: Player.spawnPoint.z },
       hotbar: Inventory.serialize().slice(0, Inventory.HOTBAR_SIZE),
       inventory: Inventory.serialize(),
@@ -338,8 +338,10 @@ window.webcraftBoot = (async () => {
       thirdPerson: state.thirdPersonView > 0,
       thirdPersonView: state.thirdPersonView,
       player: {
-        x: Player.pos.x, y: Player.pos.y, z: Player.pos.z,
-        yaw: Player.yaw, pitch: Player.pitch, flying: Player.flying
+        x: Player.dead ? Player.spawnPoint.x : Player.pos.x,
+        y: Player.dead ? Player.spawnPoint.y : Player.pos.y,
+        z: Player.dead ? Player.spawnPoint.z : Player.pos.z,
+        yaw: Player.yaw, pitch: Player.pitch, flying: Player.dead ? false : Player.flying
       },
       edits: World.getEdits(),
       blockObjects: BlockFurniture.serialize(),
@@ -1128,6 +1130,7 @@ window.webcraftBoot = (async () => {
     Interact.cancelBreak();
     UI.setMiningProgress(0);
     Player.respawn();
+    doSave(true);
     UI.hideDeath();
     resumeInput();
   });
