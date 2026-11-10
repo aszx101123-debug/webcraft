@@ -12,6 +12,7 @@ const Player = (() => {
   let peakY = null, dead = false, lastInWater = false, headSubmerged = false, waterCoverage = 0;
   let onBeforeDamage=null;
   let cactusDamageCooldown=0;
+  let movingSprint=false;
 
 
   function isWater(id) { return id === BLOCK.WATER || id === BLOCK.WATER_FLOW; }
@@ -49,6 +50,7 @@ const Player = (() => {
     onGround = false; flying = fly && mode === GAME_MODE.CREATIVE;
     sneaking = false;
     cactusDamageCooldown=0;
+    movingSprint=false;
     setSpawn(x, y, z);
   }
 
@@ -272,13 +274,15 @@ const Player = (() => {
     dead = false;
     sneaking = false;
     cactusDamageCooldown=0;
+    movingSprint=false;
   }
 
   function update(dt, keys) {
     const f = (keys['KeyW'] || keys['ArrowUp'] ? 1 : 0) - (keys['KeyS'] || keys['ArrowDown'] ? 1 : 0);
     const s = (keys['KeyD'] || keys['ArrowRight'] ? 1 : 0) - (keys['KeyA'] || keys['ArrowLeft'] ? 1 : 0);
     const crouch = !!(keys['ShiftLeft'] || keys['ShiftRight']);
-    const sprint = (keys['ControlLeft'] || keys['ControlRight']) && !crouch;
+    const sprint = (keys['ControlLeft'] || keys['ControlRight']) && f > 0 && !crouch &&
+      (mode !== GAME_MODE.SURVIVAL || food > 6);
     const ws = sampleWaterState();
     const inWater = ws.inWater;
     headSubmerged = ws.headSubmerged;
@@ -286,36 +290,52 @@ const Player = (() => {
     lastInWater = inWater;
     const canFly = mode === GAME_MODE.CREATIVE && flying;
     sneaking = crouch && !canFly && !inWater;
-    const speed = canFly ? CONFIG.FLY : (sprint && f > 0 ? CONFIG.SPRINT : CONFIG.SPEED) * (inWater ? .55 : 1) * (crouch ? .3 : 1);
+    movingSprint=sprint && !canFly && !inWater;
+    const speed=canFly?CONFIG.FLY:(movingSprint?CONFIG.SPRINT:CONFIG.SPEED)
+      *(inWater?.55:1)*(crouch?.3:1);
     const len = Math.hypot(f, s) || 1;
     const sy = Math.sin(yaw), cy = Math.cos(yaw);
     const wx = (-sy * f + cy * s) / len * speed;
     const wz = (-cy * f - sy * s) / len * speed;
 
+    // Frame-rate independent momentum: sharp starts/stops on the ground,
+    // weaker mid-air steering and extra glide on ice, as in a block sandbox.
+    const wasGrounded=onGround;
+    const hasInput=f!==0||s!==0;
     if (canFly) {
-      const k = Math.min(1, dt * 8);
-      vel.x += (wx - vel.x) * k;
-      vel.z += (wz - vel.z) * k;
-      const up = (keys['Space'] ? 1 : 0) - (crouch ? 1 : 0);
-      vel.y += (up * CONFIG.FLY - vel.y) * k;
+      const flyRate=hasInput?14:12;
+      const k=1-Math.exp(-Math.min(.05,dt)*flyRate);
+      vel.x+=(wx-vel.x)*k;
+      vel.z+=(wz-vel.z)*k;
+      const up=(keys['Space']?1:0)-(crouch?1:0);
+      vel.y+=(up*CONFIG.FLY-vel.y)*k;
     } else {
       const underfoot=World.getBlock(Math.floor(pos.x),Math.floor(pos.y-.08),Math.floor(pos.z));
-      const slippery=onGround && underfoot===BLOCK.ICE && !inWater;
-      const k = Math.min(1, dt * (slippery ? 2.2 : onGround ? 12 : 3.5));
-      vel.x += (wx - vel.x) * k;
-      vel.z += (wz - vel.z) * k;
-      if (inWater) {
-        vel.y -= CONFIG.GRAVITY * .28 * dt;
-        vel.y = Math.max(vel.y, -4);
-        if (keys['Space']) vel.y = Math.min(vel.y + 26 * dt, 4.2);
-      } else {
-        if (keys['Space'] && onGround) {
-          vel.y = CONFIG.JUMP;
+      const slippery=wasGrounded && underfoot===BLOCK.ICE && !inWater;
+      // Ground traction is high; ice retains velocity and jumping carries it.
+      const rate=inWater?6.5:slippery?(hasInput?3.1:1.4):
+        wasGrounded?(hasInput?19:16):hasInput?2.6:1.05;
+      const k=1-Math.exp(-Math.min(.05,dt)*rate);
+      vel.x+=(wx-vel.x)*k;
+      vel.z+=(wz-vel.z)*k;
+      if(inWater){
+        vel.y-=CONFIG.GRAVITY*.24*dt;
+        vel.y=Math.max(vel.y,-4);
+        if(keys['Space'])vel.y=Math.min(vel.y+26*dt,4.2);
+      }else{
+        if(keys['Space'] && wasGrounded){
+          vel.y=CONFIG.JUMP;
+          if(sprint){
+            // A sprint-jump carries a short forward impulse, rather than
+            // producing identical jumps while walking and running.
+            vel.x-=Math.sin(yaw)*.60;
+            vel.z-=Math.cos(yaw)*.60;
+          }
           addExhaustion(SURVIVAL.JUMP_COST);
         }
-        vel.y -= CONFIG.GRAVITY * dt;
+        vel.y-=CONFIG.GRAVITY*dt;
       }
-      vel.y = Math.max(vel.y, -46);
+      vel.y=Math.max(vel.y,-46);
     }
 
     onGround = false;
@@ -355,6 +375,7 @@ const Player = (() => {
     get yaw() { return yaw; }, set yaw(v) { yaw = v; },
     get pitch() { return pitch; }, set pitch(v) { pitch = v; },
     get onGround() { return onGround; },
+    get sprinting() { return movingSprint; },
     get sneaking() { return sneaking; },
     get flying() { return flying; }, set flying(v) { flying = v; if (v) vel.y = 0; },
     get inWater() { return lastInWater; },
