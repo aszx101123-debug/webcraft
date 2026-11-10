@@ -671,24 +671,37 @@ const Mobs = (() => {
     return true;
   }
 
-  const spawnPools = {
-    plains: {passive:['pig','cow','sheep','chicken'],hostile:['zombie','skeleton','spider']},
-    forest: {passive:['cow','pig','chicken','sheep'],hostile:['spider','zombie','skeleton']},
-    jungle: {passive:['chicken','chicken','pig'],hostile:['spider','spider','zombie']},
-    swamp: {passive:['pig','chicken'],hostile:['spider','zombie','spider']},
-    taiga: {passive:['sheep','cow','chicken'],hostile:['skeleton','spider','zombie']},
-    snowy: {passive:['sheep','sheep','cow'],hostile:['skeleton','skeleton','zombie']},
-    glacier: {passive:['sheep'],hostile:['skeleton','skeleton','spider']},
-    desert: {passive:[],hostile:['skeleton','skeleton','zombie']},
-    badlands: {passive:[],hostile:['skeleton','zombie','spider']},
-    savanna: {passive:['cow','pig','chicken'],hostile:['zombie','skeleton','spider']},
-    highland: {passive:['sheep','sheep','cow'],hostile:['skeleton','spider','zombie']},
-    cherry: {passive:['sheep','pig','chicken'],hostile:['zombie','spider','skeleton']},
-    bamboo: {passive:['chicken','pig'],hostile:['spider','spider','zombie']},
-    mushroom: {passive:['cow','cow'],hostile:['spider','zombie']},
-    volcanic: {passive:[],hostile:['skeleton','zombie','spider']},
-    crystal: {passive:['sheep','chicken'],hostile:['skeleton','spider','zombie']}
+  // Biome wildlife: common types recur as weights; hostile spawns remain
+  // limited by the global cap and light / ground checks.
+  const spawnPools={
+    plains:{passive:['pig','cow','sheep','chicken','sheep'],hostile:['zombie','skeleton','spider','creeper','creeper']},
+    forest:{passive:['cow','pig','chicken','sheep'],hostile:['spider','zombie','creeper','skeleton']},
+    jungle:{passive:['chicken','chicken','pig'],hostile:['spider','spider','zombie','creeper']},
+    swamp:{passive:['pig','chicken'],hostile:['slime','slime','spider','zombie','creeper']},
+    taiga:{passive:['sheep','cow','chicken'],hostile:['skeleton','spider','zombie','creeper']},
+    snowy:{passive:['sheep','sheep','cow'],hostile:['stray','stray','skeleton','creeper','spider']},
+    glacier:{passive:['sheep'],hostile:['stray','stray','skeleton','spider']},
+    desert:{passive:[],hostile:['husk','husk','husk','skeleton','creeper','spider']},
+    badlands:{passive:[],hostile:['husk','zombie','skeleton','creeper','spider']},
+    savanna:{passive:['cow','pig','chicken'],hostile:['husk','zombie','skeleton','creeper','spider']},
+    highland:{passive:['sheep','sheep','cow'],hostile:['skeleton','spider','zombie','creeper']},
+    cherry:{passive:['sheep','pig','chicken'],hostile:['zombie','spider','skeleton','creeper']},
+    bamboo:{passive:['chicken','pig'],hostile:['spider','spider','zombie','creeper']},
+    mushroom:{passive:['cow','cow'],hostile:[]},
+    volcanic:{passive:[],hostile:['skeleton','zombie','creeper','spider']},
+    crystal:{passive:['sheep','chicken'],hostile:['skeleton','spider','zombie','creeper']}
   };
+  function surfaceDarkEnough(x,y,z){
+    // Include directly adjacent torches so hostile mobs cannot spawn inside
+    // a player's lit area or on top of transparent foliage.
+    for(let dx=-5;dx<=5;dx+=2)for(let dz=-5;dz<=5;dz+=2)
+      for(let dy=-2;dy<=3;dy++){
+        const id=World.getBlock(x+dx,y+dy,z+dz);
+        if(id===BLOCK.TORCH||id===BLOCK.LANTERN||id===BLOCK.GLOWSTONE)return false;
+      }
+    return true;
+  }
+
   function trySpawnCave() {
     // Hostile spawns are allowed underground even in daylight, but require
     // two empty blocks, a solid floor and a real roof (not open night terrain).
@@ -728,7 +741,13 @@ const Mobs = (() => {
         const biome=World.biomeAt(x,z);
         const pool=(spawnPools[biome]||spawnPools.plains).hostile;
         if(!pool?.length)continue;
-        const type=pool[Math.floor(Math.random()*pool.length)];
+        // Surface-only variants stay above ground; ordinary zombies/skeletons
+        // replace them in caves. Slimes are occasional deep-cave inhabitants.
+        let type=pool[Math.floor(Math.random()*pool.length)];
+        if(type==='husk')type='zombie';
+        if(type==='stray' && biome!=='snowy' && biome!=='glacier')type='skeleton';
+        if(y<20 && Math.random()<.12)type='slime';
+        if(type==='slime'&&y>24&&biome!=='swamp')type='zombie';
         spawn(type,x+.5,y,z+.5);
         return true;
       }
@@ -752,13 +771,16 @@ const Mobs = (() => {
     const pool=(spawnPools[biome]||spawnPools.plains)[category]||[];
     if(!pool.length)return;
     if(category==='hostile'){
-      if(!isSolidBlock(top)||top===BLOCK.LEAVES)return;
+      if(!env.night||!isSolidBlock(top)||top===BLOCK.LEAVES||
+         top===BLOCK.BIRCH_LEAVES||top===BLOCK.SPRUCE_LEAVES)return;
+      if(!surfaceDarkEnough(x,y+1,z))return;
     }else{
       const soils=[BLOCK.GRASS,BLOCK.SNOW,BLOCK.MYCELIUM];
       if(!soils.includes(top))return;
       if(biome==='glacier' && Math.random()>.16)return;
     }
     const kind=pool[Math.floor(Math.random()*pool.length)];
+    if(kind==='slime' && biome==='swamp' && Math.random()>.6)return;
     spawn(kind,x+.5,y+1,z+.5);
   }
 
