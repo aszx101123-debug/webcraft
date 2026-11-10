@@ -168,6 +168,13 @@ window.webcraftBoot = (async () => {
     if (type === 'hurt') blip(m.def.hostile ? 90 : 140, .1, 'triangle', .06);
     else if (type === 'die') blip(60, .22, 'sawtooth', .07);
     else if (type === 'shoot') blip(720, .06, 'square', .03);
+    else if (type === 'fuse') {
+      blip(600,.20,'sawtooth',.065);
+      setTimeout(()=>blip(440,.16,'triangle',.035),120);
+    } else if (type === 'explode') {
+      blip(68,.26,'sawtooth',.12);
+      if(!state.paused)UI.showToast('크리퍼 폭발!');
+    }
   };
 
 
