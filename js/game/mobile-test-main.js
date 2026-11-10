@@ -1140,6 +1140,40 @@ window.webcraftBoot = (async () => {
     applyFog();
     UI.showToast(`렌더 거리: ${state.renderDist}청크`);
   });
+  // Presets use the same controls as manual adjustment, so persisted settings
+  // and live camera/fog stay synchronized.
+  const settingsSummary=document.getElementById('settings-summary-live');
+  function updateSettingsSummary(){
+    if(!settingsSummary)return;
+    const opts=ClassicSettings.get();
+    settingsSummary.textContent='렌더 '+state.renderDist+'청크 · 시야 '+opts.fov+'° · 감도 '+opts.sensitivity+'% · '+(opts.invertY?'Y축 반전':'기본 Y축');
+  }
+  const settingPresets={
+    fast:{fov:65,sensitivity:100,renderDist:2},
+    balanced:{fov:70,sensitivity:100,renderDist:3},
+    wide:{fov:90,sensitivity:100,renderDist:4}
+  };
+  document.querySelectorAll('[data-settings-preset]').forEach(btn=>btn.addEventListener('click',()=>{
+    const preset=settingPresets[btn.dataset.settingsPreset];
+    if(!preset)return;
+    const fov=document.getElementById('classic-fov');
+    const sensitivity=document.getElementById('classic-sensitivity');
+    fov.value=String(preset.fov);
+    fov.dispatchEvent(new Event('input',{bubbles:true}));
+    sensitivity.value=String(preset.sensitivity);
+    sensitivity.dispatchEvent(new Event('input',{bubbles:true}));
+    rdSel.value=String(preset.renderDist);
+    rdSel.dispatchEvent(new Event('change',{bubbles:true}));
+    updateSettingsSummary();
+    UI.showToast('설정 적용: '+btn.textContent.trim());
+  }));
+  for(const id of ['classic-fov','classic-sensitivity','classic-invert']){
+    const el=document.getElementById(id);
+    el?.addEventListener(id==='classic-invert'?'change':'input',updateSettingsSummary);
+  }
+  rdSel.addEventListener('change',updateSettingsSummary);
+  document.getElementById('classic-options-reset')?.addEventListener('click',updateSettingsSummary);
+  updateSettingsSummary();
   const shareSeedBtn = document.getElementById('btn-share-seed');
   shareSeedBtn.addEventListener('click', async () => {
     const url = room ? new URL('multiplayer.html?room='+room.room,location.href).href : location.origin + location.pathname + '?seed=' + encodeURIComponent(seed);
