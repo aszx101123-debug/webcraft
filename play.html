@@ -24,12 +24,13 @@
 <link rel="stylesheet" href="css/classic-furnace.css?v=v140">
 <link rel="stylesheet" href="css/classic.css?v=v185">
 <link rel="stylesheet" href="css/biome-guide.css?v=v180">
+<link rel="stylesheet" href="css/v192-menu.css?v=v192">
 <link rel="stylesheet" href="css/v191-cave-ui.css?v=v191">
 <link rel="stylesheet" href="css/multiplayer.css?v=v190">
 </head>
 <body>
 
-<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.9.1 · 동굴 물 흐름 · 동굴 몹 · 설정·크리에이티브 개선</div>
+<div id="update-badge" class="update-badge" role="status">업데이트됨 · v1.9.2 · 간결한 게임 메뉴 · 마인크래프트식 설정</div>
 <div id="boot-error" class="boot-error hidden" role="alert">
   <div class="boot-error-panel">
     <div class="boot-error-icon">!</div>
@@ -104,80 +105,111 @@
 </div>
 
 <div id="overlay-pause" class="overlay hidden">
-  <div class="panel">
-    <h2>게임 메뉴</h2>
-    <div class="btn-col">
-      <button id="btn-resume" class="btn-primary">게임으로 돌아가기</button>
-      <button id="btn-invite-room" class="btn hidden">친구 초대 링크 복사</button>
-      <button id="btn-worlds" class="btn">저장하고 월드 선택</button>
-      <div id="mobile-pause-actions" class="mobile-pause-actions" aria-label="터치 조작">
-        <div class="mobile-pause-heading">터치 조작</div>
-        <div class="mobile-pause-grid">
-          <button type="button" data-mobile-act="camera" class="btn small">시점 변경</button>
-          <button type="button" data-mobile-act="blocks" class="btn small">크리에이티브 블록</button>
-          <button type="button" data-mobile-act="fly" class="btn small">비행 켜기/끄기</button>
-          <button type="button" data-mobile-act="drop" class="btn small">아이템 버리기</button>
+  <div class="panel wc-pause-panel" role="dialog" aria-modal="true" aria-labelledby="wc-pause-title">
+    <section class="wc-pause-screen" data-wc-screen="main">
+      <h2 id="wc-pause-title">게임 메뉴</h2>
+      <div class="wc-pause-actions">
+        <button id="btn-resume" type="button" class="btn-primary">게임으로 돌아가기</button>
+        <div class="wc-pause-row">
+          <button type="button" class="btn" data-wc-open="options">설정...</button>
+          <button type="button" class="btn" data-wc-open="help">조작법...</button>
+        </div>
+        <button id="btn-invite-room" type="button" class="btn hidden">친구 초대 링크 복사</button>
+        <button type="button" class="btn" data-wc-open="world">월드 관리...</button>
+        <button id="btn-worlds" type="button" class="btn">저장하고 월드 선택</button>
+        <button id="btn-home" type="button" class="btn wc-exit-button">저장하고 타이틀 화면으로</button>
+      </div>
+      <p class="tip wc-pause-note">20초마다 자동 저장 · 게임 메뉴를 열면 월드 시간이 멈춥니다.</p>
+    </section>
+    <section class="wc-pause-screen" data-wc-screen="options" hidden aria-label="설정">
+      <h2>설정</h2>
+      <div class="wc-pause-actions">
+        <div class="wc-pause-row">
+          <button type="button" class="btn" data-wc-open="video">비디오 설정...</button>
+          <button type="button" class="btn" data-wc-open="controls">조작 설정...</button>
+        </div>
+        <div class="wc-pause-row">
+          <button type="button" class="btn" data-wc-open="audio">음악 및 소리...</button>
+          <button type="button" class="btn" data-wc-open="accessibility">접근성...</button>
+        </div>
+        <button type="button" class="btn wc-done" data-wc-back="main">완료</button>
+      </div>
+    </section>
+    <section class="wc-pause-screen" data-wc-screen="video" hidden aria-label="비디오 설정">
+      <h2>비디오 설정</h2>
+      <div class="wc-pause-setting-list">
+        <label class="classic-option" for="classic-fov"><span>시야각</span><input id="classic-fov" type="range" min="30" max="110" value="70"><output id="classic-fov-value" for="classic-fov">보통 (70)</output></label>
+        <label class="classic-option" for="sel-renderdist"><span>렌더 거리</span><select id="sel-renderdist"><option value="2">2 청크 (빠름)</option><option value="3" selected>3 청크</option><option value="4">4 청크</option><option value="5">5 청크</option></select></label>
+        <p id="settings-summary-live" class="wc-settings-summary" aria-live="polite">설정 불러오는 중…</p>
+        <details class="wc-advanced-settings"><summary>빠른 설정 프리셋</summary>
+          <div class="wc-settings-presets" role="group" aria-label="설정 프리셋">
+            <button type="button" class="btn small" data-settings-preset="fast">성능 우선</button>
+            <button type="button" class="btn small" data-settings-preset="balanced">균형</button>
+            <button type="button" class="btn small" data-settings-preset="wide">넓은 시야</button>
+          </div>
+        </details>
+      </div>
+      <button type="button" class="btn wc-done" data-wc-back="options">완료</button>
+    </section>
+    <section class="wc-pause-screen" data-wc-screen="controls" hidden aria-label="조작 설정">
+      <h2>조작 설정</h2>
+      <div class="wc-pause-setting-list">
+        <label class="classic-option" for="classic-sensitivity"><span>마우스 감도</span><input id="classic-sensitivity" type="range" min="10" max="200" value="100"><output id="classic-sensitivity-value" for="classic-sensitivity">100%</output></label>
+        <label class="classic-option wc-settings-checkbox" for="classic-invert"><span>마우스 Y축 반전</span><input id="classic-invert" type="checkbox"></label>
+        <button id="classic-options-reset" type="button" class="btn small">시야각과 감도 초기화</button>
+      </div>
+      <button type="button" class="btn wc-done" data-wc-back="options">완료</button>
+    </section>
+    <section class="wc-pause-screen" data-wc-screen="audio" hidden aria-label="음악 및 소리">
+      <h2>음악 및 소리</h2>
+      <div class="wc-pause-setting-list">
+        <button id="btn-sound" type="button" class="btn">소리: 켜짐</button>
+        <p class="wc-setting-tip">소리 버튼을 눌러 게임 효과음을 켜거나 끌 수 있습니다.</p>
+      </div>
+      <button type="button" class="btn wc-done" data-wc-back="options">완료</button>
+    </section>
+    <section class="wc-pause-screen" data-wc-screen="accessibility" hidden aria-label="접근성">
+      <h2>접근성</h2>
+      <div class="wc-pause-setting-list">
+        <p class="wc-setting-tip">키보드 단축키: F1 HUD 표시 전환 · F3 디버그 정보 · F5 카메라 시점 변경</p>
+        <p class="wc-setting-tip">마우스 Y축 반전은 조작 설정에서 변경할 수 있습니다.</p>
+      </div>
+      <button type="button" class="btn wc-done" data-wc-back="options">완료</button>
+    </section>
+    <section class="wc-pause-screen" data-wc-screen="world" hidden aria-label="월드 관리">
+      <h2>월드 관리</h2>
+      <div class="wc-pause-actions wc-pause-world-actions">
+        <button id="btn-save" type="button" class="btn">지금 저장</button>
+        <div class="wc-pause-row">
+          <button id="btn-export-world" type="button" class="btn">월드 백업 내보내기</button>
+          <button id="btn-import-world" type="button" class="btn">월드 백업 가져오기</button>
+        </div>
+        <input id="world-import-file" type="file" accept=".json,application/json" hidden>
+        <button id="btn-mode" type="button" class="btn">게임 모드 전환</button>
+        <button id="btn-share-seed" type="button" class="btn">시드 링크 복사</button>
+        <div class="wc-new-world-row"><label for="seed-input">새 월드 만들기</label><input id="seed-input" placeholder="시드 (선택)"><button id="btn-newworld" type="button" class="btn">생성</button></div>
+      </div>
+      <button type="button" class="btn wc-done" data-wc-back="main">완료</button>
+    </section>
+    <section class="wc-pause-screen" data-wc-screen="help" hidden aria-label="조작법">
+      <h2>조작법</h2>
+      <div class="wc-pause-help">
+        <p><kbd>WASD</kbd> 이동 · <kbd>Space</kbd> 점프 · <kbd>Shift</kbd> 웅크리기 · <kbd>Ctrl</kbd> 달리기</p>
+        <p>좌클릭: 블록 캐기 · 우클릭: 사용/설치 · 가운데 클릭: 블록 선택</p>
+        <p><kbd>E</kbd> 인벤토리 · <kbd>Q</kbd> 아이템 버리기 · <kbd>F5</kbd> 카메라 시점 · <kbd>Esc</kbd> 메뉴</p>
+        <button id="btn-crafting" type="button" class="btn">인벤토리 열기</button>
+        <div id="mobile-pause-actions" class="mobile-pause-actions" aria-label="터치 조작">
+          <div class="mobile-pause-heading">터치 조작</div>
+          <div class="mobile-pause-grid">
+            <button type="button" data-mobile-act="camera" class="btn small">시점 변경</button>
+            <button type="button" data-mobile-act="blocks" class="btn small">크리에이티브 블록</button>
+            <button type="button" data-mobile-act="fly" class="btn small">비행 켜기/끄기</button>
+            <button type="button" data-mobile-act="drop" class="btn small">아이템 버리기</button>
+          </div>
         </div>
       </div>
-      <details id="classic-options" class="wc-settings">
-        <summary class="btn"><span>⚙ 게임 설정</span><small>화면 · 조작 · 소리</small></summary>
-        <div class="wc-settings-content">
-          <div class="wc-settings-title"><strong>빠른 설정</strong><p>기기에 맞는 설정을 한 번에 적용할 수 있어요.</p></div>
-          <div class="wc-settings-presets" role="group" aria-label="설정 프리셋">
-            <button type="button" class="btn small" data-settings-preset="fast">⚡ 성능 우선</button>
-            <button type="button" class="btn small" data-settings-preset="balanced">◆ 균형</button>
-            <button type="button" class="btn small" data-settings-preset="wide">◈ 넓은 시야</button>
-          </div>
-          <p id="settings-summary-live" class="wc-settings-summary" aria-live="polite">현재 설정을 불러오는 중…</p>
-          <fieldset class="wc-settings-group">
-            <legend>화면</legend>
-            <label class="classic-option" for="classic-fov"><span>시야각 (FOV)</span><input id="classic-fov" type="range" min="30" max="110" value="70"><output id="classic-fov-value" for="classic-fov">보통 (70)</output></label>
-            <label class="classic-option" for="sel-renderdist"><span>렌더 거리</span><select id="sel-renderdist"><option value="2">2청크 · 빠름</option><option value="3" selected>3청크 · 보통</option><option value="4">4청크 · 넓게</option><option value="5">5청크 · 고성능</option></select></label>
-            <p class="wc-settings-hint">렌더 거리를 높이면 멀리 보이지만 프레임이 낮아질 수 있어요.</p>
-          </fieldset>
-          <fieldset class="wc-settings-group">
-            <legend>조작</legend>
-            <label class="classic-option" for="classic-sensitivity"><span>마우스 감도</span><input id="classic-sensitivity" type="range" min="10" max="200" value="100"><output id="classic-sensitivity-value" for="classic-sensitivity">100%</output></label>
-            <label class="classic-option wc-settings-checkbox" for="classic-invert"><span>마우스 Y축 반전</span><input id="classic-invert" type="checkbox"></label>
-          </fieldset>
-          <fieldset class="wc-settings-group"><legend>오디오</legend>
-            <button id="btn-sound" type="button" class="btn wc-settings-sound">소리: 켜짐</button>
-          </fieldset>
-          <button id="classic-options-reset" type="button" class="btn small wc-settings-reset">시야·감도 초기화</button>
-        </div>
-      </details>
-      <details class="classic-help">
-        <summary class="btn">조작법...</summary>
-        <p><kbd>WASD</kbd> 이동 · <kbd>Space</kbd> 점프 · <kbd>Shift</kbd> 웅크리기 · <kbd>Ctrl</kbd> 달리기</p>
-        <p>좌클릭 유지: 캐기 · 우클릭: 사용/설치 · 가운데 클릭: 보고 있는 블록 선택</p>
-        <p><kbd>E</kbd> 인벤토리 · <kbd>F</kbd> 보조 손 교체 · <kbd>Q</kbd> 1개 버리기 · <kbd>Ctrl+Q</kbd> 스택 버리기</p>
-        <p><kbd>F1</kbd> HUD 숨기기 · <kbd>F3</kbd> 디버그 · <kbd>F5</kbd> 시점 · 크리에이티브에서 <kbd>Space</kbd> 두 번: 비행</p>
-        <button id="btn-crafting" class="btn small">인벤토리 열기</button>
-      </details>
-      <button id="btn-biome-guide" class="btn" type="button" aria-controls="overlay-biome-guide">지형 도감 · 지형별 등장 확률</button>
-      <details class="classic-help">
-        <summary class="btn">새 아이템 사용법...</summary>
-        <p>괭이로 흙의 윗면을 갈고 씨앗·당근·감자를 심으세요. 물은 4블록 안에 두고, 어두운 곳에는 횃불이나 랜턴을 설치하세요. 다 자라면 우클릭으로 수확합니다.</p>
-        <p>가위로 풀을 채집하면 씨앗과 꽃을 얻어요. 양에게 쓰면 양털을 깎고, 염료로 놓인 양털을 염색할 수 있어요.</p>
-        <p>활을 들고 우클릭하면 화살을 발사합니다. 방패는 우클릭한 뒤 잠시 정면 공격을 막아요. F로 보조 손에 옮길 수 있습니다.</p>
-        <p>양동이로 물을 담거나 소에게 우유를 얻으세요. 낚싯대는 물에 던진 뒤 입질 알림이 뜨면 다시 사용하세요.</p>
-        <p>고기·생선·감자를 화로에 구워 드세요. E의 제작법 책과 제작대의 검색창에서 새 제작법을 찾을 수 있습니다. 모바일에서는 우클릭 대신 화면을 짧게 터치하세요.</p>
-      </details>
-      <details class="classic-help world-tools">
-        <summary class="btn">월드 관리...</summary>
-        <button id="btn-save" class="btn small">지금 저장</button>
-        <div class="row world-backup-tools">
-          <button id="btn-export-world" class="btn small">백업 내려받기</button>
-          <button id="btn-import-world" class="btn small">백업 가져오기</button>
-          <input id="world-import-file" type="file" accept=".json,application/json" hidden>
-        </div>
-        <button id="btn-mode" class="btn">게임 모드 전환</button>
-        <button id="btn-share-seed" class="btn small">시드 링크 복사</button>
-        <div class="row">새 월드 <input id="seed-input" placeholder="시드(선택)"><button id="btn-newworld" class="btn small">생성</button></div>
-        <button id="btn-home" class="btn ghost">저장하고 타이틀 화면으로</button>
-      </details>
-    </div>
-    <p class="tip">20초마다 자동 저장 · 게임 메뉴를 열면 월드 시간이 멈춥니다.</p>
+      <button type="button" class="btn wc-done" data-wc-back="main">완료</button>
+    </section>
   </div>
 </div>
 
@@ -357,18 +389,6 @@
     <div class="chest-section-title">내 소지품 · 36칸</div>
     <div id="chest-player-grid" class="chest-slots" aria-label="내 가방 칸"></div>
   </div>
-</div>
-
-<div id="overlay-biome-guide" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="biome-guide-heading" aria-describedby="biome-guide-description">
-  <section class="panel biome-guide-panel">
-    <div class="biome-guide-heading-row">
-      <div><h2 id="biome-guide-heading">지형 도감</h2><p>16개 지형 · 기후 및 생성 확률</p></div>
-      <button id="biome-guide-close" type="button" class="btn">메뉴로 돌아가기 (Esc)</button>
-    </div>
-    <p id="biome-guide-description">새 지역을 생성할 때 아래 가중치로 지형을 선택합니다. 실제 면적 비율은 시드와 지역 크기에 따라 달라져요. WebCraft 전용 산딸기·들꽃씨앗 등 48종 아이템과 전용 자원석은 일반 게임 플레이에서 더 이상 획득되지 않습니다. 아래의 기존 전용 아이템 정보는 과거 버전 참고용입니다.</p>
-    <p class="biome-guide-note">등장 확률 합계 100% · 새 지형은 새로 만든 월드에서 탐험하세요. 기존 월드는 이전 지형을 유지합니다.</p>
-    <div id="biome-guide-list" class="biome-guide-grid" aria-label="지형별 등장 확률과 전용 아이템"></div>
-  </section>
 </div>
 
 <div id="overlay-journal" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="journal-heading">
