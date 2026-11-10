@@ -666,7 +666,7 @@ const Mobs = (() => {
   function skyExposed(m) {
     const bx = Math.floor(m.pos.x), bz = Math.floor(m.pos.z);
     const from = Math.ceil(m.pos.y + m.def.height);
-    for (let y = from; y < Math.min(CONFIG.HEIGHT, from + 14); y++) {
+    for (let y = from; y < CONFIG.HEIGHT; y++) {
       if (isSolidBlock(World.getBlock(bx, y, bz))) return false;
     }
     return true;
@@ -1117,19 +1117,19 @@ const Mobs = (() => {
 
   function networkSnapshot(){
     const q=n=>Math.round(n*1000)/1000;
-    return {mobs:mobs.slice(0,64).map(m=>[m.networkId,m.type,q(m.pos.x),q(m.pos.y),q(m.pos.z),q(m.yaw),m.hp,m.dead?1:0,m.moving?1:0]),
+    return {mobs:mobs.slice(0,64).map(m=>[m.networkId,m.type,q(m.pos.x),q(m.pos.y),q(m.pos.z),q(m.yaw),m.hp,m.dead?1:0,m.moving?1:0,q(m.fuseT||0)]),
       arrows:arrows.slice(0,64).map(a=>[a.networkId,q(a.pos.x),q(a.pos.y),q(a.pos.z),q(a.vel.x),q(a.vel.y),q(a.vel.z)])};
   }
   function applyNetwork(snapshot){
     if(!network?.replica||!snapshot||!Array.isArray(snapshot.mobs)||snapshot.mobs.length>64)return;
     const keep=new Set();
     for(const row of snapshot.mobs){
-      if(!Array.isArray(row)||row.length!==9||!Number.isSafeInteger(row[0])||row[0]<1||!Object.prototype.hasOwnProperty.call(MOB_DEFS,row[1])||!row.slice(2,7).every(Number.isFinite)||row.slice(2,5).some(v=>Math.abs(v)>1000000)||row[7])continue;
+      if(!Array.isArray(row)||(row.length!==10&&row.length!==9)||!Number.isSafeInteger(row[0])||row[0]<1||!Object.prototype.hasOwnProperty.call(MOB_DEFS,row[1])||!row.slice(2,7).every(Number.isFinite)||row.slice(2,5).some(v=>Math.abs(v)>1000000)||row[7])continue;
       let m=mobs.find(m=>m.networkId===row[0]);
       if(m&&m.type!==row[1])continue;
       if(!m){m=spawn(row[1],row[2],row[3],row[4]);m.networkId=row[0];}
       if(row[6]<m.hp){m.hurtT=.18;flash(m,true);}
-      m.hp=Math.max(0,Math.min(m.def.hp,row[6]));m.pos.set(row[2],row[3],row[4]);m.yaw=row[5];m.moving=!!row[8];keep.add(m.networkId);
+      m.hp=Math.max(0,Math.min(m.def.hp,row[6]));m.pos.set(row[2],row[3],row[4]);m.yaw=row[5];m.moving=!!row[8];m.fuseT=Number.isFinite(row[9])?Math.max(0,Math.min(1.5,row[9])):0;keep.add(m.networkId);
     }
     for(let i=mobs.length-1;i>=0;i--)if(!keep.has(mobs[i].networkId))removeMob(i);
     const arrowRows=Array.isArray(snapshot.arrows)?snapshot.arrows.slice(0,64):[],arrowIds=new Set();
@@ -1145,6 +1145,14 @@ const Mobs = (() => {
     if(!group)return;
     for(const m of mobs){
       m.mesh.position.lerp(m.pos,Math.min(1,dt*14));m.mesh.rotation.y=lerpAngle(m.mesh.rotation.y,m.yaw,Math.min(1,dt*12));
+      if(m.type==='creeper'){
+        if(m.fuseT>0&&!m.fuseStarted&&onEvent)onEvent('fuse',m);
+        m.fuseStarted=m.fuseT>0;
+        const fl=Math.sin(m.fuseT*30)>0?1.08:1;
+        m.mesh.scale.set(fl,1+m.fuseT*.11,fl);
+      }else if(m.type==='slime'){
+        m.mesh.scale.set(1+Math.sin(m.animT*10)*.035,1-Math.sin(m.animT*10)*.065,1+Math.sin(m.animT*10)*.035);
+      }
       m.animT+=dt;const step=m.moving?Math.sin(m.animT*9)*.5:0;
       m.parts.legs.forEach((leg,i)=>leg.rotation.x=step*(i%2?-1:1));
       m.parts.arms.forEach((arm,i)=>arm.rotation.x=step*(i%2?1:-1));
