@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = 'webcraft-v2.0.2-difficulty-death-20261110';
+const VERSION = 'webcraft-v2.0.3-item-art-20261111';
 const CORE = [
   "./",
   "./index.html",
@@ -15,7 +15,7 @@ const CORE = [
   "./js/game/remote-players.js?v=v190",
   "./js/game/multiplayer-engine.js?v=v202",
   "./auth.html",
-  "./js/auth-play.js?v=v202",
+  "./js/auth-play.js?v=v203",
   "./js/auth-page.js?v=v186",
   "./js/supabase-client.js",
   "./js/community-credits-server.js?v=v186",
@@ -51,14 +51,15 @@ const CORE = [
   "./css/classic-home.css?v=v140",
   "./css/community-credits.css?v=phase3",
   "./pogl-game/vendor/three.min.js",
-  "./js/game/config.js?v=v202",
+  "./js/game/config.js?v=v203",
+  "./js/game/item-art.js?v=v203",
   "./js/game/difficulty.js?v=v202",
   "./js/game/classic-settings.js?v=v193",
   "./js/game/furnace-system.js?v=v190",
   "./js/game/noise.js",
   "./js/game/terrain-legacy.js?v=v180",
   "./js/game/terrain.js?v=v191",
-  "./js/game/mobile-test-textures.js?v=v200",
+  "./js/game/mobile-test-textures.js?v=v203",
   "./js/game/graphics.js?v=v170",
   "./js/game/voxel-lighting.js?v=v170",
   "./js/game/world.js?v=v194",
@@ -68,7 +69,7 @@ const CORE = [
   "./js/game/block-physics.js?v=v194",
   "./js/game/player.js?v=v202",
   "./js/skin-studio.js?v=v131",
-  "./js/game/mobile-test-player-model.js?v=v193",
+  "./js/game/mobile-test-player-model.js?v=v203",
   "./js/game/fluids.js?v=v129",
   "./js/game/interaction.js?v=v190",
   "./js/game/items.js?v=v170",
