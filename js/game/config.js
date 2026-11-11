@@ -1,7 +1,7 @@
 'use strict';
 
 const CONFIG = {
-  VERSION: '2.0.2',
+  VERSION: '2.0.3',
   MOB_HEALTH_BARS: false,
   CHUNK: 16,
   HEIGHT: 64,
@@ -163,13 +163,13 @@ const ITEMS = {
   [ITEM.WOODEN_SHOVEL]: toolItem(ITEM.WOODEN_SHOVEL, '나무 삽', 'shovel', 1, 2, 60, [3, 6]),
   [ITEM.STONE_SHOVEL]: toolItem(ITEM.STONE_SHOVEL, '돌 삽', 'shovel', 2, 4, 132, [4, 6]),
   [ITEM.IRON_SHOVEL]: toolItem(ITEM.IRON_SHOVEL, '철 삽', 'shovel', 3, 6, 250, [5, 6]),
-  [ITEM.GOLD_SHOVEL]: toolItem(ITEM.GOLD_SHOVEL, '금 삽', 'shovel', 4, 10, 33, [6, 5]),
-  [ITEM.DIAMOND_SHOVEL]: toolItem(ITEM.DIAMOND_SHOVEL, '다이아몬드 삽', 'shovel', 5, 8, 1562, [7, 5]),
-  [ITEM.WOODEN_HOE]: toolItem(ITEM.WOODEN_HOE, '나무 괭이', 'hoe', 1, 2, 60, [0, 6]),
-  [ITEM.STONE_HOE]: toolItem(ITEM.STONE_HOE, '돌 괭이', 'hoe', 2, 4, 132, [1, 6]),
-  [ITEM.IRON_HOE]: toolItem(ITEM.IRON_HOE, '철 괭이', 'hoe', 3, 6, 250, [2, 6]),
-  [ITEM.GOLD_HOE]: toolItem(ITEM.GOLD_HOE, '금 괭이', 'hoe', 4, 10, 33, [3, 6]),
-  [ITEM.DIAMOND_HOE]:toolItem(ITEM.DIAMOND_HOE,'다이아몬드 괭이','hoe',5,8,1562,[4,6]),[ITEM.LEATHER_HELMET]:armorItem(ITEM.LEATHER_HELMET,'가죽 투구','head',1,55,[0,8]),[ITEM.LEATHER_CHESTPLATE]:armorItem(ITEM.LEATHER_CHESTPLATE,'가죽 흉갑','chest',3,80,[1,8]),[ITEM.LEATHER_LEGGINGS]:armorItem(ITEM.LEATHER_LEGGINGS,'가죽 레깅스','legs',2,75,[2,8]),[ITEM.LEATHER_BOOTS]:armorItem(ITEM.LEATHER_BOOTS,'가죽 부츠','feet',1,65,[3,8]),[ITEM.STONE_HELMET]:armorItem(ITEM.STONE_HELMET,'돌 투구','head',1,100,[4,8]),[ITEM.STONE_CHESTPLATE]:armorItem(ITEM.STONE_CHESTPLATE,'돌 흉갑','chest',4,130,[5,8]),[ITEM.STONE_LEGGINGS]:armorItem(ITEM.STONE_LEGGINGS,'돌 레깅스','legs',3,120,[6,8]),[ITEM.STONE_BOOTS]:armorItem(ITEM.STONE_BOOTS,'돌 부츠','feet',1,110,[7,8]),[ITEM.IRON_HELMET]:armorItem(ITEM.IRON_HELMET,'철 투구','head',2,165,[8,8]),[ITEM.IRON_CHESTPLATE]:armorItem(ITEM.IRON_CHESTPLATE,'철 흉갑','chest',6,240,[9,8]),[ITEM.IRON_LEGGINGS]:armorItem(ITEM.IRON_LEGGINGS,'철 레깅스','legs',5,225,[0,9]),[ITEM.IRON_BOOTS]:armorItem(ITEM.IRON_BOOTS,'철 부츠','feet',2,195,[1,9]),[ITEM.GOLD_HELMET]:armorItem(ITEM.GOLD_HELMET,'금 투구','head',2,77,[2,9]),[ITEM.GOLD_CHESTPLATE]:armorItem(ITEM.GOLD_CHESTPLATE,'금 흉갑','chest',5,112,[3,9]),[ITEM.GOLD_LEGGINGS]:armorItem(ITEM.GOLD_LEGGINGS,'금 레깅스','legs',3,105,[4,9]),[ITEM.GOLD_BOOTS]:armorItem(ITEM.GOLD_BOOTS,'금 부츠','feet',1,91,[5,9]),[ITEM.DIAMOND_HELMET]:armorItem(ITEM.DIAMOND_HELMET,'다이아몬드 투구','head',3,363,[6,9]),[ITEM.DIAMOND_CHESTPLATE]:armorItem(ITEM.DIAMOND_CHESTPLATE,'다이아몬드 흉갑','chest',8,528,[7,9]),[ITEM.DIAMOND_LEGGINGS]:armorItem(ITEM.DIAMOND_LEGGINGS,'다이아몬드 레깅스','legs',6,495,[8,9]),[ITEM.DIAMOND_BOOTS]:armorItem(ITEM.DIAMOND_BOOTS,'다이아몬드 부츠','feet',3,429,[9,9])
+  [ITEM.GOLD_SHOVEL]: toolItem(ITEM.GOLD_SHOVEL, '금 삽', 'shovel', 4, 10, 33, [16, 23]),
+  [ITEM.DIAMOND_SHOVEL]: toolItem(ITEM.DIAMOND_SHOVEL, '다이아몬드 삽', 'shovel', 5, 8, 1562, [17, 23]),
+  [ITEM.WOODEN_HOE]: toolItem(ITEM.WOODEN_HOE, '나무 괭이', 'hoe', 1, 2, 60, [18, 23]),
+  [ITEM.STONE_HOE]: toolItem(ITEM.STONE_HOE, '돌 괭이', 'hoe', 2, 4, 132, [19, 23]),
+  [ITEM.IRON_HOE]: toolItem(ITEM.IRON_HOE, '철 괭이', 'hoe', 3, 6, 250, [20, 23]),
+  [ITEM.GOLD_HOE]: toolItem(ITEM.GOLD_HOE, '금 괭이', 'hoe', 4, 10, 33, [21, 23]),
+  [ITEM.DIAMOND_HOE]:toolItem(ITEM.DIAMOND_HOE,'다이아몬드 괭이','hoe',5,8,1562,[22,23]),[ITEM.LEATHER_HELMET]:armorItem(ITEM.LEATHER_HELMET,'가죽 투구','head',1,55,[0,8]),[ITEM.LEATHER_CHESTPLATE]:armorItem(ITEM.LEATHER_CHESTPLATE,'가죽 흉갑','chest',3,80,[1,8]),[ITEM.LEATHER_LEGGINGS]:armorItem(ITEM.LEATHER_LEGGINGS,'가죽 레깅스','legs',2,75,[2,8]),[ITEM.LEATHER_BOOTS]:armorItem(ITEM.LEATHER_BOOTS,'가죽 부츠','feet',1,65,[3,8]),[ITEM.STONE_HELMET]:armorItem(ITEM.STONE_HELMET,'돌 투구','head',1,100,[4,8]),[ITEM.STONE_CHESTPLATE]:armorItem(ITEM.STONE_CHESTPLATE,'돌 흉갑','chest',4,130,[5,8]),[ITEM.STONE_LEGGINGS]:armorItem(ITEM.STONE_LEGGINGS,'돌 레깅스','legs',3,120,[6,8]),[ITEM.STONE_BOOTS]:armorItem(ITEM.STONE_BOOTS,'돌 부츠','feet',1,110,[7,8]),[ITEM.IRON_HELMET]:armorItem(ITEM.IRON_HELMET,'철 투구','head',2,165,[8,8]),[ITEM.IRON_CHESTPLATE]:armorItem(ITEM.IRON_CHESTPLATE,'철 흉갑','chest',6,240,[9,8]),[ITEM.IRON_LEGGINGS]:armorItem(ITEM.IRON_LEGGINGS,'철 레깅스','legs',5,225,[0,9]),[ITEM.IRON_BOOTS]:armorItem(ITEM.IRON_BOOTS,'철 부츠','feet',2,195,[1,9]),[ITEM.GOLD_HELMET]:armorItem(ITEM.GOLD_HELMET,'금 투구','head',2,77,[2,9]),[ITEM.GOLD_CHESTPLATE]:armorItem(ITEM.GOLD_CHESTPLATE,'금 흉갑','chest',5,112,[3,9]),[ITEM.GOLD_LEGGINGS]:armorItem(ITEM.GOLD_LEGGINGS,'금 레깅스','legs',3,105,[4,9]),[ITEM.GOLD_BOOTS]:armorItem(ITEM.GOLD_BOOTS,'금 부츠','feet',1,91,[5,9]),[ITEM.DIAMOND_HELMET]:armorItem(ITEM.DIAMOND_HELMET,'다이아몬드 투구','head',3,363,[6,9]),[ITEM.DIAMOND_CHESTPLATE]:armorItem(ITEM.DIAMOND_CHESTPLATE,'다이아몬드 흉갑','chest',8,528,[7,9]),[ITEM.DIAMOND_LEGGINGS]:armorItem(ITEM.DIAMOND_LEGGINGS,'다이아몬드 레깅스','legs',6,495,[8,9]),[ITEM.DIAMOND_BOOTS]:armorItem(ITEM.DIAMOND_BOOTS,'다이아몬드 부츠','feet',3,429,[9,9])
   , [ITEM.WOODEN_SWORD]: swordItem('나무 검', 5, 60, [0, 7]),
   [ITEM.STONE_SWORD]: swordItem('돌 검', 6, 132, [1, 7]),
   [ITEM.IRON_SWORD]: swordItem('철 검', 7, 250, [2, 7]),
