@@ -232,12 +232,22 @@ const PlayerModel = (() => {
       return item;
     }
     if (!getItemDef(id)) return null;
-    const iconTexture = new THREE.TextureLoader().load(Textures.blockIcon(id));
+    // Use the actual 16px sprite, not the 48px UI icon with transparent
+    // padding. This keeps held swords and tools crisp and visibly larger.
+    const tile=ITEMS[id]?.tiles?.all;
+    if(!tile)return null;
+    const sprite=document.createElement('canvas');
+    sprite.width=sprite.height=16;
+    const g=sprite.getContext('2d');
+    g.imageSmoothingEnabled=false;
+    g.drawImage(Textures.getAtlas(),tile[0]*16,tile[1]*16,16,16,0,0,16,16);
+    const iconTexture=new THREE.CanvasTexture(sprite);
     iconTexture.encoding = THREE.sRGBEncoding;
     iconTexture.magFilter = THREE.NearestFilter;
     iconTexture.minFilter = THREE.NearestFilter;
+    iconTexture.generateMipmaps=false;
     const item = new THREE.Mesh(
-      new THREE.PlaneGeometry(firstPersonView ? .52 : .34, firstPersonView ? .52 : .34),
+      new THREE.PlaneGeometry(firstPersonView ? .57 : .35, firstPersonView ? .57 : .35),
       new THREE.MeshBasicMaterial({
         map: iconTexture, transparent: true, alphaTest: .10,
         side: THREE.DoubleSide, depthWrite: !firstPersonView, depthTest: !firstPersonView
