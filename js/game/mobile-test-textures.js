@@ -599,6 +599,7 @@ const Textures = (() => {
     paintMobLoot();
     paintCactus();
     paintFallingTiles();
+    ItemArt.paint(canvas,ITEMS);
     texture = new THREE.CanvasTexture(canvas);
     texture.encoding = THREE.sRGBEncoding;
     texture.magFilter = THREE.NearestFilter;
@@ -740,6 +741,7 @@ const Textures = (() => {
       // Redraw mob loot after the optional classic texture pack is applied.
       paintMobLoot();
       paintFallingTiles();
+      ItemArt.paint(canvas,ITEMS);
       waterStrip = water;
       // Eight-pixel gutters keep all four mip levels inside their own tile.
       gpuCanvas = document.createElement('canvas');
